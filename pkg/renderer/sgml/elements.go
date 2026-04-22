@@ -96,6 +96,8 @@ func (r *sgmlRenderer) renderElement(ctx *context, element interface{}) (string,
 		return r.renderConcealedIndexTerm(e)
 	case *types.ThematicBreak:
 		return r.renderThematicBreak()
+	case *types.PageBreak:
+		return r.renderPageBreak()
 	case *types.SpecialCharacter:
 		return r.renderSpecialCharacter(e)
 	case *types.Symbol:

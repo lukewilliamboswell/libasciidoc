@@ -31,6 +31,10 @@ func renderDocx(source string, settings ...configuration.Setting) renderedDocx {
 	Expect(doc.files).To(HaveKey("word/styles.xml"))
 	Expect(doc.files).To(HaveKey("word/numbering.xml"))
 	Expect(doc.files).To(HaveKey("word/_rels/document.xml.rels"))
+	Expect(doc.files).To(HaveKey("word/settings.xml"))
+	Expect(doc.files).To(HaveKey("word/fontTable.xml"))
+	Expect(doc.files).To(HaveKey("docProps/core.xml"))
+	Expect(doc.files).To(HaveKey("docProps/app.xml"))
 	return doc
 }
 
@@ -67,6 +71,26 @@ func (d renderedDocx) footnotesXML() string {
 
 func (d renderedDocx) contentTypesXML() string {
 	return string(d.files["[Content_Types].xml"])
+}
+
+func (d renderedDocx) packageRelsXML() string {
+	return string(d.files["_rels/.rels"])
+}
+
+func (d renderedDocx) settingsXML() string {
+	return string(d.files["word/settings.xml"])
+}
+
+func (d renderedDocx) fontTableXML() string {
+	return string(d.files["word/fontTable.xml"])
+}
+
+func (d renderedDocx) corePropertiesXML() string {
+	return string(d.files["docProps/core.xml"])
+}
+
+func (d renderedDocx) appPropertiesXML() string {
+	return string(d.files["docProps/app.xml"])
 }
 
 // text returns all character data from document.xml, normalized to single spaces.

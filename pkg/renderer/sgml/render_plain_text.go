@@ -64,7 +64,7 @@ func (r *plaintextRenderer) render(element interface{}) (string, error) {
 		return e.Attributes.GetAsStringWithDefault(types.AttrImageAlt, ""), nil
 	case *types.InlineLink:
 		return r.renderInlineLink(e)
-	case *types.BlankLine, types.ThematicBreak:
+	case *types.BlankLine, *types.ThematicBreak, *types.PageBreak:
 		return "\n\n", nil
 	case *types.SpecialCharacter:
 		return r.escape(e.Name), nil

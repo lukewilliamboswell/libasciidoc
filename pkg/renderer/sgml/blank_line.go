@@ -27,3 +27,15 @@ func (r *sgmlRenderer) renderThematicBreak() (string, error) {
 	}
 	return buf.String(), nil
 }
+
+func (r *sgmlRenderer) renderPageBreak() (string, error) {
+	buf := &strings.Builder{}
+	tmpl, err := r.pageBreak()
+	if err != nil {
+		return "", err
+	}
+	if err := tmpl.Execute(buf, nil); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}

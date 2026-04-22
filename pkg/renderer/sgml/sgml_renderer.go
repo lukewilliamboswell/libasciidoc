@@ -217,6 +217,9 @@ type sgmlRenderer struct {
 	thematicBreakOnce sync.Once
 	thematicBreakTmpl *texttemplate.Template
 
+	pageBreakOnce sync.Once
+	pageBreakTmpl *texttemplate.Template
+
 	tocEntryOnce sync.Once
 	tocEntryTmpl *texttemplate.Template
 
@@ -812,6 +815,14 @@ func (r *sgmlRenderer) thematicBreak() (*texttemplate.Template, error) {
 		r.thematicBreakTmpl, err = r.newTemplate("ThematicBreak", r.templates.ThematicBreak, err)
 	})
 	return r.thematicBreakTmpl, err
+}
+
+func (r *sgmlRenderer) pageBreak() (*texttemplate.Template, error) {
+	var err error
+	r.pageBreakOnce.Do(func() {
+		r.pageBreakTmpl, err = r.newTemplate("PageBreak", r.templates.PageBreak, err)
+	})
+	return r.pageBreakTmpl, err
 }
 
 func (r *sgmlRenderer) tocEntry() (*texttemplate.Template, error) {

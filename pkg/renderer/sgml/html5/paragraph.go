@@ -39,4 +39,6 @@ const (
 	manpageNameParagraphTmpl = "<p>{{ .Content }}</p>\n"
 
 	thematicBreakTmpl = "<hr>\n"
+
+	pageBreakTmpl = `<div style="break-after:page"></div>` + "\n"
 )

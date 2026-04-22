@@ -71,6 +71,7 @@ type Templates struct {
 	TableFooterCell              string
 	TableRow                     string
 	ThematicBreak                string
+	PageBreak                    string
 	TocEntry                     string
 	TocRoot                      string
 	TocSection                   string

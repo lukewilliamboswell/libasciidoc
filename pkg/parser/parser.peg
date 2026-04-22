@@ -7,7 +7,7 @@ import (
     "strconv"
     "strings"
     "unicode"
-    "github.com/bytesparadise/libasciidoc/pkg/types"
+    "github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
     log "github.com/sirupsen/logrus"
     "github.com/davecgh/go-spew/spew"
@@ -243,12 +243,13 @@ DocumentFragment <-
         / DocumentHeader 
         / Section 
         / DelimitedBlock
+        / PageBreak
         / ThematicBreak // must appear before ListElement :/
         / ListElements
         / Table
         / SinglelineComment
         / FrontMatter
-        / Paragraph // must be the last one... 
+        / Paragraph // must be the last one...
     )? // allow attribute on empty/no element
     &{
         // there must be at least `attributes` or `element`
@@ -1544,11 +1545,12 @@ ListContinuationElement <- // TODO: same as DelimitedBlockElement?
         / AttributeDeclaration
         / AttributeReset
         / DelimitedBlock
+        / PageBreak
         / ThematicBreak // must appear before ListElement :/
         / ImageBlock
         / Table
         / SinglelineComment
-        / ListContinuationParagraph // must be the last one... 
+        / ListContinuationParagraph // must be the last one...
     ) {
         if element,ok := element.(types.WithAttributes); ok && attributes != nil {
             element.AddAttributes(attributes.(types.Attributes))
@@ -2697,8 +2699,15 @@ Column <-
 ThematicBreak <- (
         "'''" // Asciidoc flavour
         / "***" / "* * *" / "---" / "- - -" / "___" / "_ _ _" // Markdown flavours are supported, too
-        ) Space* EOL EOL { 
+        ) Space* EOL EOL {
         return types.NewThematicBreak()
+    }
+
+// -------------------------------------------------------------------------------------
+// Page break
+// -------------------------------------------------------------------------------------
+PageBreak <- "<<<" Space* EOL EOL {
+        return types.NewPageBreak()
     }
 
 // -------------------------------------------------------------------------------------

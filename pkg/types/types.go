@@ -2613,6 +2613,18 @@ func NewThematicBreak() (*ThematicBreak, error) {
 }
 
 // ------------------------------------------
+// Page breaks
+// ------------------------------------------
+
+// PageBreak a page break
+type PageBreak struct{}
+
+// NewPageBreak returns a new PageBreak
+func NewPageBreak() (*PageBreak, error) {
+	return &PageBreak{}, nil
+}
+
+// ------------------------------------------
 // User Macro
 // ------------------------------------------
 
