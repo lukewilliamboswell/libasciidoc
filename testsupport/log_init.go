@@ -21,7 +21,6 @@ func init() {
 	spew.Config.DisableCapacities = true
 	spew.Config.DisablePointerAddresses = true
 	spew.Config.DisablePointerMethods = true
-	spew.Config.DisableUnexported = true
 }
 
 func parseLogLevel() log.Level {
