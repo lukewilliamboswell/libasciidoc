@@ -10,9 +10,13 @@ import (
 
 // Render renders the document as a DOCX file and writes it to the output writer.
 func Render(doc *types.Document, config *configuration.Configuration, output io.Writer) (types.Metadata, error) {
-	d := newDocxDocument()
+	ctx, err := newContext(doc, config)
+	if err != nil {
+		return types.Metadata{}, errors.Wrap(err, "unable to render docx document")
+	}
 
-	ctx := newContext(doc, config)
+	d := newDocxDocument()
+	d.theme = ctx.theme
 	r := &docxRenderer{
 		doc:    d,
 		ctx:    ctx,
@@ -49,7 +53,6 @@ bodyAttributes:
 	}
 
 	// Section numbering
-	var err error
 	if ctx.sectionNumbering, err = doc.SectionNumbers(); err != nil {
 		return metadata, errors.Wrap(err, "unable to render docx document")
 	}
@@ -127,13 +130,12 @@ func (r *docxRenderer) bodyElementsWithTableOfContents(doc *types.Document) ([]i
 			}
 		}
 		return elements, nil
-	case "", nil:
+	default:
+		// all other placements (empty, "left", "right", etc.) render TOC at the top
 		result := make([]interface{}, len(elements)+1)
 		result[0] = toc
 		copy(result[1:], elements)
 		return result, nil
-	default:
-		return nil, errors.Errorf("unsupported table of contents placement: '%v'", placement)
 	}
 }
 

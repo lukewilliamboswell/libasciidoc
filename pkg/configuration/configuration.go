@@ -1,6 +1,8 @@
 package configuration
 
 import (
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
@@ -23,6 +25,15 @@ func NewConfiguration(settings ...Setting) *Configuration {
 	for _, set := range settings {
 		set(config)
 	}
+	// set intrinsic document attributes derived from the source filename
+	if config.Filename != "" {
+		absPath, err := filepath.Abs(config.Filename)
+		if err == nil {
+			config.Attributes.Set(types.AttrDocDir, filepath.Dir(absPath))
+			config.Attributes.Set(types.AttrDocFile, absPath)
+			config.Attributes.Set(types.AttrDocName, strings.TrimSuffix(filepath.Base(absPath), filepath.Ext(absPath)))
+		}
+	}
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("new configuration: %s", spew.Sdump(config))
 	}
@@ -38,6 +49,7 @@ type Configuration struct {
 	CSS                   []string
 	BackEnd               string
 	Macros                map[string]MacroTemplate
+	ThemePath             string // path to Asciidoctor PDF theme YAML file
 }
 
 const (
@@ -108,6 +120,13 @@ func WithBackEnd(backend string) Setting {
 func WithFilename(filename string) Setting {
 	return func(config *Configuration) {
 		config.Filename = filename
+	}
+}
+
+// WithThemePath sets the path to an Asciidoctor PDF theme YAML file for DOCX styling
+func WithThemePath(path string) Setting {
+	return func(config *Configuration) {
+		config.ThemePath = path
 	}
 }
 

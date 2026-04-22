@@ -1,7 +1,6 @@
 package sgml
 
 import (
-	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -402,13 +401,12 @@ func (r *sgmlRenderer) renderDocumentBody(ctx *context, source []interface{}, to
 			} else {
 				elements = source
 			}
-		case "", nil:
+		default:
+			// all other placements (empty, "left", "right", etc.) render ToC as first element
 			log.Debug("inserting ToC as first element")
 			elements = make([]interface{}, len(source)+1)
 			elements[0] = toc
 			copy(elements[1:], source)
-		default:
-			return "", fmt.Errorf("unsupported table of contents placement: '%s'", placement)
 		}
 	} else {
 		log.Debug("not inserting ToC")

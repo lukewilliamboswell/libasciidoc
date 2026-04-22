@@ -16,7 +16,13 @@ import (
 const (
 	// AttrDocType the "doctype" attribute
 	AttrDocType = "doctype"
-	// AttrDocType the "description" attribute
+	// AttrDocDir the directory of the source document
+	AttrDocDir = "docdir"
+	// AttrDocFile the full path of the source document
+	AttrDocFile = "docfile"
+	// AttrDocName the root name of the source document (without extension)
+	AttrDocName = "docname"
+	// AttrDescription the "description" attribute
 	AttrDescription = "description"
 	// AttrSyntaxHighlighter the attribute to define the syntax highlighter on code source blocks
 	AttrSyntaxHighlighter = "source-highlighter"

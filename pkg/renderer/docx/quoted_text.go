@@ -8,6 +8,9 @@ import (
 
 func (r *docxRenderer) renderQuotedText(para *strings.Builder, qt *types.QuotedText, style runStyle) error {
 	merged := mergeStyle(style, qt.Kind)
+	if merged.monospace && merged.monoFont == "" {
+		merged.monoFont = r.ctx.theme.Code.FontFamily
+	}
 	return r.renderInlineElements(para, qt.Elements, merged)
 }
 

@@ -128,7 +128,8 @@ type parsedRun struct {
 	Text        string
 	Bold        bool
 	Italic      bool
-	Monospace   bool // w:rFonts ascii="Courier New"
+	Monospace   bool   // w:rFonts present (monospace font)
+	MonoFont    string // w:rFonts ascii value
 	Highlight   bool // w:highlight
 	Subscript   bool // w:vertAlign val="subscript"
 	Superscript bool // w:vertAlign val="superscript"
@@ -480,8 +481,9 @@ func parseRunProperties(decoder *xml.Decoder, r *parsedRun) {
 				r.Italic = true
 			case "rFonts":
 				for _, a := range t.Attr {
-					if a.Name.Local == "ascii" && a.Value == "Courier New" {
+					if a.Name.Local == "ascii" {
 						r.Monospace = true
+						r.MonoFont = a.Value
 					}
 				}
 			case "highlight":
@@ -662,9 +664,11 @@ type parsedNumberingDef struct {
 }
 
 type parsedNumberingLevel struct {
-	Level  string // w:ilvl
-	Format string // w:numFmt val
-	Start  string // w:start val
+	Level   string // w:ilvl
+	Format  string // w:numFmt val
+	Start   string // w:start val
+	LvlText string // w:lvlText val
+	Indent  string // w:ind w:left val (from w:pPr)
 }
 
 func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
@@ -674,10 +678,21 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 	type xmlNumFmt struct {
 		Val string `xml:"val,attr"`
 	}
+	type xmlLvlText struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlInd struct {
+		Left string `xml:"left,attr"`
+	}
+	type xmlPPr struct {
+		Ind *xmlInd `xml:"ind"`
+	}
 	type xmlLvl struct {
-		Ilvl   string     `xml:"ilvl,attr"`
-		Start  *xmlStart  `xml:"start"`
-		NumFmt *xmlNumFmt `xml:"numFmt"`
+		Ilvl    string      `xml:"ilvl,attr"`
+		Start   *xmlStart   `xml:"start"`
+		NumFmt  *xmlNumFmt  `xml:"numFmt"`
+		LvlText *xmlLvlText `xml:"lvlText"`
+		PPr     *xmlPPr     `xml:"pPr"`
 	}
 	type xmlAbstractNum struct {
 		AbstractNumID string   `xml:"abstractNumId,attr"`
@@ -709,6 +724,12 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 			if lvl.Start != nil {
 				pl.Start = lvl.Start.Val
 			}
+			if lvl.LvlText != nil {
+				pl.LvlText = lvl.LvlText.Val
+			}
+			if lvl.PPr != nil && lvl.PPr.Ind != nil {
+				pl.Indent = lvl.PPr.Ind.Left
+			}
 			levels = append(levels, pl)
 		}
 		absMap[abs.AbstractNumID] = levels
@@ -733,6 +754,146 @@ func (d renderedDocx) findNumberingDef(numID string) *parsedNumberingDef {
 		}
 	}
 	return nil
+}
+
+// ---------- styles.xml structured parser ----------
+
+type parsedStyle struct {
+	ID     string // w:styleId
+	Name   string // w:name val
+	Font   string // w:rFonts ascii
+	Size   string // w:sz val (half-points)
+	Bold   bool
+	Italic bool
+	Color  string // w:color val
+}
+
+func (d renderedDocx) parseStyles() []parsedStyle {
+	type xmlRFonts struct {
+		Ascii string `xml:"ascii,attr"`
+	}
+	type xmlSz struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlColor struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlName struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlRPr struct {
+		RFonts *xmlRFonts `xml:"rFonts"`
+		B      *struct{}  `xml:"b"`
+		I      *struct{}  `xml:"i"`
+		Sz     *xmlSz     `xml:"sz"`
+		Color  *xmlColor  `xml:"color"`
+	}
+	type xmlStyle struct {
+		StyleID string  `xml:"styleId,attr"`
+		Name    xmlName `xml:"name"`
+		RPr     xmlRPr  `xml:"rPr"`
+	}
+	type xmlStyles struct {
+		Styles []xmlStyle `xml:"style"`
+	}
+	var styles xmlStyles
+	Expect(xml.Unmarshal(d.files["word/styles.xml"], &styles)).To(Succeed())
+	var result []parsedStyle
+	for _, s := range styles.Styles {
+		ps := parsedStyle{
+			ID:     s.StyleID,
+			Name:   s.Name.Val,
+			Bold:   s.RPr.B != nil,
+			Italic: s.RPr.I != nil,
+		}
+		if s.RPr.RFonts != nil {
+			ps.Font = s.RPr.RFonts.Ascii
+		}
+		if s.RPr.Sz != nil {
+			ps.Size = s.RPr.Sz.Val
+		}
+		if s.RPr.Color != nil {
+			ps.Color = s.RPr.Color.Val
+		}
+		result = append(result, ps)
+	}
+	return result
+}
+
+func (d renderedDocx) findStyle(styleID string) *parsedStyle {
+	for _, s := range d.parseStyles() {
+		if s.ID == styleID {
+			return &s
+		}
+	}
+	return nil
+}
+
+// ---------- section properties parser ----------
+
+type parsedSectionProps struct {
+	PageW  string // w:pgSz w:w
+	PageH  string // w:pgSz w:h
+	Top    string // w:pgMar w:top
+	Right  string // w:pgMar w:right
+	Bottom string // w:pgMar w:bottom
+	Left   string // w:pgMar w:left
+}
+
+func (d renderedDocx) parseSectionProps() *parsedSectionProps {
+	decoder := xml.NewDecoder(strings.NewReader(d.documentXML()))
+	for {
+		token, ok := nextToken(decoder)
+		if !ok {
+			break
+		}
+		if se, ok := token.(xml.StartElement); ok && se.Name.Local == "sectPr" {
+			return parseSectPr(decoder, se)
+		}
+	}
+	return nil
+}
+
+func parseSectPr(decoder *xml.Decoder, start xml.StartElement) *parsedSectionProps {
+	sp := &parsedSectionProps{}
+	depth := 1
+	for depth > 0 {
+		token, ok := nextToken(decoder)
+		if !ok {
+			break
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			depth++
+			switch t.Name.Local {
+			case "pgSz":
+				for _, a := range t.Attr {
+					switch a.Name.Local {
+					case "w":
+						sp.PageW = a.Value
+					case "h":
+						sp.PageH = a.Value
+					}
+				}
+			case "pgMar":
+				for _, a := range t.Attr {
+					switch a.Name.Local {
+					case "top":
+						sp.Top = a.Value
+					case "right":
+						sp.Right = a.Value
+					case "bottom":
+						sp.Bottom = a.Value
+					case "left":
+						sp.Left = a.Value
+					}
+				}
+			}
+		case xml.EndElement:
+			depth--
+		}
+	}
+	return sp
 }
 
 const nsMl = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"

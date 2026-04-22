@@ -33,7 +33,7 @@ func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
 
 func (r *docxRenderer) renderCodeParagraph(p *types.Paragraph) error {
 	para := r.startParagraph(paragraphOptions{style: "CodeBlock"})
-	if err := r.renderInlineElements(para, p.Elements, runStyle{monospace: true}); err != nil {
+	if err := r.renderInlineElements(para, p.Elements, runStyle{monospace: true, monoFont: r.ctx.theme.Code.FontFamily}); err != nil {
 		return err
 	}
 	r.endParagraph(para)

@@ -64,7 +64,7 @@ var _ = Describe("list comprehensive", func() {
 
 	Context("nested lists", func() {
 
-		It("should render nested unordered lists with increasing ilvl", func() {
+		It("should render nested unordered lists with ilvl 0 and separate numId", func() {
 			doc := renderDocx(`* level 1a
 ** level 2a
 ** level 2b
@@ -78,10 +78,11 @@ var _ = Describe("list comprehensive", func() {
 			p2 := doc.findParagraph("level 2a")
 			Expect(p2).ToNot(BeNil())
 			Expect(p2.NumID).ToNot(BeEmpty())
-			Expect(p2.NumLevel).To(Equal("1"))
+			Expect(p2.NumLevel).To(Equal("0"))
+			Expect(p2.NumID).ToNot(Equal(p1.NumID), "nested list should have a different numId")
 		})
 
-		It("should render nested ordered lists with increasing ilvl", func() {
+		It("should render nested ordered lists with ilvl 0 and separate numId", func() {
 			doc := renderDocx(`. first
 .. nested first
 .. nested second
@@ -93,7 +94,8 @@ var _ = Describe("list comprehensive", func() {
 
 			pNested := doc.findParagraph("nested first")
 			Expect(pNested).ToNot(BeNil())
-			Expect(pNested.NumLevel).To(Equal("1"))
+			Expect(pNested.NumLevel).To(Equal("0"))
+			Expect(pNested.NumID).ToNot(Equal(pTop.NumID), "nested list should have a different numId")
 		})
 
 		It("should render mixed ordered and unordered nesting with different formats", func() {
@@ -115,6 +117,76 @@ var _ = Describe("list comprehensive", func() {
 			unorderedDef := doc.findNumberingDef(pUnordered.NumID)
 			Expect(unorderedDef).ToNot(BeNil())
 			Expect(unorderedDef.Levels[0].Format).To(Equal("bullet"))
+		})
+
+		It("should use lvlText %1. for all list items regardless of nesting depth", func() {
+			doc := renderDocx(`. level 1
+.. level 2
+... level 3`)
+
+			for _, text := range []string{"level 1", "level 2", "level 3"} {
+				p := doc.findParagraph(text)
+				Expect(p).ToNot(BeNil(), "expected paragraph for %q", text)
+				Expect(p.NumLevel).To(Equal("0"), "paragraph %q should use ilvl 0", text)
+
+				def := doc.findNumberingDef(p.NumID)
+				Expect(def).ToNot(BeNil(), "expected numbering def for %q", text)
+				Expect(def.Levels[0].LvlText).To(Equal("%1."),
+					"paragraph %q should use lvlText %%1. at level 0, not %%N. for higher N", text)
+			}
+		})
+
+		It("should increase indent for deeper nesting levels", func() {
+			doc := renderDocx(`. level 1
+.. level 2
+... level 3`)
+
+			p1 := doc.findParagraph("level 1")
+			Expect(p1).ToNot(BeNil())
+			def1 := doc.findNumberingDef(p1.NumID)
+			Expect(def1).ToNot(BeNil())
+
+			p2 := doc.findParagraph("level 2")
+			Expect(p2).ToNot(BeNil())
+			def2 := doc.findNumberingDef(p2.NumID)
+			Expect(def2).ToNot(BeNil())
+
+			p3 := doc.findParagraph("level 3")
+			Expect(p3).ToNot(BeNil())
+			def3 := doc.findNumberingDef(p3.NumID)
+			Expect(def3).ToNot(BeNil())
+
+			// Indent at level 0 should increase with nesting depth
+			Expect(def1.Levels[0].Indent).To(Equal("720"))  // base indent: 0*360 + 720
+			Expect(def2.Levels[0].Indent).To(Equal("1080")) // nested indent: 1*360 + 720
+			Expect(def3.Levels[0].Indent).To(Equal("1440")) // deeper indent: 2*360 + 720
+		})
+
+		It("should assign correct numbering format at each nesting depth", func() {
+			doc := renderDocx(`. arabic
+.. alpha
+... roman
+.... upper alpha
+..... upper roman`)
+
+			expected := []struct {
+				text   string
+				format string
+			}{
+				{"arabic", "decimal"},
+				{"alpha", "lowerLetter"},
+				{"roman", "lowerRoman"},
+				{"upper alpha", "upperLetter"},
+				{"upper roman", "upperRoman"},
+			}
+			for _, e := range expected {
+				p := doc.findParagraph(e.text)
+				Expect(p).ToNot(BeNil(), "expected paragraph for %q", e.text)
+				def := doc.findNumberingDef(p.NumID)
+				Expect(def).ToNot(BeNil(), "expected numbering def for %q", e.text)
+				Expect(def.Levels[0].Format).To(Equal(e.format),
+					"paragraph %q should use format %q", e.text, e.format)
+			}
 		})
 	})
 

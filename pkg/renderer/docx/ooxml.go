@@ -33,6 +33,7 @@ type docxDocument struct {
 	nextNumID    int
 	nextAbsNumID int
 	hasFootnotes bool
+	theme        *DocxTheme
 }
 
 type relationship struct {
@@ -53,6 +54,7 @@ type numberingDefinition struct {
 	NumID      int
 	Format     string
 	Start      int
+	Indent     int // base indentation in twips (set from list nesting depth)
 }
 
 func newDocxDocument() *docxDocument {
@@ -101,7 +103,7 @@ func (d *docxDocument) addImage(data []byte, source string) (string, string) {
 	return id, name
 }
 
-func (d *docxDocument) addNumbering(format string, start int) (numID int) {
+func (d *docxDocument) addNumbering(format string, start, indent int) (numID int) {
 	if start <= 0 {
 		start = 1
 	}
@@ -110,6 +112,7 @@ func (d *docxDocument) addNumbering(format string, start int) (numID int) {
 		NumID:      d.nextNumID,
 		Format:     format,
 		Start:      start,
+		Indent:     indent,
 	}
 	d.nextAbsNumID++
 	d.nextNumID++
@@ -136,7 +139,7 @@ func (d *docxDocument) WriteTo(output io.Writer) error {
 		"[Content_Types].xml":          d.contentTypesXML(),
 		"_rels/.rels":                  packageRelsXML(),
 		"word/document.xml":            d.documentXML(),
-		"word/styles.xml":              stylesXML(),
+		"word/styles.xml":              d.stylesXML(),
 		"word/numbering.xml":           d.numberingXML(),
 		"word/_rels/document.xml.rels": d.documentRelsXML(),
 	}
@@ -219,11 +222,20 @@ func (d *docxDocument) documentXML() string {
 		` xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"` +
 		` xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"` +
 		` xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-		`<w:body>` + d.body.String() + sectionPropertiesXML() + `</w:body></w:document>`
+		`<w:body>` + d.body.String() + d.sectionPropertiesXML() + `</w:body></w:document>`
 }
 
-func sectionPropertiesXML() string {
-	return `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>`
+func (d *docxDocument) sectionPropertiesXML() string {
+	t := d.theme
+	w, h := pageSizeTwips(t.Page.Size, t.Page.Layout)
+	top := mmToTwips(t.Page.Margin[0])
+	right := mmToTwips(t.Page.Margin[1])
+	bottom := mmToTwips(t.Page.Margin[2])
+	left := mmToTwips(t.Page.Margin[3])
+	return `<w:sectPr><w:pgSz w:w="` + itoa(w) + `" w:h="` + itoa(h) + `"/>` +
+		`<w:pgMar w:top="` + itoa(top) + `" w:right="` + itoa(right) +
+		`" w:bottom="` + itoa(bottom) + `" w:left="` + itoa(left) +
+		`" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>`
 }
 
 func (d *docxDocument) contentTypesXML() string {
@@ -294,7 +306,8 @@ func (d *docxDocument) numberingXML() string {
 }
 
 func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefinition, level int) {
-	indent := 720 + level*360
+	baseIndent := ptToTwips(d.theme.List.Indent)
+	indent := def.Indent + baseIndent + level*360
 	hanging := 360
 	b.WriteString(`<w:lvl w:ilvl="`)
 	b.WriteString(strconv.Itoa(level))
@@ -325,34 +338,50 @@ func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefi
 	b.WriteString(`"/></w:pPr></w:lvl>`)
 }
 
-func stylesXML() string {
+func (d *docxDocument) stylesXML() string {
+	t := d.theme
+	baseSz := itoa(ptToHalfPt(t.Base.FontSize))
+	baseFont := t.Base.FontFamily
+	headingBold := t.Heading.FontStyle == "bold" || t.Heading.FontStyle == "bold_italic"
+	headingItalic := t.Heading.FontStyle == "italic" || t.Heading.FontStyle == "bold_italic"
+	headingFont := t.Heading.FontFamily
+	headingColor := t.Heading.FontColor
+	titleBold := t.Title.TitleFontStyle == "bold" || t.Title.TitleFontStyle == "bold_italic"
+	titleItalic := t.Title.TitleFontStyle == "italic" || t.Title.TitleFontStyle == "bold_italic"
+
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
 	b.WriteString(`<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
-	b.WriteString(`<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:cs="Aptos"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>`)
-	b.WriteString(styleParagraph("Normal", "Normal", "", 22, false, false))
-	b.WriteString(styleParagraph("Title", "Title", "", 40, true, false))
-	b.WriteString(styleParagraph("Subtitle", "Subtitle", "", 24, false, true))
+	b.WriteString(`<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="`)
+	b.WriteString(xmlAttr(baseFont))
+	b.WriteString(`" w:hAnsi="`)
+	b.WriteString(xmlAttr(baseFont))
+	b.WriteString(`" w:cs="`)
+	b.WriteString(xmlAttr(baseFont))
+	b.WriteString(`"/><w:sz w:val="`)
+	b.WriteString(baseSz)
+	b.WriteString(`"/><w:szCs w:val="`)
+	b.WriteString(baseSz)
+	b.WriteString(`"/></w:rPr></w:rPrDefault></w:docDefaults>`)
+	b.WriteString(styleParagraph("Normal", "Normal", "", ptToHalfPt(t.Base.FontSize), false, false, t.Base.FontColor))
+	b.WriteString(styleParagraph("Title", "Title", "", ptToHalfPt(t.Title.TitleFontSize), titleBold, titleItalic, t.Title.TitleFontColor))
+	b.WriteString(styleParagraph("Subtitle", "Subtitle", "", ptToHalfPt(t.Title.SubtitleFontSize), false, true, t.Title.SubtitleFontColor))
 	for i := 1; i <= 9; i++ {
-		size := 32 - i*2
-		if size < 20 {
-			size = 20
-		}
-		b.WriteString(styleParagraph("Heading"+strconv.Itoa(i), "heading "+strconv.Itoa(i), "", size, true, false))
+		b.WriteString(styleParagraph("Heading"+strconv.Itoa(i), "heading "+strconv.Itoa(i), headingFont, t.headingSizeHalfPt(i), headingBold, headingItalic, headingColor))
 	}
-	b.WriteString(styleParagraph("Quote", "Quote", "", 22, false, true))
-	b.WriteString(styleParagraph("Admonition", "Admonition", "", 22, false, false))
-	b.WriteString(styleParagraph("Caption", "Caption", "", 20, false, true))
-	b.WriteString(styleParagraph("CodeBlock", "Code Block", "Courier New", 20, false, false))
-	b.WriteString(styleParagraph("ListParagraph", "List Paragraph", "", 22, false, false))
-	b.WriteString(styleParagraph("FootnoteText", "Footnote Text", "", 18, false, false))
+	b.WriteString(styleParagraph("Quote", "Quote", "", ptToHalfPt(t.Base.FontSize), false, true, ""))
+	b.WriteString(styleParagraph("Admonition", "Admonition", "", ptToHalfPt(t.Base.FontSize), false, false, ""))
+	b.WriteString(styleParagraph("Caption", "Caption", "", ptToHalfPt(t.Code.FontSize), false, true, ""))
+	b.WriteString(styleParagraph("CodeBlock", "Code Block", t.Code.FontFamily, ptToHalfPt(t.Code.FontSize), false, false, ""))
+	b.WriteString(styleParagraph("ListParagraph", "List Paragraph", "", ptToHalfPt(t.Base.FontSize), false, false, ""))
+	b.WriteString(styleParagraph("FootnoteText", "Footnote Text", "", 18, false, false, ""))
 	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>`)
 	b.WriteString(`<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="Footnote Reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>`)
 	b.WriteString(`</w:styles>`)
 	return b.String()
 }
 
-func styleParagraph(id, name, font string, size int, bold, italic bool) string {
+func styleParagraph(id, name, font string, size int, bold, italic bool, color string) string {
 	b := &strings.Builder{}
 	b.WriteString(`<w:style w:type="paragraph" w:styleId="`)
 	b.WriteString(xmlAttr(id))
@@ -373,6 +402,11 @@ func styleParagraph(id, name, font string, size int, bold, italic bool) string {
 	}
 	if italic {
 		b.WriteString(`<w:i/>`)
+	}
+	if color != "" {
+		b.WriteString(`<w:color w:val="`)
+		b.WriteString(xmlAttr(color))
+		b.WriteString(`"/>`)
 	}
 	b.WriteString(`<w:sz w:val="`)
 	b.WriteString(strconv.Itoa(size))

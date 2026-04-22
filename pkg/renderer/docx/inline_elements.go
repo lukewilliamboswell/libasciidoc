@@ -9,15 +9,16 @@ import (
 
 // runStyle carries accumulated formatting state for nested inline elements.
 type runStyle struct {
-	bold        bool
-	italic      bool
-	monospace   bool
-	highlight   bool
-	subscript   bool
-	superscript bool
-	underline   bool
-	color       string
-	charStyle   string
+	bold          bool
+	italic        bool
+	monospace     bool
+	monoFont      string // font name for monospace (from theme); empty means "Courier New"
+	highlight     bool
+	subscript     bool
+	superscript   bool
+	underline     bool
+	color         string
+	charStyle     string
 }
 
 type paragraphOptions struct {
@@ -171,7 +172,17 @@ func writeRunProperties(para *strings.Builder, style runStyle) {
 		para.WriteString("<w:i/>")
 	}
 	if style.monospace {
-		para.WriteString(`<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New" w:cs="Courier New"/>`)
+		font := style.monoFont
+		if font == "" {
+			font = "Courier New"
+		}
+		para.WriteString(`<w:rFonts w:ascii="`)
+		para.WriteString(xmlAttr(font))
+		para.WriteString(`" w:hAnsi="`)
+		para.WriteString(xmlAttr(font))
+		para.WriteString(`" w:cs="`)
+		para.WriteString(xmlAttr(font))
+		para.WriteString(`"/>`)
 	}
 	if style.highlight {
 		para.WriteString(`<w:highlight w:val="yellow"/>`)

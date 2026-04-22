@@ -12,13 +12,22 @@ type context struct {
 	elementReferences types.ElementReferences
 	hasHeader         bool
 	sectionNumbering  types.SectionNumbers
+	theme             *DocxTheme
 }
 
-func newContext(doc *types.Document, config *configuration.Configuration) *context {
+func newContext(doc *types.Document, config *configuration.Configuration) (*context, error) {
 	header, _ := doc.Header()
 	attributes := config.Attributes.Clone()
 	if attributes == nil {
 		attributes = types.Attributes{}
+	}
+	theme := DefaultTheme()
+	if config.ThemePath != "" {
+		var err error
+		theme, err = LoadTheme(config.ThemePath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	ctx := &context{
 		config:            config,
@@ -26,6 +35,7 @@ func newContext(doc *types.Document, config *configuration.Configuration) *conte
 		attributes:        attributes,
 		elementReferences: doc.ElementReferences,
 		hasHeader:         header != nil,
+		theme:             theme,
 	}
 	if !ctx.attributes.Has(types.AttrFigureCaption) {
 		ctx.attributes[types.AttrFigureCaption] = "Figure"
@@ -41,7 +51,7 @@ func newContext(doc *types.Document, config *configuration.Configuration) *conte
 			ctx.attributes.AddAll(revision.Expand())
 		}
 	}
-	return ctx
+	return ctx, nil
 }
 
 const tableCounter = "tableCounter"

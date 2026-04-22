@@ -26,7 +26,13 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 			return err
 		}
 	}
-	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/></w:tblBorders></w:tblPr><w:tblGrid>`)
+	borderSz := itoa(ptToEighths(r.ctx.theme.Table.BorderWidth))
+	borderColor := r.ctx.theme.Table.BorderColor
+	border := `w:val="single" w:sz="` + borderSz + `" w:space="0" w:color="` + xmlAttr(borderColor) + `"`
+	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>` +
+		`<w:top ` + border + `/><w:left ` + border + `/><w:bottom ` + border + `/>` +
+		`<w:right ` + border + `/><w:insideH ` + border + `/><w:insideV ` + border + `/>` +
+		`</w:tblBorders></w:tblPr><w:tblGrid>`)
 	for i := 0; i < colCount; i++ {
 		r.writer.WriteString(`<w:gridCol w:w="`)
 		r.writer.WriteString(fmt.Sprint(9000 / colCount))
@@ -35,7 +41,8 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	r.writer.WriteString(`</w:tblGrid>`)
 	for i, row := range rows {
 		bold := (t.Header != nil && i == 0) || (t.Footer != nil && i == len(rows)-1)
-		if err := r.renderTableRow(row, colCount, bold); err != nil {
+		isHeader := t.Header != nil && i == 0
+		if err := r.renderTableRow(row, colCount, bold, isHeader); err != nil {
 			return err
 		}
 	}
@@ -43,14 +50,14 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	return nil
 }
 
-func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold bool) error {
+func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, isHeader bool) error {
 	r.writer.WriteString("<w:tr>")
 	for i := 0; i < colCount; i++ {
 		var cell *types.TableCell
 		if i < len(row.Cells) {
 			cell = row.Cells[i]
 		}
-		if err := r.renderTableCell(cell, bold); err != nil {
+		if err := r.renderTableCell(cell, bold, isHeader); err != nil {
 			return err
 		}
 	}
@@ -58,8 +65,14 @@ func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold bo
 	return nil
 }
 
-func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold bool) error {
-	r.writer.WriteString(`<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>`)
+func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, isHeader bool) error {
+	r.writer.WriteString(`<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>`)
+	if isHeader && r.ctx.theme.Table.HeadBgColor != "" {
+		r.writer.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
+		r.writer.WriteString(xmlAttr(r.ctx.theme.Table.HeadBgColor))
+		r.writer.WriteString(`"/>`)
+	}
+	r.writer.WriteString(`</w:tcPr>`)
 	if cell == nil || len(cell.Elements) == 0 {
 		r.writer.WriteString(`<w:p/>`)
 		r.writer.WriteString(`</w:tc>`)

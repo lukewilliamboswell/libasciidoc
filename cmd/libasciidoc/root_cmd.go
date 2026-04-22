@@ -25,6 +25,7 @@ func NewRootCmd() *cobra.Command {
 	var backend string
 	var attributes []string
 	var profile string
+	var themePath string
 
 	rootCmd := &cobra.Command{
 		Use:   "libasciidoc [flags] FILE",
@@ -63,7 +64,8 @@ func NewRootCmd() *cobra.Command {
 						configuration.WithAttributes(attrs),
 						configuration.WithCSS(css),
 						configuration.WithBackEnd(backend),
-						configuration.WithHeaderFooter(!noHeaderFooter))
+						configuration.WithHeaderFooter(!noHeaderFooter),
+						configuration.WithThemePath(themePath))
 					_, err := libasciidoc.ConvertFile(out, config)
 					if err != nil {
 						return err
@@ -82,6 +84,7 @@ func NewRootCmd() *cobra.Command {
 	flags.StringArrayVarP(&attributes, "attribute", "a", []string{}, "a document attribute to set in the form of name, name!, or name=value pair")
 	flags.StringVarP(&backend, "backend", "b", "html5", "backend to format the file")
 	flags.StringVar(&profile, "profile", "", "enable profiling")
+	flags.StringVar(&themePath, "theme", "", "path to Asciidoctor PDF theme YAML file for DOCX styling")
 	return rootCmd
 }
 

@@ -24,7 +24,8 @@ func (r *docxRenderer) renderList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderOrderedList(l *types.List) error {
-	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1))
+	indent := (r.listLevel - 1) * 360
+	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
 	for _, item := range l.Elements {
 		if ole, ok := item.(*types.OrderedListElement); ok {
 			if err := r.renderListItem(numID, ole.Elements); err != nil {
@@ -36,7 +37,8 @@ func (r *docxRenderer) renderOrderedList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderUnorderedList(l *types.List) error {
-	numID := r.doc.addNumbering("bullet", 1)
+	indent := (r.listLevel - 1) * 360
+	numID := r.doc.addNumbering("bullet", 1, indent)
 	for _, item := range l.Elements {
 		if ule, ok := item.(*types.UnorderedListElement); ok {
 			if ule.CheckStyle != types.NoCheck {
@@ -90,7 +92,7 @@ func (r *docxRenderer) renderListItem(numID int, elements []interface{}) error {
 		switch e := elem.(type) {
 		case *types.Paragraph:
 			if i == 0 {
-				if err := r.renderParagraphAsListItem(e, paragraphOptions{numID: numID, level: r.listLevel - 1}); err != nil {
+				if err := r.renderParagraphAsListItem(e, paragraphOptions{numID: numID, level: 0}); err != nil {
 					return err
 				}
 			} else if err := r.renderParagraphAsListItem(e, paragraphOptions{style: "ListParagraph"}); err != nil {
