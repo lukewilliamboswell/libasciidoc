@@ -3,7 +3,7 @@ package sgml
 import (
 	"fmt"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *sgmlRenderer) renderSpecialCharacter(s *types.SpecialCharacter) (string, error) {

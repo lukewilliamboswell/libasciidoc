@@ -3,10 +3,10 @@ package xhtml5
 import (
 	"io"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml/html5"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml/html5"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 // Render renders the document to the output, using the SGML renderer configured with the XHTML5 templates

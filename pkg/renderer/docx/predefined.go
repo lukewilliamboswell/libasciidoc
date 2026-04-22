@@ -3,7 +3,7 @@ package docx
 import (
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 var predefinedAttributes = map[string]string{

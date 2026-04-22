@@ -1,7 +1,7 @@
 package sgml
 
 import (
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func discardBlankLines(lines []interface{}) []interface{} {

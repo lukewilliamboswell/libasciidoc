@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"

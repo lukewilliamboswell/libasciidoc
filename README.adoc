@@ -1,148 +1,141 @@
 = Libasciidoc
 
-image:https://godoc.org/github.com/bytesparadise/libasciidoc?status.svg["GoDoc", link="https://godoc.org/github.com/bytesparadise/libasciidoc"]
-image:https://goreportcard.com/badge/github.com/bytesparadise/libasciidoc["Go Report Card", link="https://goreportcard.com/report/github.com/bytesparadise/libasciidoc"]
-image:https://github.com/bytesparadise/libasciidoc/workflows/ci-build/badge.svg["GitHub Action Build Status", link="https://github.com/bytesparadise/libasciidoc/actions?query=workflow%3Aci-build"]
-image:https://codecov.io/gh/bytesparadise/libasciidoc/branch/master/graph/badge.svg["Codecov", link="https://codecov.io/gh/bytesparadise/libasciidoc"]
 image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://opensource.org/licenses/Apache-2.0"]
 
-Libasciidoc is an open source Go library to convert from Asciidoc to HTML.
+Libasciidoc is an open source Go library that converts Asciidoc content into HTML or DOCX.
 
-== Supported syntax
+This is a fork of https://github.com/bytesparadise/libasciidoc[bytesparadise/libasciidoc] with DOCX output support and modernised build tooling.
 
-Although it does not support the full Asciidoc/Asciidoctor syntax, Libasciidoc already provides users with the following features:
+== Installation
+
+    $ go install github.com/lukewilliamboswell/libasciidoc/cmd/libasciidoc@latest
+
+== Usage
+
+=== HTML output (default)
+
+    $ libasciidoc -s content.adoc
+    $ libasciidoc -o - content.adoc          # output to STDOUT
+    $ libasciidoc -o output.html content.adoc # explicit output file
+
+=== DOCX output
+
+    $ libasciidoc -b docx content.adoc          # produces content.docx
+    $ libasciidoc -b docx -o - content.adoc     # output to STDOUT
+    $ libasciidoc -b docx -o out.docx content.adoc
+
+=== All options
+
+    $ libasciidoc --help
+
+== Output Formats
+
+Using `-b` (or `--backend`) the following formats are supported:
+
+* `html5` (also `html`) -- this is the default
+* `xhtml5` (also `xhtml`)
+* `docx` -- Microsoft Word (.docx) output
+
+== Supported Syntax
+
+Although it does not support the full Asciidoc/Asciidoctor syntax, Libasciidoc provides the following features:
 
 * Title and Sections level 1 to 6
 * Document authors and revision
 * Attribute declaration and substitution
 * Paragraphs and admonition paragraphs
-* Delimited Blocks (fenced blocks, listing blocks, example blocks, comment blocks, quoted blocks, sidebar blocks, verse blocks, open blocks)
-* Source code highlighting of delimited blocks (use either `chroma` or `pygments` as the `source-highlighter`)
-* Literal blocks (paragraph starting with a space, with the `+++....+++` delimiter or with the `[literal]` attribute)
-* Quoted text (bold, italic, monospace, marked, superscript and subscript) and substitution prevention using the backslash (`\`) character
-* Single and double quoted typographic quotes (e.g. '`single`' and "`double`")
-* Explicit and implicit curved apostrophe
-* Copyright (C), Registered (R), and Trademark (TM) symbols
-* Passthrough (wrapping with a single plus or a triple plus, or using the `+++pass:[]+++` or `+++pass:q[]+++` macros)
-* External links in paragraphs (`https://`, `http://`, `ftp://`, `irc://`, `mailto:`)
-* Inline images in paragraphs (`image:`)
-* Image blocks (`image::`)
-* Icons including font, graphic icons, both in admonition blocks and inline (`icon:`)
-* Element attributes (`ID`, `link`, `title`, `role`, etc.) including short-hand (`[#id.role1.role2]`)
-* Ordered lists including custom numbering types (`arabic`, `upperroman`, `lowergreek`, and so forth)
-* Unordered lists including bullet styles
-* Labeled lists, including `[horizontal]` and `[qanda]` styles
-* Nesting of links of different types & attributes
-* Tables (basic support: header line and cells on multiple lines, top-level table styles)
-* Horizontal rules (thematic breaks) and page breaks
+* Delimited Blocks (fenced, listing, example, comment, quoted, sidebar, verse, open)
+* Source code highlighting via https://github.com/alecthomas/chroma[Chroma] (use `chroma` or `pygments` as the `source-highlighter`)
+* Literal blocks
+* Quoted text (bold, italic, monospace, marked, superscript, subscript) and backslash escaping
+* Typographic quotes and symbols (copyright, registered, trademark)
+* Passthrough (single plus, triple plus, `pass:[]`, `pass:q[]`)
+* External links (`https://`, `http://`, `ftp://`, `irc://`, `mailto:`)
+* Inline and block images
+* Icons (font, graphic, admonition blocks and inline)
+* Element attributes (ID, link, title, role, short-hand)
+* Ordered, unordered, labeled, and checklist lists
+* Tables (header line, multi-line cells, top-level styles)
+* Horizontal rules and page breaks
 * Table of contents
 * YAML front-matter
 
-See also the link:LIMITATIONS.adoc[known limitations] page for differences between Asciidoc/Asciidoctor and Libasciidoc.
-
-Further elements will be supported in the future. Feel free to open issues https://github.com/bytesparadise/libasciidoc/issues[here] to help prioritizing the upcoming work.
-
+See also link:LIMITATIONS.adoc[known limitations].
 
 === Syntax Highlighting
 
-When enabled, syntax highlighting in `[source]` blocks is backed by the https://github.com/alecthomas/chroma[Chroma libray]. 
-The defaut class prefix is `tok-`, and it can be overridden at the document level using the `chroma-class-prefix` attribute, or from the command line interface:
+When enabled, syntax highlighting in `[source]` blocks uses https://github.com/alecthomas/chroma[Chroma].
+The default class prefix is `tok-`, overridable with the `chroma-class-prefix` attribute:
 
 [source]
 ----
-:chroma-class-prefix: myprefix- <1>
-:chroma-class-prefix: <2>
+:chroma-class-prefix: myprefix-
 ----
 
-<1> classes with a custom prefix
-<2> classes without any prefix
+Or from the command line:
 
-```
-$ libasciidoc -o - -a chroma-class-prefix=myprefix- mydoc.adoc
-```
+    $ libasciidoc -o - -a chroma-class-prefix=myprefix- mydoc.adoc
 
-You can also use the `chroma` CLI (see https://github.com/alecthomas/chroma/releases[the release page to download the binary]) to generate your CSS with the default prefix or the one of your choice:
+== Code Integration
 
-```
-$ chroma -s lovelace --html --html-prefix=tok- --html-styles
-```
+Libasciidoc provides two functions for programmatic use:
 
-== Output Formats (backend)
+1. Convert from an `io.Reader`:
 
-Using `-b` (or `--backend`) the following formats are supported:
+    Convert(r io.Reader, output io.Writer, config *configuration.Configuration) (types.Metadata, error)
 
-* `html5` (also `html`), this is the default
-* `xhtml5` (also `xhtml`)
-* `docx` for Microsoft Word (.docx) output
-
-== Installation
-
-To build libasciidoc and make it available on the command line, do this:
-
-    $ git clone https://github.com/bytesparadise/libasciidoc.git
-    $ cd libasciidoc
-    $ make install
-
-If `$GOPATH/bin` is already in `$PATH`, then you should be good. Otherwise, for Linux and macOS users, you can run the following command:
- 
-    $ sudo ln -s "$PWD/bin/libasciidoc" /usr/local/bin/libasciidoc
-
-== Usage
-
-=== Command Line
-
-The libasciidoc library includes a minimalist command line interface to generate the HTML content from a given file:
-
-```
-$ libasciidoc -s content.adoc
-```
-
-use `libasciidoc --help` to check all available options.
-
-=== Code integration
-
-Libasciidoc provides 2 functions to convert an Asciidoc content into HTML:
-
-1. Converting an `io.Reader` into an HTML document:
-
-    Convert(r io.Reader, output io.Writer, config *configuration.Configuration) (types.Metadata, error) 
-
-2. Converting a file (given its name) into an HTML document:
+2. Convert a file by name:
 
     ConvertFile(output io.Writer, config *configuration.Configuration) (types.Metadata, error)
 
-where the returned `types.Metadata` object contains the document's title which is not part of the generated HTML `<body>` part, as well as the table of contents (even if not rendered) and other attributes of the document.
+The returned `types.Metadata` contains the document title, table of contents, and other attributes.
+All options are passed via the `config` parameter.
 
-All options/settings are passed via the `config` parameter.
+=== Macro Definition
 
-=== Macro definition
+Define custom macros with `configuration.WithMacroTemplate()`:
 
-The user can define a macro by calling `renderer.WithMacroTemplate()` and passing return value to conversion functions.
-
-`renderer.WithMacroTemplate()` defines a macro by the given name and associates the given template. The template is an implementation of `renderer.MacroTemplate` interface (ex. `text.Template`)
-
-Libasciidoc calls `Execute()` method and passes `types.UserMacro` object to template when rendering.
-
-An example the following:
-
-```
+```go
 var tmplStr = `<span>Example: {{.Value}}{{.Attributes.GetAsString "suffix"}}</span>`
 var t = template.New("example")
 var tmpl = template.Must(t.Parse(tmplStr))
 
 output := &strings.Builder{}
 content := strings.NewReader(`example::hello world[suffix=!!!!!]`)
-libasciidoc.Convert(content, output, renderer.WithMacroTemplate(tmpl.Name(), tmpl))
+libasciidoc.Convert(content, output,
+    configuration.NewConfiguration(
+        configuration.WithMacroTemplate(tmpl.Name(), tmpl)))
 ```
 
-== How to contribute
+== Development
 
-Please refer to the link:CONTRIBUTE.adoc[Contribute] page.
+=== Prerequisites
+
+* Go 1.24+
+* https://github.com/mna/pigeon[pigeon] (for parser generation, installed via `go install`)
+
+=== Building
+
+    $ go build ./cmd/libasciidoc
+
+=== Testing
+
+    $ go test ./...
+
+=== Parser Generation
+
+The parser is generated from `pkg/parser/parser.peg` using pigeon:
+
+    $ go generate ./...
+
+=== Linting
+
+    $ golangci-lint run
 
 == License
 
-Libasciidoc is available under the terms of the https://raw.githubusercontent.com/bytesparadise/libasciidoc/LICENSE[Apache License 2.0].
+Libasciidoc is available under the https://opensource.org/licenses/Apache-2.0[Apache License 2.0].
 
 == Trademark
 
-AsciiDoc is a trademark of the Eclipse Foundation
+AsciiDoc is a trademark of the Eclipse Foundation.

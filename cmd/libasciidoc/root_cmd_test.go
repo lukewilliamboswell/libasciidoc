@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	main "github.com/bytesparadise/libasciidoc/cmd/libasciidoc"
+	main "github.com/lukewilliamboswell/libasciidoc/cmd/libasciidoc"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

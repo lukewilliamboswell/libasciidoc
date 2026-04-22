@@ -3,7 +3,7 @@ package validator
 import (
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 // Validate validates the given document

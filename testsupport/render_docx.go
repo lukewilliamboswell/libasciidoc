@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc"
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 

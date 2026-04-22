@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	_ "github.com/bytesparadise/libasciidoc/testsupport"
+	_ "github.com/lukewilliamboswell/libasciidoc/testsupport"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

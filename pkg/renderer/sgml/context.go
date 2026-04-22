@@ -1,8 +1,8 @@
 package sgml
 
 import (
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 // context is a custom implementation of the standard golang context.context interface,

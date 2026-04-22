@@ -6,7 +6,7 @@ import (
 
 	"testing"
 
-	_ "github.com/bytesparadise/libasciidoc/testsupport"
+	_ "github.com/lukewilliamboswell/libasciidoc/testsupport"
 )
 
 func TestCmd(t *testing.T) {

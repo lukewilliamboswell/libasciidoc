@@ -3,7 +3,7 @@ package sgml
 import (
 	"fmt"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 var symbols = map[string]string{

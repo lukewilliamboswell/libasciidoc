@@ -1,7 +1,7 @@
 package html5
 
 import (
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml"
 )
 
 // Templates returns the default Templates use for HTML5.

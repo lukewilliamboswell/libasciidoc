@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bytesparadise/libasciidoc"
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
 
 	// pkgprofile "github.com/pkg/profile"
 	"github.com/felixge/fgtrace"

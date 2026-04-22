@@ -3,9 +3,9 @@ package parser_test
 import (
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/parser"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
-	. "github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/parser"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
+	. "github.com/lukewilliamboswell/libasciidoc/testsupport"
 	log "github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo/v2"

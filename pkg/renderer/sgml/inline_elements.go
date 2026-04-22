@@ -3,7 +3,7 @@ package sgml
 import (
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *sgmlRenderer) renderInlineElements(ctx *context, elements []interface{}) (string, error) {

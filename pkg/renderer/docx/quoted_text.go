@@ -3,7 +3,7 @@ package docx
 import (
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *docxRenderer) renderQuotedText(para *strings.Builder, qt *types.QuotedText, style runStyle) error {

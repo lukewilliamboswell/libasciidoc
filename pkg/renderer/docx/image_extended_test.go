@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
 )
 
 var _ = Describe("images extended", func() {

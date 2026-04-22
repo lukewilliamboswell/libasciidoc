@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"

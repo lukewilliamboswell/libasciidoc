@@ -9,8 +9,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/testsupport"
 )
 
 // ---------- document-level helpers ----------

@@ -3,7 +3,7 @@ package docx
 import (
 	"strconv"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *docxRenderer) renderSection(s *types.Section) error {

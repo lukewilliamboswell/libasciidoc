@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bytesparadise/libasciidoc/pkg/parser"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/parser"
 
 	. "github.com/onsi/ginkgo/v2"                  //nolint:revive
 	. "github.com/onsi/ginkgo/v2/extensions/table" //nolint:revive

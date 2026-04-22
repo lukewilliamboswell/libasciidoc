@@ -1,6 +1,6 @@
 package sgml
 
-import "github.com/bytesparadise/libasciidoc/pkg/types"
+import "github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 // Attribution a document block attribution
 type Attribution struct { // TODO: unexport this type?

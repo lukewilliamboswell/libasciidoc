@@ -3,8 +3,8 @@ package testsupport_test
 import (
 	"fmt"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
-	"github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/testsupport"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo/v2"

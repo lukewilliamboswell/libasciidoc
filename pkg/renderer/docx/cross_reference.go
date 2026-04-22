@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *docxRenderer) renderCrossReference(para *strings.Builder, ref *types.InternalCrossReference, style runStyle) error {

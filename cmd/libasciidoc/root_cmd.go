@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bytesparadise/libasciidoc"
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
 
 	pkgprofile "github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +42,7 @@ func NewRootCmd() *cobra.Command {
 				DisableTimestamp:          true,
 			})
 			log.SetLevel(lvl)
-			log.SetOutput(cmd.OutOrStdout())
+			log.SetOutput(cmd.ErrOrStderr())
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

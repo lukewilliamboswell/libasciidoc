@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/testsupport"
 	"github.com/google/go-cmp/cmp"
 
 	. "github.com/onsi/ginkgo/v2"

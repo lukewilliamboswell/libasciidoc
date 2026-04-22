@@ -1,4 +1,4 @@
-module github.com/bytesparadise/libasciidoc
+module github.com/lukewilliamboswell/libasciidoc
 
 go 1.24.0
 

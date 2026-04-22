@@ -1,7 +1,7 @@
 package testsupport_test
 
 import (
-	"github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/testsupport"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -3,7 +3,7 @@ package sgml
 import (
 	texttemplate "text/template"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *sgmlRenderer) renderElementID(attrs types.Attributes) string {

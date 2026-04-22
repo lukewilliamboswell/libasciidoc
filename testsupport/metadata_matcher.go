@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/davecgh/go-spew/spew"

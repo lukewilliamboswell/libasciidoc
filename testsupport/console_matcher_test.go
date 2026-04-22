@@ -3,7 +3,7 @@ package testsupport_test
 import (
 	"fmt"
 
-	"github.com/bytesparadise/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/testsupport"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,7 +16,7 @@ var _ = Describe("console assertions", func() {
 {"level":"debug","line":1,"msg":"initializing a new DraftDocument with 1 block element(s)"}
 {"level":"debug","line":1,"msg":"parsing '../../test/includes/unknown.adoc'..."}
 {"error":"open unknown.adoc: no such file or directory","level":"error","start_offset":0,"end_offset":60,"msg":"failed to include '../../test/includes/unknown.adoc'"}
-{"level":"debug","line":1,"msg":"restoring current working dir to: github.com/bytesparadise/libasciidoc/pkg/parser"}`
+{"level":"debug","line":1,"msg":"restoring current working dir to: github.com/lukewilliamboswell/libasciidoc/pkg/parser"}`
 
 	var out testsupport.ConsoleOutput
 	BeforeEach(func() {

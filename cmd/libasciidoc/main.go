@@ -15,7 +15,7 @@ func main() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.SetHelpCommand(helpCommand)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

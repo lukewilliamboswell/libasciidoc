@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/docx"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml/html5"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer/sgml/xhtml5"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/docx"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml/html5"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer/sgml/xhtml5"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func Render(doc *types.Document, config *configuration.Configuration, output io.Writer) (types.Metadata, error) {

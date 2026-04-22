@@ -3,7 +3,7 @@ package parser
 import (
 	"time"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 	log "github.com/sirupsen/logrus"
 )

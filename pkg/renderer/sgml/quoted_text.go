@@ -4,7 +4,7 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 	"github.com/pkg/errors"
 )
 

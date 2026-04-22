@@ -8,23 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytesparadise/libasciidoc/pkg/configuration"
-	"github.com/bytesparadise/libasciidoc/pkg/parser"
-	"github.com/bytesparadise/libasciidoc/pkg/renderer"
-	"github.com/bytesparadise/libasciidoc/pkg/types"
-	"github.com/bytesparadise/libasciidoc/pkg/validator"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/parser"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/renderer"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/validator"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	// BuildCommit lastest build commit (set by Makefile)
-	BuildCommit = ""
-	// BuildTag if the `BuildCommit` matches a tag
-	BuildTag = ""
-	// BuildTime set by build script (set by Makefile)
-	BuildTime = ""
 )
 
 // ConvertFile converts the content of the given filename into an output document.

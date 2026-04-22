@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/bytesparadise/libasciidoc/pkg/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
 func (r *sgmlRenderer) renderStringElement(ctx *context, str *types.StringElement) (string, error) {
