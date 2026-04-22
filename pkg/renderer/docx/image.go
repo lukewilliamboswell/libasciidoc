@@ -77,6 +77,7 @@ func (r *docxRenderer) writeImageDrawing(para *strings.Builder, src string, attr
 		return err
 	}
 	rID, name := r.doc.addImage(data, src)
+	alt := imageAlt(attrs, src)
 	width, height := imageSize(attrs)
 	drawingID := r.doc.nextDrawingID()
 	para.WriteString(`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="`)
@@ -87,6 +88,8 @@ func (r *docxRenderer) writeImageDrawing(para *strings.Builder, src string, attr
 	para.WriteString(strconv.Itoa(drawingID))
 	para.WriteString(`" name="`)
 	para.WriteString(xmlAttr(name))
+	para.WriteString(`" descr="`)
+	para.WriteString(xmlAttr(alt))
 	para.WriteString(`"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="`)
 	para.WriteString(strconv.Itoa(drawingID))
 	para.WriteString(`" name="`)

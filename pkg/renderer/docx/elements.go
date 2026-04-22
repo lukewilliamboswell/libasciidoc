@@ -83,7 +83,7 @@ func (r *docxRenderer) renderDelimitedBlock(b *types.DelimitedBlock) error {
 		if style, _ := b.Attributes.GetAsString(types.AttrStyle); isAdmonitionStyle(style) {
 			return r.renderAdmonitionBlock(b, style)
 		}
-		return r.renderElements(b.Elements)
+		return r.renderStyledBlock(b, "Example")
 	case types.Listing, types.Literal, types.Source, types.Fenced, types.MarkdownCode:
 		text, err := r.renderPlainText(b.Elements)
 		if err != nil {
@@ -114,9 +114,26 @@ func (r *docxRenderer) renderDelimitedBlock(b *types.DelimitedBlock) error {
 			return r.renderTextParagraph(attribution, paragraphOptions{style: "Caption"})
 		}
 		return nil
+	case types.Sidebar:
+		return r.renderStyledBlock(b, "Sidebar")
 	default:
 		return r.renderElements(b.Elements)
 	}
+}
+
+// renderStyledBlock renders a delimited block by applying a paragraph style to all child paragraphs.
+func (r *docxRenderer) renderStyledBlock(b *types.DelimitedBlock, style string) error {
+	old := r.writer
+	tmp := &strings.Builder{}
+	r.writer = tmp
+	err := r.renderElements(b.Elements)
+	r.writer = old
+	if err != nil {
+		return err
+	}
+	// Inject style into all paragraphs
+	r.writer.WriteString(strings.ReplaceAll(tmp.String(), `<w:p>`, `<w:p><w:pPr><w:pStyle w:val="`+style+`"/></w:pPr>`))
+	return nil
 }
 
 func splitPreserveOne(text string) []string {

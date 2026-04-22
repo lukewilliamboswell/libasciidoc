@@ -68,7 +68,7 @@ func (r *docxRenderer) renderCheckPrefix(para *strings.Builder, p *types.Paragra
 func (r *docxRenderer) renderAdmonitionParagraph(p *types.Paragraph, kind string) error {
 	para := r.startParagraph(paragraphOptions{style: "Admonition"})
 	label := r.admonitionLabel(kind) + ": "
-	r.writeTextRun(para, label, runStyle{bold: true})
+	r.writeTextRun(para, label, r.admonitionLabelStyle())
 	if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {
 		return err
 	}
@@ -79,9 +79,15 @@ func (r *docxRenderer) renderAdmonitionParagraph(p *types.Paragraph, kind string
 func (r *docxRenderer) renderAdmonitionBlock(b *types.DelimitedBlock, kind string) error {
 	para := r.startParagraph(paragraphOptions{style: "Admonition"})
 	label := r.admonitionLabel(kind) + ": "
-	r.writeTextRun(para, label, runStyle{bold: true})
+	r.writeTextRun(para, label, r.admonitionLabelStyle())
 	r.endParagraph(para)
 	return r.renderElements(b.Elements)
+}
+
+func (r *docxRenderer) admonitionLabelStyle() runStyle {
+	adm := r.ctx.theme.Admonition
+	bold, italic := fontStyleBoldItalic(adm.LabelFontStyle)
+	return runStyle{bold: bold, italic: italic, color: adm.LabelFontColor}
 }
 
 func isAdmonitionStyle(style string) bool {

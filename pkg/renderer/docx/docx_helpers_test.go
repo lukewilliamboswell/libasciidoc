@@ -137,6 +137,7 @@ type parsedRun struct {
 	Underline   bool // w:u
 	Color       string
 	CharStyle   string // w:rStyle val
+	Shading     string // w:shd fill (inline background)
 	// true if this run contains a w:footnoteReference
 	FootnoteRef bool
 	FootnoteID  string
@@ -515,6 +516,12 @@ func parseRunProperties(decoder *xml.Decoder, r *parsedRun) {
 						r.CharStyle = a.Value
 					}
 				}
+			case "shd":
+				for _, a := range t.Attr {
+					if a.Name.Local == "fill" {
+						r.Shading = a.Value
+					}
+				}
 			}
 		case xml.EndElement:
 			depth--
@@ -660,17 +667,19 @@ func parseTableCellElement(decoder *xml.Decoder) parsedTableCell {
 
 // parseNumberingDefs parses numbering.xml to extract abstractNum definitions.
 type parsedNumberingDef struct {
-	AbstractID string
-	NumID      string
-	Levels     []parsedNumberingLevel
+	AbstractID     string
+	NumID          string
+	MultiLevelType string // w:multiLevelType val
+	Levels         []parsedNumberingLevel
 }
 
 type parsedNumberingLevel struct {
-	Level   string // w:ilvl
-	Format  string // w:numFmt val
-	Start   string // w:start val
-	LvlText string // w:lvlText val
-	Indent  string // w:ind w:left val (from w:pPr)
+	Level      string // w:ilvl
+	Format     string // w:numFmt val
+	Start      string // w:start val
+	LvlText    string // w:lvlText val
+	LvlRestart string // w:lvlRestart val (empty if not set)
+	Indent     string // w:ind w:left val (from w:pPr)
 }
 
 func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
@@ -689,16 +698,24 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 	type xmlPPr struct {
 		Ind *xmlInd `xml:"ind"`
 	}
+	type xmlLvlRestart struct {
+		Val string `xml:"val,attr"`
+	}
 	type xmlLvl struct {
-		Ilvl    string      `xml:"ilvl,attr"`
-		Start   *xmlStart   `xml:"start"`
-		NumFmt  *xmlNumFmt  `xml:"numFmt"`
-		LvlText *xmlLvlText `xml:"lvlText"`
-		PPr     *xmlPPr     `xml:"pPr"`
+		Ilvl       string         `xml:"ilvl,attr"`
+		Start      *xmlStart      `xml:"start"`
+		NumFmt     *xmlNumFmt     `xml:"numFmt"`
+		LvlText    *xmlLvlText    `xml:"lvlText"`
+		LvlRestart *xmlLvlRestart `xml:"lvlRestart"`
+		PPr        *xmlPPr        `xml:"pPr"`
+	}
+	type xmlMultiLevelType struct {
+		Val string `xml:"val,attr"`
 	}
 	type xmlAbstractNum struct {
-		AbstractNumID string   `xml:"abstractNumId,attr"`
-		Levels        []xmlLvl `xml:"lvl"`
+		AbstractNumID  string              `xml:"abstractNumId,attr"`
+		MultiLevelType *xmlMultiLevelType  `xml:"multiLevelType"`
+		Levels         []xmlLvl            `xml:"lvl"`
 	}
 	type xmlAbstractNumIDRef struct {
 		Val string `xml:"val,attr"`
@@ -714,8 +731,12 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 	var numbering xmlNumbering
 	Expect(xml.Unmarshal(d.files["word/numbering.xml"], &numbering)).To(Succeed())
 
-	// Build map of abstractNumId -> levels
-	absMap := map[string][]parsedNumberingLevel{}
+	// Build map of abstractNumId -> (levels, multiLevelType)
+	type absInfo struct {
+		levels         []parsedNumberingLevel
+		multiLevelType string
+	}
+	absMap := map[string]absInfo{}
 	for _, abs := range numbering.AbstractNums {
 		var levels []parsedNumberingLevel
 		for _, lvl := range abs.Levels {
@@ -729,20 +750,29 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 			if lvl.LvlText != nil {
 				pl.LvlText = lvl.LvlText.Val
 			}
+			if lvl.LvlRestart != nil {
+				pl.LvlRestart = lvl.LvlRestart.Val
+			}
 			if lvl.PPr != nil && lvl.PPr.Ind != nil {
 				pl.Indent = lvl.PPr.Ind.Left
 			}
 			levels = append(levels, pl)
 		}
-		absMap[abs.AbstractNumID] = levels
+		mlt := ""
+		if abs.MultiLevelType != nil {
+			mlt = abs.MultiLevelType.Val
+		}
+		absMap[abs.AbstractNumID] = absInfo{levels: levels, multiLevelType: mlt}
 	}
 
 	var result []parsedNumberingDef
 	for _, num := range numbering.Nums {
+		info := absMap[num.AbstractRef.Val]
 		def := parsedNumberingDef{
-			NumID:      num.NumID,
-			AbstractID: num.AbstractRef.Val,
-			Levels:     absMap[num.AbstractRef.Val],
+			NumID:          num.NumID,
+			AbstractID:     num.AbstractRef.Val,
+			MultiLevelType: info.multiLevelType,
+			Levels:         info.levels,
 		}
 		result = append(result, def)
 	}
@@ -761,14 +791,22 @@ func (d renderedDocx) findNumberingDef(numID string) *parsedNumberingDef {
 // ---------- styles.xml structured parser ----------
 
 type parsedStyle struct {
-	ID     string // w:styleId
-	Name   string // w:name val
-	Font   string // w:rFonts ascii
-	Size   string // w:sz val (half-points)
-	Bold   bool
-	Italic bool
-	Caps   bool   // w:caps
-	Color  string // w:color val
+	ID          string // w:styleId
+	Name        string // w:name val
+	Font        string // w:rFonts ascii
+	Size        string // w:sz val (half-points)
+	Bold        bool
+	Italic      bool
+	Caps        bool   // w:caps
+	Color       string // w:color val
+	// Paragraph properties
+	SpaceBefore string // w:spacing w:before
+	SpaceAfter  string // w:spacing w:after
+	LineSpacing string // w:spacing w:line
+	Shading     string // w:shd w:fill
+	BorderLeft  string // w:pBdr w:left w:color
+	BorderAll   string // w:pBdr w:top w:color (same for all sides)
+	Alignment   string // w:jc w:val
 }
 
 func (d renderedDocx) parseStyles() []parsedStyle {
@@ -784,6 +822,33 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 	type xmlName struct {
 		Val string `xml:"val,attr"`
 	}
+	type xmlShd struct {
+		Fill string `xml:"fill,attr"`
+	}
+	type xmlBdrSide struct {
+		Color string `xml:"color,attr"`
+		Sz    string `xml:"sz,attr"`
+	}
+	type xmlPBdr struct {
+		Top    *xmlBdrSide `xml:"top"`
+		Left   *xmlBdrSide `xml:"left"`
+		Bottom *xmlBdrSide `xml:"bottom"`
+		Right  *xmlBdrSide `xml:"right"`
+	}
+	type xmlJc struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlSpacing struct {
+		Before string `xml:"before,attr"`
+		After  string `xml:"after,attr"`
+		Line   string `xml:"line,attr"`
+	}
+	type xmlPPr struct {
+		Spacing *xmlSpacing `xml:"spacing"`
+		Shd     *xmlShd     `xml:"shd"`
+		PBdr    *xmlPBdr    `xml:"pBdr"`
+		Jc      *xmlJc      `xml:"jc"`
+	}
 	type xmlRPr struct {
 		RFonts *xmlRFonts `xml:"rFonts"`
 		B      *struct{}  `xml:"b"`
@@ -795,6 +860,7 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 	type xmlStyle struct {
 		StyleID string  `xml:"styleId,attr"`
 		Name    xmlName `xml:"name"`
+		PPr     xmlPPr  `xml:"pPr"`
 		RPr     xmlRPr  `xml:"rPr"`
 	}
 	type xmlStyles struct {
@@ -819,6 +885,26 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 		}
 		if s.RPr.Color != nil {
 			ps.Color = s.RPr.Color.Val
+		}
+		// Paragraph properties
+		if s.PPr.Spacing != nil {
+			ps.SpaceBefore = s.PPr.Spacing.Before
+			ps.SpaceAfter = s.PPr.Spacing.After
+			ps.LineSpacing = s.PPr.Spacing.Line
+		}
+		if s.PPr.Shd != nil {
+			ps.Shading = s.PPr.Shd.Fill
+		}
+		if s.PPr.PBdr != nil {
+			if s.PPr.PBdr.Top != nil {
+				ps.BorderAll = s.PPr.PBdr.Top.Color
+			}
+			if s.PPr.PBdr.Left != nil && s.PPr.PBdr.Top == nil {
+				ps.BorderLeft = s.PPr.PBdr.Left.Color
+			}
+		}
+		if s.PPr.Jc != nil {
+			ps.Alignment = s.PPr.Jc.Val
 		}
 		result = append(result, ps)
 	}
@@ -899,6 +985,70 @@ func parseSectPr(decoder *xml.Decoder, start xml.StartElement) *parsedSectionPro
 		}
 	}
 	return sp
+}
+
+// ---------- docDefaults parser ----------
+
+type parsedDocDefaults struct {
+	Font       string // w:rFonts ascii
+	Size       string // w:sz val
+	AfterTwips string // w:spacing w:after
+	LineVal    string // w:spacing w:line
+	Alignment  string // w:jc w:val
+}
+
+func (d renderedDocx) parseDocDefaults() parsedDocDefaults {
+	type xmlRFonts struct {
+		Ascii string `xml:"ascii,attr"`
+	}
+	type xmlSz struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlRPr struct {
+		RFonts *xmlRFonts `xml:"rFonts"`
+		Sz     *xmlSz     `xml:"sz"`
+	}
+	type xmlRPrDefault struct {
+		RPr xmlRPr `xml:"rPr"`
+	}
+	type xmlSpacing struct {
+		After string `xml:"after,attr"`
+		Line  string `xml:"line,attr"`
+	}
+	type xmlJc struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlPPr struct {
+		Spacing *xmlSpacing `xml:"spacing"`
+		Jc      *xmlJc      `xml:"jc"`
+	}
+	type xmlPPrDefault struct {
+		PPr xmlPPr `xml:"pPr"`
+	}
+	type xmlDocDefaults struct {
+		RPrDefault xmlRPrDefault `xml:"rPrDefault"`
+		PPrDefault xmlPPrDefault `xml:"pPrDefault"`
+	}
+	type xmlStyles struct {
+		DocDefaults xmlDocDefaults `xml:"docDefaults"`
+	}
+	var styles xmlStyles
+	Expect(xml.Unmarshal(d.files["word/styles.xml"], &styles)).To(Succeed())
+	dd := parsedDocDefaults{}
+	if styles.DocDefaults.RPrDefault.RPr.RFonts != nil {
+		dd.Font = styles.DocDefaults.RPrDefault.RPr.RFonts.Ascii
+	}
+	if styles.DocDefaults.RPrDefault.RPr.Sz != nil {
+		dd.Size = styles.DocDefaults.RPrDefault.RPr.Sz.Val
+	}
+	if styles.DocDefaults.PPrDefault.PPr.Spacing != nil {
+		dd.AfterTwips = styles.DocDefaults.PPrDefault.PPr.Spacing.After
+		dd.LineVal = styles.DocDefaults.PPrDefault.PPr.Spacing.Line
+	}
+	if styles.DocDefaults.PPrDefault.PPr.Jc != nil {
+		dd.Alignment = styles.DocDefaults.PPrDefault.PPr.Jc.Val
+	}
+	return dd
 }
 
 const nsMl = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"

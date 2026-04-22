@@ -209,7 +209,7 @@ func (r *docxRenderer) renderTableOfContentsEntry(entry *types.ToCSection) error
 	if entry.Number != "" {
 		text = entry.Number + " " + text
 	}
-	para := r.startParagraph(paragraphOptions{style: "ListParagraph"})
+	para := r.startParagraph(paragraphOptions{style: "TOCEntry"})
 	if entry.ID != "" {
 		if err := r.renderInternalHyperlink(para, entry.ID, text, runStyle{}); err != nil {
 			return err

@@ -24,11 +24,31 @@ func (r *docxRenderer) renderList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderOrderedList(l *types.List) error {
+	// Legal numbering: each list gets its own w:num referencing the
+	// shared legal abstractNum, with startOverride to restart at (a).
+	if r.inLegalNumbering && r.legalNumID > 0 {
+		// ilvl 3 = (a), ilvl 4 = (i), ilvl 5 = (A)
+		ilvl := 2 + r.listLevel
+		if ilvl > 5 {
+			ilvl = 5
+		}
+		numID := r.doc.addLegalListNum(ilvl)
+		for _, item := range l.Elements {
+			if ole, ok := item.(*types.OrderedListElement); ok {
+				if err := r.renderListItem(numID, ole.Elements, ilvl); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	// Regular numbering: create a separate numbering definition per list.
 	indent := (r.listLevel - 1) * twipsPerLevel
 	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
 	for _, item := range l.Elements {
 		if ole, ok := item.(*types.OrderedListElement); ok {
-			if err := r.renderListItem(numID, ole.Elements); err != nil {
+			if err := r.renderListItem(numID, ole.Elements, 0); err != nil {
 				return err
 			}
 		}
@@ -47,7 +67,7 @@ func (r *docxRenderer) renderUnorderedList(l *types.List) error {
 				}
 				continue
 			}
-			if err := r.renderListItem(numID, ule.Elements); err != nil {
+			if err := r.renderListItem(numID, ule.Elements, 0); err != nil {
 				return err
 			}
 		}
@@ -56,12 +76,16 @@ func (r *docxRenderer) renderUnorderedList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderLabeledList(l *types.List) error {
+	dl := r.ctx.theme.DescriptionList
 	for _, item := range l.Elements {
 		if lle, ok := item.(*types.LabeledListElement); ok {
-			// Render term as bold paragraph, using heading font if configured
+			// Render term with description list theme
 			termPara := r.startParagraph(paragraphOptions{})
-			termStyle := runStyle{bold: true}
-			if r.ctx.theme.Heading.FontFamily != "" {
+			bold, italic := fontStyleBoldItalic(dl.TermFontStyle)
+			termStyle := runStyle{bold: bold, italic: italic, color: dl.TermFontColor}
+			if dl.TermFontFamily != "" {
+				termStyle.font = dl.TermFontFamily
+			} else if r.ctx.theme.Heading.FontFamily != "" {
 				termStyle.font = r.ctx.theme.Heading.FontFamily
 			}
 			if err := r.renderInlineElements(termPara, lle.Term, termStyle); err != nil {
@@ -91,12 +115,12 @@ func (r *docxRenderer) renderCalloutList(l *types.List) error {
 	return nil
 }
 
-func (r *docxRenderer) renderListItem(numID int, elements []interface{}) error {
+func (r *docxRenderer) renderListItem(numID int, elements []interface{}, ilvl int) error {
 	for i, elem := range elements {
 		switch e := elem.(type) {
 		case *types.Paragraph:
 			if i == 0 {
-				if err := r.renderParagraphAsListItem(e, paragraphOptions{numID: numID, level: 0}); err != nil {
+				if err := r.renderParagraphAsListItem(e, paragraphOptions{numID: numID, level: ilvl}); err != nil {
 					return err
 				}
 			} else if err := r.renderParagraphAsListItem(e, paragraphOptions{style: "ListParagraph"}); err != nil {

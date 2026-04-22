@@ -18,6 +18,8 @@ const (
 	relTypeFootnotes      = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"
 	relTypeHyperlink      = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 	relTypeImage          = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+	relTypeHeader         = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
+	relTypeFooter         = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"
 
 	// twipsPerLevel is the indentation increment per numbering level (in twips).
 	twipsPerLevel = 360
@@ -28,19 +30,27 @@ const (
 )
 
 type docxDocument struct {
-	body         strings.Builder
-	footnotes    strings.Builder
-	rels         []relationship
-	media        []mediaItem
-	numbering    []numberingDefinition
-	nextRelID    int
-	nextMediaID  int
-	nextDrawing  int
-	nextBookmark int
-	nextNumID    int
-	nextAbsNumID int
-	hasFootnotes bool
-	theme        *DocxTheme
+	body             strings.Builder
+	footnotes        strings.Builder
+	rels             []relationship
+	media            []mediaItem
+	numbering        []numberingDefinition
+	abstractNumByFmt map[string]int // format -> abstractNumId (shared)
+	legalAbsNumID    int              // abstractNum for multi-level legal numbering
+	legalNumID       int              // num instance for heading numbering
+	legalListNums    []legalListNumDef // per-list num instances for legal lists
+	nextRelID        int
+	nextMediaID      int
+	nextDrawing      int
+	nextBookmark     int
+	nextNumID        int
+	nextAbsNumID     int
+	hasFootnotes     bool
+	hasHeader        bool
+	hasFooter        bool
+	headerRelID      string
+	footerRelID      string
+	theme            *DocxTheme
 }
 
 type relationship struct {
@@ -66,10 +76,11 @@ type numberingDefinition struct {
 
 func newDocxDocument() *docxDocument {
 	return &docxDocument{
-		nextRelID:    10,
-		nextDrawing:  1,
-		nextNumID:    1,
-		nextAbsNumID: 1,
+		nextRelID:        10,
+		nextDrawing:      1,
+		nextNumID:        1,
+		nextAbsNumID:     1,
+		abstractNumByFmt: make(map[string]int),
 	}
 }
 
@@ -114,17 +125,58 @@ func (d *docxDocument) addNumbering(format string, start, indent int) (numID int
 	if start <= 0 {
 		start = 1
 	}
+	// Reuse a shared abstractNum for each format type. Multiple w:num
+	// instances reference the same abstractNum but use startOverride to
+	// restart numbering. This matches how Word generates numbering.xml
+	// and prevents counter-merging bugs.
+	absID, ok := d.abstractNumByFmt[format]
+	if !ok {
+		absID = d.nextAbsNumID
+		d.nextAbsNumID++
+		d.abstractNumByFmt[format] = absID
+	}
 	def := numberingDefinition{
-		AbstractID: d.nextAbsNumID,
+		AbstractID: absID,
 		NumID:      d.nextNumID,
 		Format:     format,
 		Start:      start,
 		Indent:     indent,
 	}
-	d.nextAbsNumID++
 	d.nextNumID++
 	d.numbering = append(d.numbering, def)
 	return def.NumID
+}
+
+// addLegalNumbering creates a single multi-level numbering definition for
+// legal document style: decimal headings (1., 1.1, 1.1.1) followed by
+// parenthetical lists ((a), (i), (A)). Returns the numID for headings.
+func (d *docxDocument) addLegalNumbering() int {
+	absID := d.nextAbsNumID
+	d.nextAbsNumID++
+	numID := d.nextNumID
+	d.nextNumID++
+	d.legalAbsNumID = absID
+	d.legalNumID = numID
+	return numID
+}
+
+// addLegalListNum creates a new w:num instance that references the shared
+// legal abstractNum but overrides the start at the given ilvl. This ensures
+// each list restarts at (a)/(i)/(A) independently while sharing the heading
+// numbering format from the legal abstractNum.
+func (d *docxDocument) addLegalListNum(ilvl int) int {
+	numID := d.nextNumID
+	d.nextNumID++
+	d.legalListNums = append(d.legalListNums, legalListNumDef{
+		NumID: numID,
+		Ilvl:  ilvl,
+	})
+	return numID
+}
+
+type legalListNumDef struct {
+	NumID int
+	Ilvl  int
 }
 
 func (d *docxDocument) nextBookmarkID() int {
@@ -137,6 +189,20 @@ func (d *docxDocument) nextDrawingID() int {
 	id := d.nextDrawing
 	d.nextDrawing++
 	return id
+}
+
+// setupHeaderFooter creates the header/footer parts if the theme defines them.
+func (d *docxDocument) setupHeaderFooter() {
+	if d.theme.RunningHeader.Content != "" {
+		d.hasHeader = true
+		d.headerRelID = "rId" + strconv.Itoa(d.nextRelID)
+		d.nextRelID++
+	}
+	if d.theme.RunningFooter.Content != "" {
+		d.hasFooter = true
+		d.footerRelID = "rId" + strconv.Itoa(d.nextRelID)
+		d.nextRelID++
+	}
 }
 
 func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
@@ -152,6 +218,12 @@ func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
 	}
 	if d.hasFootnotes {
 		files["word/footnotes.xml"] = d.footnotesXML()
+	}
+	if d.hasHeader {
+		files["word/header1.xml"] = d.headerXML()
+	}
+	if d.hasFooter {
+		files["word/footer1.xml"] = d.footerXML()
 	}
 
 	names := make([]string, 0, len(files))
@@ -203,6 +275,20 @@ func (d *docxDocument) documentRelsXML() string {
 	if d.hasFootnotes {
 		b.WriteString(`<Relationship Id="rId3" Type="` + relTypeFootnotes + `" Target="footnotes.xml"/>`)
 	}
+	if d.hasHeader {
+		b.WriteString(`<Relationship Id="`)
+		b.WriteString(d.headerRelID)
+		b.WriteString(`" Type="`)
+		b.WriteString(relTypeHeader)
+		b.WriteString(`" Target="header1.xml"/>`)
+	}
+	if d.hasFooter {
+		b.WriteString(`<Relationship Id="`)
+		b.WriteString(d.footerRelID)
+		b.WriteString(`" Type="`)
+		b.WriteString(relTypeFooter)
+		b.WriteString(`" Target="footer1.xml"/>`)
+	}
 	for _, rel := range d.rels {
 		b.WriteString(`<Relationship Id="`)
 		b.WriteString(xmlAttr(rel.ID))
@@ -239,10 +325,26 @@ func (d *docxDocument) sectionPropertiesXML() string {
 	right := mmToTwips(t.Page.Margin[1])
 	bottom := mmToTwips(t.Page.Margin[2])
 	left := mmToTwips(t.Page.Margin[3])
-	return `<w:sectPr><w:pgSz w:w="` + itoa(w) + `" w:h="` + itoa(h) + `"/>` +
-		`<w:pgMar w:top="` + itoa(top) + `" w:right="` + itoa(right) +
+
+	b := &strings.Builder{}
+	b.WriteString(`<w:sectPr>`)
+	// Header/footer references
+	if d.hasHeader {
+		b.WriteString(`<w:headerReference w:type="default" r:id="`)
+		b.WriteString(d.headerRelID)
+		b.WriteString(`"/>`)
+	}
+	if d.hasFooter {
+		b.WriteString(`<w:footerReference w:type="default" r:id="`)
+		b.WriteString(d.footerRelID)
+		b.WriteString(`"/>`)
+	}
+	b.WriteString(`<w:pgSz w:w="` + itoa(w) + `" w:h="` + itoa(h) + `"/>`)
+	b.WriteString(`<w:pgMar w:top="` + itoa(top) + `" w:right="` + itoa(right) +
 		`" w:bottom="` + itoa(bottom) + `" w:left="` + itoa(left) +
-		`" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>`
+		`" w:header="709" w:footer="709" w:gutter="0"/>`)
+	b.WriteString(`</w:sectPr>`)
+	return b.String()
 }
 
 func (d *docxDocument) contentTypesXML() string {
@@ -277,6 +379,12 @@ func (d *docxDocument) contentTypesXML() string {
 	if d.hasFootnotes {
 		b.WriteString(`<Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>`)
 	}
+	if d.hasHeader {
+		b.WriteString(`<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`)
+	}
+	if d.hasFooter {
+		b.WriteString(`<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`)
+	}
 	b.WriteString(`</Types>`)
 	return b.String()
 }
@@ -290,16 +398,132 @@ func (d *docxDocument) footnotesXML() string {
 		`</w:footnotes>`
 }
 
+// headerXML generates the word/header1.xml part.
+func (d *docxDocument) headerXML() string {
+	return d.runningHFXML("hdr", &d.theme.RunningHeader)
+}
+
+// footerXML generates the word/footer1.xml part.
+func (d *docxDocument) footerXML() string {
+	return d.runningHFXML("ftr", &d.theme.RunningFooter)
+}
+
+// runningHFXML generates the XML for a running header or footer.
+func (d *docxDocument) runningHFXML(tag string, hf *RunningHFTheme) string {
+	b := &strings.Builder{}
+	b.WriteString(xmlHeader())
+	b.WriteString(`<w:`)
+	b.WriteString(tag)
+	b.WriteString(` xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
+	b.WriteString(`<w:p><w:pPr><w:jc w:val="center"/></w:pPr>`)
+
+	// Run properties
+	hasRPr := hf.FontFamily != "" || hf.FontSize > 0 || hf.FontColor != "" || hf.FontStyle != ""
+	rprStr := ""
+	if hasRPr {
+		rpr := &strings.Builder{}
+		rpr.WriteString(`<w:rPr>`)
+		if hf.FontFamily != "" {
+			rpr.WriteString(`<w:rFonts w:ascii="`)
+			rpr.WriteString(xmlAttr(hf.FontFamily))
+			rpr.WriteString(`" w:hAnsi="`)
+			rpr.WriteString(xmlAttr(hf.FontFamily))
+			rpr.WriteString(`"/>`)
+		}
+		bold, italic := fontStyleBoldItalic(hf.FontStyle)
+		if bold {
+			rpr.WriteString(`<w:b/>`)
+		}
+		if italic {
+			rpr.WriteString(`<w:i/>`)
+		}
+		if hf.FontColor != "" {
+			rpr.WriteString(`<w:color w:val="`)
+			rpr.WriteString(xmlAttr(hf.FontColor))
+			rpr.WriteString(`"/>`)
+		}
+		if hf.FontSize > 0 {
+			sz := itoa(ptToHalfPt(hf.FontSize))
+			rpr.WriteString(`<w:sz w:val="`)
+			rpr.WriteString(sz)
+			rpr.WriteString(`"/><w:szCs w:val="`)
+			rpr.WriteString(sz)
+			rpr.WriteString(`"/>`)
+		}
+		rpr.WriteString(`</w:rPr>`)
+		rprStr = rpr.String()
+	}
+
+	// Expand content template: {page-number} becomes a PAGE field
+	content := hf.Content
+	if strings.Contains(content, "{page-number}") {
+		parts := strings.Split(content, "{page-number}")
+		for i, part := range parts {
+			if part != "" {
+				b.WriteString(`<w:r>`)
+				if hasRPr {
+					b.WriteString(rprStr)
+				}
+				b.WriteString(`<w:t xml:space="preserve">`)
+				b.WriteString(xmlText(part))
+				b.WriteString(`</w:t></w:r>`)
+			}
+			if i < len(parts)-1 {
+				// PAGE field
+				b.WriteString(`<w:r>`)
+				if hasRPr {
+					b.WriteString(rprStr)
+				}
+				b.WriteString(`<w:fldChar w:fldCharType="begin"/></w:r>`)
+				b.WriteString(`<w:r>`)
+				if hasRPr {
+					b.WriteString(rprStr)
+				}
+				b.WriteString(`<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>`)
+				b.WriteString(`<w:r>`)
+				if hasRPr {
+					b.WriteString(rprStr)
+				}
+				b.WriteString(`<w:fldChar w:fldCharType="end"/></w:r>`)
+			}
+		}
+	} else {
+		// Plain text content
+		b.WriteString(`<w:r>`)
+		if hasRPr {
+			b.WriteString(rprStr)
+		}
+		b.WriteString(`<w:t xml:space="preserve">`)
+		b.WriteString(xmlText(content))
+		b.WriteString(`</w:t></w:r>`)
+	}
+
+	b.WriteString(`</w:p></w:`)
+	b.WriteString(tag)
+	b.WriteString(`>`)
+	return b.String()
+}
+
 func (d *docxDocument) numberingXML() string {
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
 	b.WriteString(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
-	// OOXML requires all abstractNum elements before all num elements.
+
+	// Legal multi-level numbering abstractNum (if used).
+	if d.legalNumID > 0 {
+		d.writeLegalAbstractNum(b)
+	}
+
+	// Emit each shared abstractNum once (OOXML: all abstractNum before all num).
+	emitted := make(map[int]bool)
 	for _, def := range d.numbering {
+		if emitted[def.AbstractID] {
+			continue
+		}
+		emitted[def.AbstractID] = true
 		b.WriteString(`<w:abstractNum w:abstractNumId="`)
 		b.WriteString(strconv.Itoa(def.AbstractID))
 		b.WriteString(`">`)
-		// Unique nsid prevents Word from merging identical abstractNums.
 		b.WriteString(`<w:nsid w:val="`)
 		b.WriteString(fmt.Sprintf("%08X", 0x10000000+def.AbstractID))
 		b.WriteString(`"/>`)
@@ -309,20 +533,132 @@ func (d *docxDocument) numberingXML() string {
 		}
 		b.WriteString(`</w:abstractNum>`)
 	}
+
+	// Legal numbering w:num (for headings — continuous counter).
+	if d.legalNumID > 0 {
+		b.WriteString(`<w:num w:numId="`)
+		b.WriteString(strconv.Itoa(d.legalNumID))
+		b.WriteString(`"><w:abstractNumId w:val="`)
+		b.WriteString(strconv.Itoa(d.legalAbsNumID))
+		b.WriteString(`"/></w:num>`)
+	}
+
+	// Per-list w:num instances for legal lists — each restarts at (a)/(i)/(A).
+	for _, ln := range d.legalListNums {
+		b.WriteString(`<w:num w:numId="`)
+		b.WriteString(strconv.Itoa(ln.NumID))
+		b.WriteString(`"><w:abstractNumId w:val="`)
+		b.WriteString(strconv.Itoa(d.legalAbsNumID))
+		b.WriteString(`"/>`)
+		b.WriteString(`<w:lvlOverride w:ilvl="`)
+		b.WriteString(strconv.Itoa(ln.Ilvl))
+		b.WriteString(`"><w:startOverride w:val="1"/>`)
+		b.WriteString(`</w:lvlOverride>`)
+		b.WriteString(`</w:num>`)
+	}
+
+	// Each regular list instance gets its own w:num with startOverride.
 	for _, def := range d.numbering {
 		b.WriteString(`<w:num w:numId="`)
 		b.WriteString(strconv.Itoa(def.NumID))
 		b.WriteString(`"><w:abstractNumId w:val="`)
 		b.WriteString(strconv.Itoa(def.AbstractID))
 		b.WriteString(`"/>`)
-		// Explicit startOverride forces this num instance to restart.
-		b.WriteString(`<w:lvlOverride w:ilvl="0"><w:startOverride w:val="`)
+		b.WriteString(`<w:lvlOverride w:ilvl="0">`)
+		b.WriteString(`<w:startOverride w:val="`)
 		b.WriteString(strconv.Itoa(def.Start))
-		b.WriteString(`"/></w:lvlOverride>`)
+		b.WriteString(`"/>`)
+		b.WriteString(`</w:lvlOverride>`)
 		b.WriteString(`</w:num>`)
 	}
+
 	b.WriteString(`</w:numbering>`)
 	return b.String()
+}
+
+// writeLegalAbstractNum writes the multi-level legal numbering definition.
+//
+//	ilvl 0: "1."        decimal     (clause headings)
+//	ilvl 1: "1.1"       decimal     (sub-clause headings)
+//	ilvl 2: "1.1.1"     decimal     (sub-sub-clause headings)
+//	ilvl 3: "(a)"       lowerLetter (enumerated items)
+//	ilvl 4: "(i)"       lowerRoman  (sub-items)
+//	ilvl 5: "(A)"       upperLetter (sub-sub-items)
+func (d *docxDocument) writeLegalAbstractNum(b *strings.Builder) {
+	b.WriteString(`<w:abstractNum w:abstractNumId="`)
+	b.WriteString(strconv.Itoa(d.legalAbsNumID))
+	b.WriteString(`">`)
+	b.WriteString(`<w:nsid w:val="`)
+	b.WriteString(fmt.Sprintf("%08X", 0x20000000+d.legalAbsNumID))
+	b.WriteString(`"/>`)
+	b.WriteString(`<w:multiLevelType w:val="multilevel"/>`)
+
+	type legalLevel struct {
+		numFmt     string
+		lvlText    string
+		lvlRestart int // -1 = no restart; N = restart after level N
+		indent     int // left indent in twips
+		hanging    int // hanging indent in twips
+	}
+
+	levels := []legalLevel{
+		// Level 0: "1."
+		{numFmt: "decimal", lvlText: "%1.", lvlRestart: -1, indent: 480, hanging: 480},
+		// Level 1: "1.1" — restarts when level 0 increments (default)
+		{numFmt: "decimal", lvlText: "%1.%2", lvlRestart: -1, indent: 480, hanging: 480},
+		// Level 2: "1.1.1" — restarts when level 1 increments (default)
+		{numFmt: "decimal", lvlText: "%1.%2.%3", lvlRestart: -1, indent: 720, hanging: 720},
+		// Level 3: "(a)" — restarts when level 1 (sub-clause heading) increments,
+		// which also cascades from level 0 changes.
+		{numFmt: "lowerLetter", lvlText: "(%4)", lvlRestart: 1, indent: 1440, hanging: 480},
+		// Level 4: "(i)" — restarts when level 3 increments (default)
+		{numFmt: "lowerRoman", lvlText: "(%5)", lvlRestart: -1, indent: 1920, hanging: 480},
+		// Level 5: "(A)" — restarts when level 4 increments (default)
+		{numFmt: "upperLetter", lvlText: "(%6)", lvlRestart: -1, indent: 2400, hanging: 480},
+	}
+
+	for i, lvl := range levels {
+		b.WriteString(`<w:lvl w:ilvl="`)
+		b.WriteString(strconv.Itoa(i))
+		b.WriteString(`">`)
+		b.WriteString(`<w:start w:val="1"/>`)
+		b.WriteString(`<w:numFmt w:val="`)
+		b.WriteString(xmlAttr(lvl.numFmt))
+		b.WriteString(`"/>`)
+		if lvl.lvlRestart >= 0 {
+			b.WriteString(`<w:lvlRestart w:val="`)
+			b.WriteString(strconv.Itoa(lvl.lvlRestart))
+			b.WriteString(`"/>`)
+		}
+		b.WriteString(`<w:lvlText w:val="`)
+		b.WriteString(xmlAttr(lvl.lvlText))
+		b.WriteString(`"/>`)
+		b.WriteString(`<w:lvlJc w:val="left"/>`)
+		b.WriteString(`<w:pPr><w:ind w:left="`)
+		b.WriteString(strconv.Itoa(lvl.indent))
+		b.WriteString(`" w:hanging="`)
+		b.WriteString(strconv.Itoa(lvl.hanging))
+		b.WriteString(`"/></w:pPr>`)
+		b.WriteString(`</w:lvl>`)
+	}
+
+	// Pad remaining levels 6-8 with decimal fallback.
+	for i := len(levels); i < 9; i++ {
+		indent := 480 + i*480
+		b.WriteString(`<w:lvl w:ilvl="`)
+		b.WriteString(strconv.Itoa(i))
+		b.WriteString(`"><w:start w:val="1"/>`)
+		b.WriteString(`<w:numFmt w:val="decimal"/>`)
+		b.WriteString(`<w:lvlText w:val="%`)
+		b.WriteString(strconv.Itoa(i + 1))
+		b.WriteString(`."/><w:lvlJc w:val="left"/>`)
+		b.WriteString(`<w:pPr><w:ind w:left="`)
+		b.WriteString(strconv.Itoa(indent))
+		b.WriteString(`" w:hanging="480"/></w:pPr>`)
+		b.WriteString(`</w:lvl>`)
+	}
+
+	b.WriteString(`</w:abstractNum>`)
 }
 
 func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefinition, level int) {
@@ -343,13 +679,27 @@ func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefi
 		bullet := []string{"•", "◦", "▪"}[level%3]
 		b.WriteString(`<w:numFmt w:val="bullet"/><w:lvlText w:val="`)
 		b.WriteString(xmlAttr(bullet))
-		b.WriteString(`"/><w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol"/></w:rPr>`)
+		b.WriteString(`"/><w:lvlJc w:val="left"/><w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol"/>`)
+		if d.theme.List.MarkerFontColor != "" {
+			b.WriteString(`<w:color w:val="`)
+			b.WriteString(xmlAttr(d.theme.List.MarkerFontColor))
+			b.WriteString(`"/>`)
+		}
+		b.WriteString(`</w:rPr>`)
 	} else {
 		b.WriteString(`<w:numFmt w:val="`)
 		b.WriteString(xmlAttr(def.Format))
-		b.WriteString(`"/><w:lvlText w:val="%`)
+		b.WriteString(`"/>`)
+		// Restart numbering after any heading (outline level 0 = Heading1).
+		b.WriteString(`<w:lvlRestart w:val="0"/>`)
+		b.WriteString(`<w:lvlText w:val="%`)
 		b.WriteString(strconv.Itoa(level + 1))
-		b.WriteString(`."/>`)
+		b.WriteString(`."/><w:lvlJc w:val="left"/>`)
+		if d.theme.List.MarkerFontColor != "" {
+			b.WriteString(`<w:rPr><w:color w:val="`)
+			b.WriteString(xmlAttr(d.theme.List.MarkerFontColor))
+			b.WriteString(`"/></w:rPr>`)
+		}
 	}
 	b.WriteString(`<w:pPr><w:ind w:left="`)
 	b.WriteString(strconv.Itoa(indent))
@@ -362,12 +712,7 @@ func (d *docxDocument) stylesXML() string {
 	t := d.theme
 	baseSz := itoa(ptToHalfPt(t.Base.FontSize))
 	baseFont := t.Base.FontFamily
-	headingBold := t.Heading.FontStyle == "bold" || t.Heading.FontStyle == "bold_italic"
-	headingItalic := t.Heading.FontStyle == "italic" || t.Heading.FontStyle == "bold_italic"
 	headingFont := t.Heading.FontFamily
-	headingColor := t.Heading.FontColor
-	titleBold := t.Title.TitleFontStyle == "bold" || t.Title.TitleFontStyle == "bold_italic"
-	titleItalic := t.Title.TitleFontStyle == "italic" || t.Title.TitleFontStyle == "bold_italic"
 
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
@@ -382,64 +727,323 @@ func (d *docxDocument) stylesXML() string {
 	b.WriteString(baseSz)
 	b.WriteString(`"/><w:szCs w:val="`)
 	b.WriteString(baseSz)
-	b.WriteString(`"/></w:rPr></w:rPrDefault></w:docDefaults>`)
-	b.WriteString(styleParagraph("Normal", "Normal", "", ptToHalfPt(t.Base.FontSize), false, false, false, t.Base.FontColor))
-	b.WriteString(styleParagraph("Title", "Title", "", ptToHalfPt(t.Title.TitleFontSize), titleBold, titleItalic, false, t.Title.TitleFontColor))
-	b.WriteString(styleParagraph("Subtitle", "Subtitle", "", ptToHalfPt(t.Title.SubtitleFontSize), false, true, false, t.Title.SubtitleFontColor))
+	b.WriteString(`"/></w:rPr></w:rPrDefault>`)
+
+	// Paragraph defaults: spacing and alignment.
+	afterTwips := 160 // default ~8pt after
+	if t.Prose.MarginBottom > 0 {
+		afterTwips = ptToTwips(t.Prose.MarginBottom)
+	}
+	lineVal := t.lineHeightValue()
+	b.WriteString(`<w:pPrDefault><w:pPr><w:spacing w:after="`)
+	b.WriteString(itoa(afterTwips))
+	b.WriteString(`" w:line="`)
+	b.WriteString(itoa(lineVal))
+	b.WriteString(`" w:lineRule="auto"/>`)
+	if align := resolveTextAlign(t.Prose.TextAlign, t.Base.TextAlign); align != "" {
+		b.WriteString(`<w:jc w:val="`)
+		b.WriteString(xmlAttr(ooxmlAlignment(align)))
+		b.WriteString(`"/>`)
+	}
+	b.WriteString(`</w:pPr></w:pPrDefault>`)
+	b.WriteString(`</w:docDefaults>`)
+
+	// Normal style
+	baseBold, baseItalic := fontStyleBoldItalic(t.Base.FontStyle)
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Normal", name: "Normal",
+		size: ptToHalfPt(t.Base.FontSize), bold: baseBold, italic: baseItalic,
+		color: t.Base.FontColor,
+	}))
+
+	// Title style
+	titleBold, titleItalic := fontStyleBoldItalic(t.Title.TitleFontStyle)
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Title", name: "Title",
+		font: t.Title.TitleFontFamily,
+		size: ptToHalfPt(t.Title.TitleFontSize), bold: titleBold, italic: titleItalic,
+		color: t.Title.TitleFontColor,
+	}))
+
+	// Subtitle style
+	subtitleBold, subtitleItalic := fontStyleBoldItalic(t.Title.SubtitleFontStyle)
+	if !subtitleBold && !subtitleItalic {
+		subtitleItalic = true // default: italic
+	}
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Subtitle", name: "Subtitle",
+		font: t.Title.SubtitleFontFamily,
+		size: ptToHalfPt(t.Title.SubtitleFontSize), bold: subtitleBold, italic: subtitleItalic,
+		color: t.Title.SubtitleFontColor,
+	}))
+
+	// Heading styles (1-9)
 	for i := 1; i <= 9; i++ {
 		caps := t.headingTextTransform(i) == "uppercase"
-		b.WriteString(styleParagraph("Heading"+strconv.Itoa(i), "heading "+strconv.Itoa(i), headingFont, t.headingSizeHalfPt(i), headingBold, headingItalic, caps, headingColor))
+		hBold, hItalic := t.headingFontStyle(i)
+		hColor := t.headingFontColor(i)
+		opts := styleParaOpts{
+			id: "Heading" + strconv.Itoa(i), name: "heading " + strconv.Itoa(i),
+			font: headingFont, size: t.headingSizeHalfPt(i),
+			bold: hBold, italic: hItalic, caps: caps, color: hColor,
+		}
+		if t.Heading.MarginTop > 0 {
+			opts.spaceBefore = ptToTwips(t.Heading.MarginTop)
+		}
+		if t.Heading.MarginBottom > 0 {
+			opts.spaceAfter = ptToTwips(t.Heading.MarginBottom)
+		}
+		b.WriteString(styleParaXML(opts))
 	}
-	b.WriteString(styleParagraph("Quote", "Quote", "", ptToHalfPt(t.Base.FontSize), false, true, false, ""))
-	b.WriteString(styleParagraph("Admonition", "Admonition", "", ptToHalfPt(t.Base.FontSize), false, false, false, ""))
-	b.WriteString(styleParagraph("Caption", "Caption", "", ptToHalfPt(t.Code.FontSize), false, true, false, ""))
-	b.WriteString(styleParagraph("CodeBlock", "Code Block", t.Code.FontFamily, ptToHalfPt(t.Code.FontSize), false, false, false, ""))
-	b.WriteString(styleParagraph("ListParagraph", "List Paragraph", "", ptToHalfPt(t.Base.FontSize), false, false, false, ""))
-	b.WriteString(styleParagraph("FootnoteText", "Footnote Text", "", 18, false, false, false, ""))
-	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="`)
+
+	// Quote style
+	qBold, qItalic := fontStyleBoldItalic(t.Quote.FontStyle)
+	if !qBold && !qItalic && t.Quote.FontStyle == "" {
+		qItalic = true // default: italic
+	}
+	qSize := ptToHalfPt(t.Base.FontSize)
+	if t.Quote.FontSize > 0 {
+		qSize = ptToHalfPt(t.Quote.FontSize)
+	}
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Quote", name: "Quote",
+		font: t.Quote.FontFamily, size: qSize,
+		bold: qBold, italic: qItalic, color: t.Quote.FontColor,
+		borderLeft: t.Quote.BorderColor, borderLeftWidth: t.Quote.BorderWidth,
+	}))
+
+	// Admonition style
+	admSize := ptToHalfPt(t.Base.FontSize)
+	if t.Admonition.FontSize > 0 {
+		admSize = ptToHalfPt(t.Admonition.FontSize)
+	}
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Admonition", name: "Admonition",
+		size: admSize, color: t.Admonition.FontColor,
+		shading: t.Admonition.BackgroundColor,
+		borderAll: t.Admonition.BorderColor, borderAllWidth: t.Admonition.BorderWidth,
+	}))
+
+	// Caption style
+	capSize := ptToHalfPt(t.Code.FontSize) // default: same as code size
+	if t.Caption.FontSize > 0 {
+		capSize = ptToHalfPt(t.Caption.FontSize)
+	}
+	capBold, capItalic := fontStyleBoldItalic(t.Caption.FontStyle)
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Caption", name: "Caption",
+		font: t.Caption.FontFamily, size: capSize,
+		bold: capBold, italic: capItalic, color: t.Caption.FontColor,
+		align: t.Caption.TextAlign,
+	}))
+
+	// CodeBlock style
+	codeBgColor := t.Code.BackgroundColor
+	codeOpts := styleParaOpts{
+		id: "CodeBlock", name: "Code Block",
+		font: t.Code.FontFamily, size: ptToHalfPt(t.Code.FontSize),
+		color: t.Code.FontColor, shading: codeBgColor,
+	}
+	if t.Code.BorderColor != "" {
+		codeOpts.borderAll = t.Code.BorderColor
+		codeOpts.borderAllWidth = t.Code.BorderWidth
+	}
+	if t.Code.LineHeight > 0 {
+		codeOpts.lineSpacing = int(t.Code.LineHeight * 240)
+	}
+	b.WriteString(styleParaXML(codeOpts))
+
+	// Sidebar style
+	sidebarSize := ptToHalfPt(t.Base.FontSize)
+	if t.Sidebar.FontSize > 0 {
+		sidebarSize = ptToHalfPt(t.Sidebar.FontSize)
+	}
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Sidebar", name: "Sidebar",
+		size: sidebarSize, color: t.Sidebar.FontColor,
+		shading: t.Sidebar.BackgroundColor,
+		borderAll: t.Sidebar.BorderColor, borderAllWidth: t.Sidebar.BorderWidth,
+	}))
+
+	// Example style
+	exampleSize := ptToHalfPt(t.Base.FontSize)
+	if t.Example.FontSize > 0 {
+		exampleSize = ptToHalfPt(t.Example.FontSize)
+	}
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "Example", name: "Example",
+		size: exampleSize, color: t.Example.FontColor,
+		shading: t.Example.BackgroundColor,
+		borderAll: t.Example.BorderColor, borderAllWidth: t.Example.BorderWidth,
+	}))
+
+	// Remaining styles
+	b.WriteString(styleParaXML(styleParaOpts{id: "ListParagraph", name: "List Paragraph", size: ptToHalfPt(t.Base.FontSize)}))
+	b.WriteString(styleParaXML(styleParaOpts{id: "TOCEntry", name: "TOC Entry", size: ptToHalfPt(t.Base.FontSize)}))
+	b.WriteString(styleParaXML(styleParaOpts{id: "FootnoteText", name: "Footnote Text", size: 18}))
+
+	// Hyperlink character style
+	linkBold, linkItalic := fontStyleBoldItalic(t.Link.FontStyle)
+	linkUnderline := t.Link.TextDecoration != "none"
+	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr>`)
+	b.WriteString(`<w:color w:val="`)
 	b.WriteString(xmlAttr(t.Link.FontColor))
-	b.WriteString(`"/><w:u w:val="single"/></w:rPr></w:style>`)
+	b.WriteString(`"/>`)
+	if linkBold {
+		b.WriteString(`<w:b/>`)
+	}
+	if linkItalic {
+		b.WriteString(`<w:i/>`)
+	}
+	if linkUnderline {
+		b.WriteString(`<w:u w:val="single"/>`)
+	}
+	b.WriteString(`</w:rPr></w:style>`)
+
 	b.WriteString(`<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="Footnote Reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>`)
 	b.WriteString(`</w:styles>`)
 	return b.String()
 }
 
-func styleParagraph(id, name, font string, size int, bold, italic, caps bool, color string) string {
+// styleParaOpts configures a paragraph style definition.
+type styleParaOpts struct {
+	id              string
+	name            string
+	font            string
+	size            int
+	bold            bool
+	italic          bool
+	caps            bool
+	color           string
+	shading         string  // background color (w:shd fill)
+	borderLeft      string  // left border color
+	borderLeftWidth float64 // left border width in pt
+	borderAll       string  // all-side border color
+	borderAllWidth  float64 // all-side border width in pt
+	spaceBefore     int     // w:spacing w:before (twips)
+	spaceAfter      int     // w:spacing w:after (twips)
+	lineSpacing     int     // w:spacing w:line (240 = single)
+	align           string  // text alignment
+}
+
+func styleParaXML(opts styleParaOpts) string {
 	b := &strings.Builder{}
 	b.WriteString(`<w:style w:type="paragraph" w:styleId="`)
-	b.WriteString(xmlAttr(id))
+	b.WriteString(xmlAttr(opts.id))
 	b.WriteString(`"><w:name w:val="`)
-	b.WriteString(xmlAttr(name))
-	b.WriteString(`"/><w:rPr>`)
-	if font != "" {
+	b.WriteString(xmlAttr(opts.name))
+	b.WriteString(`"/>`)
+
+	// Paragraph properties (pPr)
+	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
+		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != ""
+	if hasPPr {
+		b.WriteString(`<w:pPr>`)
+		if opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 {
+			b.WriteString(`<w:spacing`)
+			if opts.spaceBefore > 0 {
+				b.WriteString(` w:before="`)
+				b.WriteString(itoa(opts.spaceBefore))
+				b.WriteString(`"`)
+			}
+			if opts.spaceAfter > 0 {
+				b.WriteString(` w:after="`)
+				b.WriteString(itoa(opts.spaceAfter))
+				b.WriteString(`"`)
+			}
+			if opts.lineSpacing > 0 {
+				b.WriteString(` w:line="`)
+				b.WriteString(itoa(opts.lineSpacing))
+				b.WriteString(`" w:lineRule="auto"`)
+			}
+			b.WriteString(`/>`)
+		}
+		if opts.shading != "" {
+			b.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
+			b.WriteString(xmlAttr(opts.shading))
+			b.WriteString(`"/>`)
+		}
+		if opts.borderAll != "" {
+			bw := ptToEighths(opts.borderAllWidth)
+			if bw < 1 {
+				bw = 4 // default 0.5pt
+			}
+			border := `w:val="single" w:sz="` + itoa(bw) + `" w:space="4" w:color="` + xmlAttr(opts.borderAll) + `"`
+			b.WriteString(`<w:pBdr>`)
+			b.WriteString(`<w:top ` + border + `/><w:left ` + border + `/><w:bottom ` + border + `/><w:right ` + border + `/>`)
+			b.WriteString(`</w:pBdr>`)
+		} else if opts.borderLeft != "" {
+			bw := ptToEighths(opts.borderLeftWidth)
+			if bw < 1 {
+				bw = 4
+			}
+			b.WriteString(`<w:pBdr><w:left w:val="single" w:sz="`)
+			b.WriteString(itoa(bw))
+			b.WriteString(`" w:space="4" w:color="`)
+			b.WriteString(xmlAttr(opts.borderLeft))
+			b.WriteString(`"/></w:pBdr>`)
+		}
+		if opts.align != "" {
+			b.WriteString(`<w:jc w:val="`)
+			b.WriteString(xmlAttr(ooxmlAlignment(opts.align)))
+			b.WriteString(`"/>`)
+		}
+		b.WriteString(`</w:pPr>`)
+	}
+
+	// Run properties (rPr)
+	b.WriteString(`<w:rPr>`)
+	if opts.font != "" {
 		b.WriteString(`<w:rFonts w:ascii="`)
-		b.WriteString(xmlAttr(font))
+		b.WriteString(xmlAttr(opts.font))
 		b.WriteString(`" w:hAnsi="`)
-		b.WriteString(xmlAttr(font))
+		b.WriteString(xmlAttr(opts.font))
 		b.WriteString(`" w:cs="`)
-		b.WriteString(xmlAttr(font))
+		b.WriteString(xmlAttr(opts.font))
 		b.WriteString(`"/>`)
 	}
-	if bold {
+	if opts.bold {
 		b.WriteString(`<w:b/>`)
 	}
-	if italic {
+	if opts.italic {
 		b.WriteString(`<w:i/>`)
 	}
-	if caps {
+	if opts.caps {
 		b.WriteString(`<w:caps/>`)
 	}
-	if color != "" {
+	if opts.color != "" {
 		b.WriteString(`<w:color w:val="`)
-		b.WriteString(xmlAttr(color))
+		b.WriteString(xmlAttr(opts.color))
 		b.WriteString(`"/>`)
 	}
 	b.WriteString(`<w:sz w:val="`)
-	b.WriteString(strconv.Itoa(size))
+	b.WriteString(strconv.Itoa(opts.size))
 	b.WriteString(`"/><w:szCs w:val="`)
-	b.WriteString(strconv.Itoa(size))
+	b.WriteString(strconv.Itoa(opts.size))
 	b.WriteString(`"/></w:rPr></w:style>`)
 	return b.String()
+}
+
+// ooxmlAlignment maps theme alignment values to OOXML w:jc values.
+func ooxmlAlignment(align string) string {
+	switch align {
+	case "justify":
+		return "both"
+	case "left", "center", "right":
+		return align
+	default:
+		return "left"
+	}
+}
+
+// resolveTextAlign returns the first non-empty alignment value.
+func resolveTextAlign(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func xmlHeader() string {

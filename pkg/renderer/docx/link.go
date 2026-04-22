@@ -109,6 +109,9 @@ func mergeRunStyle(base, extra runStyle) runStyle {
 	if extra.charStyle != "" {
 		base.charStyle = extra.charStyle
 	}
+	if extra.shading != "" {
+		base.shading = extra.shading
+	}
 	return base
 }
 

@@ -8,8 +8,21 @@ import (
 
 func (r *docxRenderer) renderQuotedText(para *strings.Builder, qt *types.QuotedText, style runStyle) error {
 	merged := mergeStyle(style, qt.Kind)
-	if merged.monospace && merged.monoFont == "" {
-		merged.monoFont = r.ctx.theme.Code.FontFamily
+	if merged.monospace {
+		cs := r.ctx.theme.Codespan
+		if merged.monoFont == "" {
+			if cs.FontFamily != "" {
+				merged.monoFont = cs.FontFamily
+			} else {
+				merged.monoFont = r.ctx.theme.Code.FontFamily
+			}
+		}
+		if cs.FontColor != "" && merged.color == "" {
+			merged.color = cs.FontColor
+		}
+		if cs.BackgroundColor != "" {
+			merged.shading = cs.BackgroundColor
+		}
 	}
 	return r.renderInlineElements(para, qt.Elements, merged)
 }

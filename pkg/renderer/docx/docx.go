@@ -18,6 +18,7 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 
 	d := newDocxDocument()
 	d.theme = ctx.theme
+	d.setupHeaderFooter()
 	r := &docxRenderer{
 		doc:    d,
 		ctx:    ctx,
@@ -56,6 +57,11 @@ bodyAttributes:
 	// Section numbering
 	if ctx.sectionNumbering, err = doc.SectionNumbers(); err != nil {
 		return metadata, fmt.Errorf("unable to render docx document: %w", err)
+	}
+
+	// Enable multi-level legal numbering when sections are numbered.
+	if len(ctx.sectionNumbering) > 0 {
+		r.legalNumID = d.addLegalNumbering()
 	}
 
 	// Render document title

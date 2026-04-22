@@ -31,14 +31,24 @@ func parseTheme(data []byte) (*DocxTheme, error) {
 // --- YAML structures matching Asciidoctor PDF theme format ---
 
 type yamlTheme struct {
-	Page    *yamlPageTheme    `yaml:"page"`
-	Base    *yamlBaseTheme    `yaml:"base"`
-	Heading *yamlHeadingTheme `yaml:"heading"`
-	Title   *yamlTitleTheme   `yaml:"title_page"`
-	Table   *yamlTableTheme   `yaml:"table"`
-	List    *yamlListTheme    `yaml:"list"`
-	Code    *yamlCodeTheme    `yaml:"code"`
-	Link    *yamlLinkTheme    `yaml:"link"`
+	Page            *yamlPageTheme            `yaml:"page"`
+	Base            *yamlBaseTheme            `yaml:"base"`
+	Heading         *yamlHeadingTheme         `yaml:"heading"`
+	Title           *yamlTitleTheme           `yaml:"title_page"`
+	Table           *yamlTableTheme           `yaml:"table"`
+	List            *yamlListTheme            `yaml:"list"`
+	Code            *yamlCodeTheme            `yaml:"code"`
+	Codespan        *yamlCodespanTheme        `yaml:"codespan"`
+	Link            *yamlLinkTheme            `yaml:"link"`
+	Prose           *yamlProseTheme           `yaml:"prose"`
+	Quote           *yamlQuoteTheme           `yaml:"quote"`
+	Admonition      *yamlAdmonitionTheme      `yaml:"admonition"`
+	Sidebar         *yamlSidebarTheme         `yaml:"sidebar"`
+	Example         *yamlExampleTheme         `yaml:"example"`
+	Caption         *yamlCaptionTheme         `yaml:"caption"`
+	DescriptionList *yamlDescriptionListTheme `yaml:"description_list"`
+	Header          *yamlRunningHFTheme       `yaml:"header"`
+	Footer          *yamlRunningHFTheme       `yaml:"footer"`
 }
 
 type yamlPageTheme struct {
@@ -65,6 +75,9 @@ type yamlBaseTheme struct {
 	FontFamily string  `yaml:"font_family"`
 	FontColor  string  `yaml:"font_color"`
 	FontSize   float64 `yaml:"font_size"`
+	FontStyle  string  `yaml:"font_style"`
+	TextAlign  string  `yaml:"text_align"`
+	LineHeight float64 `yaml:"line_height"`
 }
 
 type yamlHeadingTheme struct {
@@ -72,15 +85,21 @@ type yamlHeadingTheme struct {
 	FontColor     string            `yaml:"font_color"`
 	FontStyle     string            `yaml:"font_style"`
 	TextTransform string            `yaml:"text_transform"`
+	MarginTop     float64           `yaml:"margin_top"`
+	MarginBottom  float64           `yaml:"margin_bottom"`
 	H1            *yamlHeadingLevel `yaml:"h1"`
 	H2            *yamlHeadingLevel `yaml:"h2"`
 	H3            *yamlHeadingLevel `yaml:"h3"`
 	H4            *yamlHeadingLevel `yaml:"h4"`
+	H5            *yamlHeadingLevel `yaml:"h5"`
+	H6            *yamlHeadingLevel `yaml:"h6"`
 }
 
 type yamlHeadingLevel struct {
 	FontSize      float64 `yaml:"font_size"`
 	TextTransform string  `yaml:"text_transform"`
+	FontColor     string  `yaml:"font_color"`
+	FontStyle     string  `yaml:"font_style"`
 }
 
 type yamlTitleTheme struct {
@@ -89,33 +108,130 @@ type yamlTitleTheme struct {
 }
 
 type yamlTitleEntry struct {
-	FontSize  float64 `yaml:"font_size"`
-	FontStyle string  `yaml:"font_style"`
-	FontColor string  `yaml:"font_color"`
+	FontSize   float64 `yaml:"font_size"`
+	FontStyle  string  `yaml:"font_style"`
+	FontColor  string  `yaml:"font_color"`
+	FontFamily string  `yaml:"font_family"`
 }
 
 type yamlTableTheme struct {
-	FontSize    float64        `yaml:"font_size"`
-	BorderColor string         `yaml:"border_color"`
-	BorderWidth float64        `yaml:"border_width"`
-	Head        *yamlTableHead `yaml:"head"`
+	FontSize      float64        `yaml:"font_size"`
+	BorderColor   string         `yaml:"border_color"`
+	BorderWidth   float64        `yaml:"border_width"`
+	CellPadding   float64        `yaml:"cell_padding"`
+	GridColor     string         `yaml:"grid_color"`
+	GridWidth     float64        `yaml:"grid_width"`
+	StripeBgColor string         `yaml:"stripe_background_color"`
+	Head          *yamlTableHead `yaml:"head"`
+	Foot          *yamlTableFoot `yaml:"foot"`
 }
 
 type yamlTableHead struct {
 	BackgroundColor string `yaml:"background_color"`
+	FontStyle       string `yaml:"font_style"`
+}
+
+type yamlTableFoot struct {
+	BackgroundColor string `yaml:"background_color"`
+	FontStyle       string `yaml:"font_style"`
 }
 
 type yamlListTheme struct {
-	Indent float64 `yaml:"indent"`
+	Indent          float64 `yaml:"indent"`
+	ItemSpacing     float64 `yaml:"item_spacing"`
+	MarkerFontColor string  `yaml:"marker_font_color"`
 }
 
 type yamlCodeTheme struct {
-	FontFamily string  `yaml:"font_family"`
-	FontSize   float64 `yaml:"font_size"`
+	FontFamily      string  `yaml:"font_family"`
+	FontSize        float64 `yaml:"font_size"`
+	FontColor       string  `yaml:"font_color"`
+	BackgroundColor string  `yaml:"background_color"`
+	BorderColor     string  `yaml:"border_color"`
+	BorderWidth     float64 `yaml:"border_width"`
+	LineHeight      float64 `yaml:"line_height"`
+}
+
+type yamlCodespanTheme struct {
+	FontFamily      string  `yaml:"font_family"`
+	FontSize        float64 `yaml:"font_size"`
+	FontColor       string  `yaml:"font_color"`
+	BackgroundColor string  `yaml:"background_color"`
 }
 
 type yamlLinkTheme struct {
+	FontColor      string `yaml:"font_color"`
+	FontStyle      string `yaml:"font_style"`
+	TextDecoration string `yaml:"text_decoration"`
+}
+
+type yamlProseTheme struct {
+	MarginBottom float64 `yaml:"margin_bottom"`
+	TextAlign    string  `yaml:"text_align"`
+	TextIndent   float64 `yaml:"text_indent"`
+}
+
+type yamlQuoteTheme struct {
+	FontSize    float64 `yaml:"font_size"`
+	FontColor   string  `yaml:"font_color"`
+	FontStyle   string  `yaml:"font_style"`
+	FontFamily  string  `yaml:"font_family"`
+	BorderColor string  `yaml:"border_color"`
+	BorderWidth float64 `yaml:"border_width"`
+}
+
+type yamlAdmonitionTheme struct {
+	FontColor       string              `yaml:"font_color"`
+	FontSize        float64             `yaml:"font_size"`
+	BackgroundColor string              `yaml:"background_color"`
+	BorderColor     string              `yaml:"border_color"`
+	BorderWidth     float64             `yaml:"border_width"`
+	Label           *yamlAdmonitionLabel `yaml:"label"`
+}
+
+type yamlAdmonitionLabel struct {
+	FontStyle string `yaml:"font_style"`
 	FontColor string `yaml:"font_color"`
+}
+
+type yamlSidebarTheme struct {
+	BackgroundColor string  `yaml:"background_color"`
+	BorderColor     string  `yaml:"border_color"`
+	BorderWidth     float64 `yaml:"border_width"`
+	FontColor       string  `yaml:"font_color"`
+	FontSize        float64 `yaml:"font_size"`
+}
+
+type yamlExampleTheme struct {
+	BackgroundColor string  `yaml:"background_color"`
+	BorderColor     string  `yaml:"border_color"`
+	BorderWidth     float64 `yaml:"border_width"`
+	FontColor       string  `yaml:"font_color"`
+	FontSize        float64 `yaml:"font_size"`
+}
+
+type yamlCaptionTheme struct {
+	FontSize   float64 `yaml:"font_size"`
+	FontStyle  string  `yaml:"font_style"`
+	FontColor  string  `yaml:"font_color"`
+	FontFamily string  `yaml:"font_family"`
+	TextAlign  string  `yaml:"text_align"`
+}
+
+type yamlDescriptionListTheme struct {
+	TermFontStyle  string  `yaml:"term_font_style"`
+	TermFontColor  string  `yaml:"term_font_color"`
+	TermFontFamily string  `yaml:"term_font_family"`
+	TermFontSize   float64 `yaml:"term_font_size"`
+}
+
+type yamlRunningHFTheme struct {
+	Content    string  `yaml:"content"`
+	FontSize   float64 `yaml:"font_size"`
+	FontColor  string  `yaml:"font_color"`
+	FontFamily string  `yaml:"font_family"`
+	FontStyle  string  `yaml:"font_style"`
+	Height     float64 `yaml:"height"`
 }
 
 // applyTo merges parsed YAML values onto the default theme.
@@ -142,6 +258,15 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		if yt.Base.FontSize > 0 {
 			t.Base.FontSize = yt.Base.FontSize
 		}
+		if yt.Base.FontStyle != "" {
+			t.Base.FontStyle = yt.Base.FontStyle
+		}
+		if yt.Base.TextAlign != "" {
+			t.Base.TextAlign = yt.Base.TextAlign
+		}
+		if yt.Base.LineHeight > 0 {
+			t.Base.LineHeight = yt.Base.LineHeight
+		}
 	}
 	if yt.Heading != nil {
 		if yt.Heading.FontFamily != "" {
@@ -156,38 +281,18 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		if yt.Heading.TextTransform != "" {
 			t.Heading.TextTransform = yt.Heading.TextTransform
 		}
-		if yt.Heading.H1 != nil {
-			if yt.Heading.H1.FontSize > 0 {
-				t.Heading.H1FontSize = yt.Heading.H1.FontSize
-			}
-			if yt.Heading.H1.TextTransform != "" {
-				t.Heading.H1TextTransform = yt.Heading.H1.TextTransform
-			}
+		if yt.Heading.MarginTop > 0 {
+			t.Heading.MarginTop = yt.Heading.MarginTop
 		}
-		if yt.Heading.H2 != nil {
-			if yt.Heading.H2.FontSize > 0 {
-				t.Heading.H2FontSize = yt.Heading.H2.FontSize
-			}
-			if yt.Heading.H2.TextTransform != "" {
-				t.Heading.H2TextTransform = yt.Heading.H2.TextTransform
-			}
+		if yt.Heading.MarginBottom > 0 {
+			t.Heading.MarginBottom = yt.Heading.MarginBottom
 		}
-		if yt.Heading.H3 != nil {
-			if yt.Heading.H3.FontSize > 0 {
-				t.Heading.H3FontSize = yt.Heading.H3.FontSize
-			}
-			if yt.Heading.H3.TextTransform != "" {
-				t.Heading.H3TextTransform = yt.Heading.H3.TextTransform
-			}
-		}
-		if yt.Heading.H4 != nil {
-			if yt.Heading.H4.FontSize > 0 {
-				t.Heading.H4FontSize = yt.Heading.H4.FontSize
-			}
-			if yt.Heading.H4.TextTransform != "" {
-				t.Heading.H4TextTransform = yt.Heading.H4.TextTransform
-			}
-		}
+		applyHeadingLevel(yt.Heading.H1, &t.Heading.H1FontSize, &t.Heading.H1TextTransform, &t.Heading.H1FontColor, &t.Heading.H1FontStyle)
+		applyHeadingLevel(yt.Heading.H2, &t.Heading.H2FontSize, &t.Heading.H2TextTransform, &t.Heading.H2FontColor, &t.Heading.H2FontStyle)
+		applyHeadingLevel(yt.Heading.H3, &t.Heading.H3FontSize, &t.Heading.H3TextTransform, &t.Heading.H3FontColor, &t.Heading.H3FontStyle)
+		applyHeadingLevel(yt.Heading.H4, &t.Heading.H4FontSize, &t.Heading.H4TextTransform, &t.Heading.H4FontColor, &t.Heading.H4FontStyle)
+		applyHeadingLevel(yt.Heading.H5, &t.Heading.H5FontSize, nil, &t.Heading.H5FontColor, &t.Heading.H5FontStyle)
+		applyHeadingLevel(yt.Heading.H6, &t.Heading.H6FontSize, nil, &t.Heading.H6FontColor, &t.Heading.H6FontStyle)
 	}
 	if yt.Title != nil {
 		if yt.Title.Title != nil {
@@ -200,6 +305,9 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 			if yt.Title.Title.FontColor != "" {
 				t.Title.TitleFontColor = yt.Title.Title.FontColor
 			}
+			if yt.Title.Title.FontFamily != "" {
+				t.Title.TitleFontFamily = yt.Title.Title.FontFamily
+			}
 		}
 		if yt.Title.Subtitle != nil {
 			if yt.Title.Subtitle.FontSize > 0 {
@@ -207,6 +315,12 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 			}
 			if yt.Title.Subtitle.FontColor != "" {
 				t.Title.SubtitleFontColor = yt.Title.Subtitle.FontColor
+			}
+			if yt.Title.Subtitle.FontFamily != "" {
+				t.Title.SubtitleFontFamily = yt.Title.Subtitle.FontFamily
+			}
+			if yt.Title.Subtitle.FontStyle != "" {
+				t.Title.SubtitleFontStyle = yt.Title.Subtitle.FontStyle
 			}
 		}
 	}
@@ -220,12 +334,45 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		if yt.Table.BorderWidth > 0 {
 			t.Table.BorderWidth = yt.Table.BorderWidth
 		}
-		if yt.Table.Head != nil && yt.Table.Head.BackgroundColor != "" {
-			t.Table.HeadBgColor = yt.Table.Head.BackgroundColor
+		if yt.Table.CellPadding > 0 {
+			t.Table.CellPadding = yt.Table.CellPadding
+		}
+		if yt.Table.GridColor != "" {
+			t.Table.GridColor = yt.Table.GridColor
+		}
+		if yt.Table.GridWidth > 0 {
+			t.Table.GridWidth = yt.Table.GridWidth
+		}
+		if yt.Table.StripeBgColor != "" {
+			t.Table.StripeBgColor = yt.Table.StripeBgColor
+		}
+		if yt.Table.Head != nil {
+			if yt.Table.Head.BackgroundColor != "" {
+				t.Table.HeadBgColor = yt.Table.Head.BackgroundColor
+			}
+			if yt.Table.Head.FontStyle != "" {
+				t.Table.HeadFontStyle = yt.Table.Head.FontStyle
+			}
+		}
+		if yt.Table.Foot != nil {
+			if yt.Table.Foot.BackgroundColor != "" {
+				t.Table.FootBgColor = yt.Table.Foot.BackgroundColor
+			}
+			if yt.Table.Foot.FontStyle != "" {
+				t.Table.FootFontStyle = yt.Table.Foot.FontStyle
+			}
 		}
 	}
-	if yt.List != nil && yt.List.Indent > 0 {
-		t.List.Indent = yt.List.Indent
+	if yt.List != nil {
+		if yt.List.Indent > 0 {
+			t.List.Indent = yt.List.Indent
+		}
+		if yt.List.ItemSpacing > 0 {
+			t.List.ItemSpacing = yt.List.ItemSpacing
+		}
+		if yt.List.MarkerFontColor != "" {
+			t.List.MarkerFontColor = yt.List.MarkerFontColor
+		}
 	}
 	if yt.Code != nil {
 		if yt.Code.FontFamily != "" {
@@ -234,11 +381,211 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		if yt.Code.FontSize > 0 {
 			t.Code.FontSize = yt.Code.FontSize
 		}
+		if yt.Code.FontColor != "" {
+			t.Code.FontColor = yt.Code.FontColor
+		}
+		if yt.Code.BackgroundColor != "" {
+			t.Code.BackgroundColor = yt.Code.BackgroundColor
+		}
+		if yt.Code.BorderColor != "" {
+			t.Code.BorderColor = yt.Code.BorderColor
+		}
+		if yt.Code.BorderWidth > 0 {
+			t.Code.BorderWidth = yt.Code.BorderWidth
+		}
+		if yt.Code.LineHeight > 0 {
+			t.Code.LineHeight = yt.Code.LineHeight
+		}
+	}
+	if yt.Codespan != nil {
+		if yt.Codespan.FontFamily != "" {
+			t.Codespan.FontFamily = yt.Codespan.FontFamily
+		}
+		if yt.Codespan.FontSize > 0 {
+			t.Codespan.FontSize = yt.Codespan.FontSize
+		}
+		if yt.Codespan.FontColor != "" {
+			t.Codespan.FontColor = yt.Codespan.FontColor
+		}
+		if yt.Codespan.BackgroundColor != "" {
+			t.Codespan.BackgroundColor = yt.Codespan.BackgroundColor
+		}
 	}
 	if yt.Link != nil {
 		if yt.Link.FontColor != "" {
 			t.Link.FontColor = yt.Link.FontColor
 		}
+		if yt.Link.FontStyle != "" {
+			t.Link.FontStyle = yt.Link.FontStyle
+		}
+		if yt.Link.TextDecoration != "" {
+			t.Link.TextDecoration = yt.Link.TextDecoration
+		}
+	}
+	if yt.Prose != nil {
+		if yt.Prose.MarginBottom > 0 {
+			t.Prose.MarginBottom = yt.Prose.MarginBottom
+		}
+		if yt.Prose.TextAlign != "" {
+			t.Prose.TextAlign = yt.Prose.TextAlign
+		}
+		if yt.Prose.TextIndent > 0 {
+			t.Prose.TextIndent = yt.Prose.TextIndent
+		}
+	}
+	if yt.Quote != nil {
+		if yt.Quote.FontSize > 0 {
+			t.Quote.FontSize = yt.Quote.FontSize
+		}
+		if yt.Quote.FontColor != "" {
+			t.Quote.FontColor = yt.Quote.FontColor
+		}
+		if yt.Quote.FontStyle != "" {
+			t.Quote.FontStyle = yt.Quote.FontStyle
+		}
+		if yt.Quote.FontFamily != "" {
+			t.Quote.FontFamily = yt.Quote.FontFamily
+		}
+		if yt.Quote.BorderColor != "" {
+			t.Quote.BorderColor = yt.Quote.BorderColor
+		}
+		if yt.Quote.BorderWidth > 0 {
+			t.Quote.BorderWidth = yt.Quote.BorderWidth
+		}
+	}
+	if yt.Admonition != nil {
+		if yt.Admonition.FontColor != "" {
+			t.Admonition.FontColor = yt.Admonition.FontColor
+		}
+		if yt.Admonition.FontSize > 0 {
+			t.Admonition.FontSize = yt.Admonition.FontSize
+		}
+		if yt.Admonition.BackgroundColor != "" {
+			t.Admonition.BackgroundColor = yt.Admonition.BackgroundColor
+		}
+		if yt.Admonition.BorderColor != "" {
+			t.Admonition.BorderColor = yt.Admonition.BorderColor
+		}
+		if yt.Admonition.BorderWidth > 0 {
+			t.Admonition.BorderWidth = yt.Admonition.BorderWidth
+		}
+		if yt.Admonition.Label != nil {
+			if yt.Admonition.Label.FontStyle != "" {
+				t.Admonition.LabelFontStyle = yt.Admonition.Label.FontStyle
+			}
+			if yt.Admonition.Label.FontColor != "" {
+				t.Admonition.LabelFontColor = yt.Admonition.Label.FontColor
+			}
+		}
+	}
+	if yt.Sidebar != nil {
+		if yt.Sidebar.BackgroundColor != "" {
+			t.Sidebar.BackgroundColor = yt.Sidebar.BackgroundColor
+		}
+		if yt.Sidebar.BorderColor != "" {
+			t.Sidebar.BorderColor = yt.Sidebar.BorderColor
+		}
+		if yt.Sidebar.BorderWidth > 0 {
+			t.Sidebar.BorderWidth = yt.Sidebar.BorderWidth
+		}
+		if yt.Sidebar.FontColor != "" {
+			t.Sidebar.FontColor = yt.Sidebar.FontColor
+		}
+		if yt.Sidebar.FontSize > 0 {
+			t.Sidebar.FontSize = yt.Sidebar.FontSize
+		}
+	}
+	if yt.Example != nil {
+		if yt.Example.BackgroundColor != "" {
+			t.Example.BackgroundColor = yt.Example.BackgroundColor
+		}
+		if yt.Example.BorderColor != "" {
+			t.Example.BorderColor = yt.Example.BorderColor
+		}
+		if yt.Example.BorderWidth > 0 {
+			t.Example.BorderWidth = yt.Example.BorderWidth
+		}
+		if yt.Example.FontColor != "" {
+			t.Example.FontColor = yt.Example.FontColor
+		}
+		if yt.Example.FontSize > 0 {
+			t.Example.FontSize = yt.Example.FontSize
+		}
+	}
+	if yt.Caption != nil {
+		if yt.Caption.FontSize > 0 {
+			t.Caption.FontSize = yt.Caption.FontSize
+		}
+		if yt.Caption.FontStyle != "" {
+			t.Caption.FontStyle = yt.Caption.FontStyle
+		}
+		if yt.Caption.FontColor != "" {
+			t.Caption.FontColor = yt.Caption.FontColor
+		}
+		if yt.Caption.FontFamily != "" {
+			t.Caption.FontFamily = yt.Caption.FontFamily
+		}
+		if yt.Caption.TextAlign != "" {
+			t.Caption.TextAlign = yt.Caption.TextAlign
+		}
+	}
+	if yt.DescriptionList != nil {
+		if yt.DescriptionList.TermFontStyle != "" {
+			t.DescriptionList.TermFontStyle = yt.DescriptionList.TermFontStyle
+		}
+		if yt.DescriptionList.TermFontColor != "" {
+			t.DescriptionList.TermFontColor = yt.DescriptionList.TermFontColor
+		}
+		if yt.DescriptionList.TermFontFamily != "" {
+			t.DescriptionList.TermFontFamily = yt.DescriptionList.TermFontFamily
+		}
+		if yt.DescriptionList.TermFontSize > 0 {
+			t.DescriptionList.TermFontSize = yt.DescriptionList.TermFontSize
+		}
+	}
+	applyRunningHF(yt.Header, &t.RunningHeader)
+	applyRunningHF(yt.Footer, &t.RunningFooter)
+}
+
+func applyHeadingLevel(src *yamlHeadingLevel, fontSize *float64, textTransform, fontColor, fontStyle *string) {
+	if src == nil {
+		return
+	}
+	if src.FontSize > 0 {
+		*fontSize = src.FontSize
+	}
+	if textTransform != nil && src.TextTransform != "" {
+		*textTransform = src.TextTransform
+	}
+	if src.FontColor != "" {
+		*fontColor = src.FontColor
+	}
+	if src.FontStyle != "" {
+		*fontStyle = src.FontStyle
+	}
+}
+
+func applyRunningHF(src *yamlRunningHFTheme, dst *RunningHFTheme) {
+	if src == nil {
+		return
+	}
+	if src.Content != "" {
+		dst.Content = src.Content
+	}
+	if src.FontSize > 0 {
+		dst.FontSize = src.FontSize
+	}
+	if src.FontColor != "" {
+		dst.FontColor = src.FontColor
+	}
+	if src.FontFamily != "" {
+		dst.FontFamily = src.FontFamily
+	}
+	if src.FontStyle != "" {
+		dst.FontStyle = src.FontStyle
+	}
+	if src.Height > 0 {
+		dst.Height = src.Height
 	}
 }
 

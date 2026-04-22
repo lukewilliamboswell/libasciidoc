@@ -51,9 +51,21 @@ Content in subsection.`)
 
 == Second`)
 
-		Expect(doc.text()).To(ContainSubstring("1 First"))
-		Expect(doc.text()).To(ContainSubstring("1.1 Child"))
-		Expect(doc.text()).To(ContainSubstring("2 Second"))
+		// With legal numbering, section numbers come from w:numPr (not plain text).
+		first := doc.findParagraph("First")
+		Expect(first).ToNot(BeNil())
+		Expect(first.NumID).ToNot(BeEmpty())
+		Expect(first.NumLevel).To(Equal("0"))
+
+		child := doc.findParagraph("Child")
+		Expect(child).ToNot(BeNil())
+		Expect(child.NumID).ToNot(BeEmpty())
+		Expect(child.NumLevel).To(Equal("1"))
+
+		second := doc.findParagraph("Second")
+		Expect(second).ToNot(BeNil())
+		Expect(second.NumID).ToNot(BeEmpty())
+		Expect(second.NumLevel).To(Equal("0"))
 	})
 
 	It("should render a document with author metadata", func() {

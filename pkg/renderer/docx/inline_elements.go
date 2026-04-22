@@ -20,6 +20,7 @@ type runStyle struct {
 	underline     bool
 	color         string
 	charStyle     string
+	shading       string // background color for inline shading (w:shd)
 }
 
 type paragraphOptions struct {
@@ -156,31 +157,21 @@ func (r *docxRenderer) writeTextRun(para *strings.Builder, text string, style ru
 	para.WriteString("</w:r>")
 }
 
+// writeRunProperties emits w:rPr children in the order required by
+// ECMA-376 CT_RPr (§17.3.2.28): rStyle, rFonts, b, i, caps, …,
+// color, …, highlight, u, …, vertAlign.
 func writeRunProperties(para *strings.Builder, style runStyle) {
-	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" && style.font == "" {
+	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" && style.font == "" && style.shading == "" {
 		return
 	}
 	para.WriteString("<w:rPr>")
+	// 1. rStyle
 	if style.charStyle != "" {
 		para.WriteString(`<w:rStyle w:val="`)
 		para.WriteString(xmlAttr(style.charStyle))
 		para.WriteString(`"/>`)
 	}
-	if style.font != "" && !style.monospace {
-		para.WriteString(`<w:rFonts w:ascii="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`" w:hAnsi="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`" w:cs="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`"/>`)
-	}
-	if style.bold {
-		para.WriteString("<w:b/>")
-	}
-	if style.italic {
-		para.WriteString("<w:i/>")
-	}
+	// 2. rFonts (monospace takes precedence over explicit font)
 	if style.monospace {
 		font := style.monoFont
 		if font == "" {
@@ -193,23 +184,49 @@ func writeRunProperties(para *strings.Builder, style runStyle) {
 		para.WriteString(`" w:cs="`)
 		para.WriteString(xmlAttr(font))
 		para.WriteString(`"/>`)
+	} else if style.font != "" {
+		para.WriteString(`<w:rFonts w:ascii="`)
+		para.WriteString(xmlAttr(style.font))
+		para.WriteString(`" w:hAnsi="`)
+		para.WriteString(xmlAttr(style.font))
+		para.WriteString(`" w:cs="`)
+		para.WriteString(xmlAttr(style.font))
+		para.WriteString(`"/>`)
 	}
+	// 3. b
+	if style.bold {
+		para.WriteString("<w:b/>")
+	}
+	// 4. i
+	if style.italic {
+		para.WriteString("<w:i/>")
+	}
+	// 5. color
+	if style.color != "" {
+		para.WriteString(`<w:color w:val="`)
+		para.WriteString(xmlAttr(style.color))
+		para.WriteString(`"/>`)
+	}
+	// 6. shading (inline background)
+	if style.shading != "" {
+		para.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
+		para.WriteString(xmlAttr(style.shading))
+		para.WriteString(`"/>`)
+	}
+	// 7. highlight
 	if style.highlight {
 		para.WriteString(`<w:highlight w:val="yellow"/>`)
 	}
+	// 8. u
+	if style.underline {
+		para.WriteString(`<w:u w:val="single"/>`)
+	}
+	// 9. vertAlign
 	if style.subscript {
 		para.WriteString(`<w:vertAlign w:val="subscript"/>`)
 	}
 	if style.superscript {
 		para.WriteString(`<w:vertAlign w:val="superscript"/>`)
-	}
-	if style.underline {
-		para.WriteString(`<w:u w:val="single"/>`)
-	}
-	if style.color != "" {
-		para.WriteString(`<w:color w:val="`)
-		para.WriteString(xmlAttr(style.color))
-		para.WriteString(`"/>`)
 	}
 	para.WriteString("</w:rPr>")
 }

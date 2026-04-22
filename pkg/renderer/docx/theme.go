@@ -8,14 +8,24 @@ import (
 // DocxTheme holds styling properties for DOCX rendering.
 // Zero values in loaded themes are replaced by defaults.
 type DocxTheme struct {
-	Page    PageTheme
-	Base    BaseTheme
-	Heading HeadingTheme
-	Title   TitlePageTheme
-	Table   TableTheme
-	List    ListTheme
-	Code    CodeTheme
-	Link    LinkTheme
+	Page            PageTheme
+	Base            BaseTheme
+	Heading         HeadingTheme
+	Title           TitlePageTheme
+	Table           TableTheme
+	List            ListTheme
+	Code            CodeTheme
+	Codespan        CodespanTheme
+	Link            LinkTheme
+	Prose           ProseTheme
+	Quote           QuoteTheme
+	Admonition      AdmonitionTheme
+	Sidebar         SidebarTheme
+	Example         ExampleTheme
+	Caption         CaptionTheme
+	DescriptionList DescriptionListTheme
+	RunningHeader   RunningHFTheme
+	RunningFooter   RunningHFTheme
 }
 
 // PageTheme controls page dimensions and margins.
@@ -30,55 +40,174 @@ type BaseTheme struct {
 	FontFamily string  // e.g. "Helvetica"
 	FontColor  string  // 6-hex e.g. "000000"
 	FontSize   float64 // in pt, e.g. 10.5
+	FontStyle  string  // "bold", "italic", "bold_italic"
+	TextAlign  string  // "left", "center", "right", "justify"
+	LineHeight float64 // ratio (e.g. 1.15); 0 means use default 1.08
 }
 
 // HeadingTheme controls heading styles.
 type HeadingTheme struct {
-	FontFamily    string
-	FontColor     string
-	FontStyle     string // "bold", "italic", "bold_italic"
-	TextTransform string // "uppercase", "lowercase", "capitalize", or "" for none
-	H1FontSize    float64 // in pt; 0 means use formula fallback
-	H2FontSize    float64
-	H3FontSize    float64
-	H4FontSize    float64
+	FontFamily      string
+	FontColor       string
+	FontStyle       string  // "bold", "italic", "bold_italic"
+	TextTransform   string  // "uppercase", "lowercase", "capitalize", or "" for none
+	MarginTop       float64 // space before heading in pt
+	MarginBottom    float64 // space after heading in pt
+	H1FontSize      float64 // in pt; 0 means use formula fallback
+	H2FontSize      float64
+	H3FontSize      float64
+	H4FontSize      float64
+	H5FontSize      float64
+	H6FontSize      float64
 	H1TextTransform string // per-level overrides; empty means inherit from TextTransform
 	H2TextTransform string
 	H3TextTransform string
 	H4TextTransform string
+	H1FontColor     string // per-level color overrides
+	H2FontColor     string
+	H3FontColor     string
+	H4FontColor     string
+	H5FontColor     string
+	H6FontColor     string
+	H1FontStyle     string // per-level style overrides
+	H2FontStyle     string
+	H3FontStyle     string
+	H4FontStyle     string
+	H5FontStyle     string
+	H6FontStyle     string
 }
 
 // TitlePageTheme controls the document title and subtitle.
 type TitlePageTheme struct {
-	TitleFontSize     float64
-	TitleFontStyle    string // "bold", "italic", "bold_italic"
-	TitleFontColor    string
-	SubtitleFontSize  float64
-	SubtitleFontColor string
+	TitleFontSize      float64
+	TitleFontStyle     string // "bold", "italic", "bold_italic"
+	TitleFontColor     string
+	TitleFontFamily    string
+	SubtitleFontSize   float64
+	SubtitleFontColor  string
+	SubtitleFontFamily string
+	SubtitleFontStyle  string // "bold", "italic", "bold_italic"
 }
 
 // TableTheme controls table rendering.
 type TableTheme struct {
-	FontSize    float64
-	BorderColor string
-	BorderWidth float64 // in pt
-	HeadBgColor string  // header row background, e.g. "F0F0F0"
+	FontSize      float64
+	BorderColor   string
+	BorderWidth   float64 // in pt
+	HeadBgColor   string  // header row background, e.g. "F0F0F0"
+	HeadFontStyle string  // "bold", "italic", "bold_italic"
+	CellPadding   float64 // in pt (applied as cell margins)
+	GridColor     string  // color for internal grid lines
+	GridWidth     float64 // width for internal grid lines in pt
+	StripeBgColor string  // alternating row background
+	FootBgColor   string  // footer row background
+	FootFontStyle string  // "bold", "italic", "bold_italic"
 }
 
-// ListTheme controls list indentation.
+// ListTheme controls list indentation and styling.
 type ListTheme struct {
-	Indent float64 // base indent in pt
+	Indent          float64 // base indent in pt
+	ItemSpacing     float64 // vertical space between items in pt
+	MarkerFontColor string  // color of bullets/numbers
 }
 
-// CodeTheme controls code/literal text styling.
+// CodeTheme controls code/literal block styling.
 type CodeTheme struct {
-	FontFamily string
-	FontSize   float64 // in pt
+	FontFamily      string
+	FontSize        float64 // in pt
+	FontColor       string
+	BackgroundColor string
+	BorderColor     string
+	BorderWidth     float64 // in pt
+	LineHeight      float64 // ratio
+}
+
+// CodespanTheme controls inline monospace styling.
+type CodespanTheme struct {
+	FontFamily      string
+	FontSize        float64
+	FontColor       string
+	BackgroundColor string
 }
 
 // LinkTheme controls hyperlink styling.
 type LinkTheme struct {
-	FontColor string // 6-hex e.g. "0563C1"; used for Hyperlink character style
+	FontColor      string // 6-hex e.g. "0563C1"; used for Hyperlink character style
+	FontStyle      string // "bold", "italic", "bold_italic"
+	TextDecoration string // "underline", "none"; default underline
+}
+
+// ProseTheme controls paragraph text spacing and alignment.
+type ProseTheme struct {
+	MarginBottom float64 // space after paragraphs in pt
+	TextAlign    string  // "left", "center", "right", "justify"
+	TextIndent   float64 // first-line indent in pt
+}
+
+// QuoteTheme controls blockquote styling.
+type QuoteTheme struct {
+	FontSize    float64
+	FontColor   string
+	FontStyle   string // "bold", "italic", "bold_italic"
+	FontFamily  string
+	BorderColor string
+	BorderWidth float64 // in pt
+}
+
+// AdmonitionTheme controls tip/note/warning/caution/important styling.
+type AdmonitionTheme struct {
+	FontColor       string
+	FontSize        float64
+	BackgroundColor string
+	BorderColor     string
+	BorderWidth     float64
+	LabelFontStyle  string // "bold", "italic", "bold_italic"
+	LabelFontColor  string
+}
+
+// SidebarTheme controls sidebar block styling.
+type SidebarTheme struct {
+	BackgroundColor string
+	BorderColor     string
+	BorderWidth     float64
+	FontColor       string
+	FontSize        float64
+}
+
+// ExampleTheme controls example block styling.
+type ExampleTheme struct {
+	BackgroundColor string
+	BorderColor     string
+	BorderWidth     float64
+	FontColor       string
+	FontSize        float64
+}
+
+// CaptionTheme controls figure/table caption styling.
+type CaptionTheme struct {
+	FontSize  float64
+	FontStyle string // "bold", "italic", "bold_italic"
+	FontColor string
+	FontFamily string
+	TextAlign  string
+}
+
+// DescriptionListTheme controls labeled/description list styling.
+type DescriptionListTheme struct {
+	TermFontStyle  string
+	TermFontColor  string
+	TermFontFamily string
+	TermFontSize   float64
+}
+
+// RunningHFTheme controls running header or footer content.
+type RunningHFTheme struct {
+	Content    string  // template string, e.g. "{page-number}" or custom text
+	FontSize   float64 // in pt
+	FontColor  string
+	FontFamily string
+	FontStyle  string // "bold", "italic", "bold_italic"
+	Height     float64 // in mm (defaults from page margin header/footer distance)
 }
 
 // DefaultTheme returns a theme matching the previously hardcoded values,
@@ -115,6 +244,15 @@ func DefaultTheme() *DocxTheme {
 		},
 		Link: LinkTheme{
 			FontColor: "0563C1",
+		},
+		Admonition: AdmonitionTheme{
+			LabelFontStyle: "bold",
+		},
+		Caption: CaptionTheme{
+			FontStyle: "italic",
+		},
+		DescriptionList: DescriptionListTheme{
+			TermFontStyle: "bold",
 		},
 	}
 }
@@ -158,7 +296,7 @@ func pageSizeTwips(size, layout string) (w, h int) {
 }
 
 // headingSizeHalfPt returns the heading size in half-points for the given level (1-9).
-// It uses theme-specified sizes for h1-h4 and falls back to a formula for h5-h9.
+// It uses theme-specified sizes for h1-h6 and falls back to a formula for h7-h9.
 func (t *DocxTheme) headingSizeHalfPt(level int) int {
 	var pt float64
 	switch level {
@@ -170,6 +308,10 @@ func (t *DocxTheme) headingSizeHalfPt(level int) int {
 		pt = t.Heading.H3FontSize
 	case 4:
 		pt = t.Heading.H4FontSize
+	case 5:
+		pt = t.Heading.H5FontSize
+	case 6:
+		pt = t.Heading.H6FontSize
 	}
 	if pt > 0 {
 		return ptToHalfPt(pt)
@@ -202,7 +344,75 @@ func (t *DocxTheme) headingTextTransform(level int) string {
 	return t.Heading.TextTransform
 }
 
+// headingFontColor returns the font color for the given heading level (1-9).
+// Per-level overrides take precedence over the general heading font color.
+func (t *DocxTheme) headingFontColor(level int) string {
+	var perLevel string
+	switch level {
+	case 1:
+		perLevel = t.Heading.H1FontColor
+	case 2:
+		perLevel = t.Heading.H2FontColor
+	case 3:
+		perLevel = t.Heading.H3FontColor
+	case 4:
+		perLevel = t.Heading.H4FontColor
+	case 5:
+		perLevel = t.Heading.H5FontColor
+	case 6:
+		perLevel = t.Heading.H6FontColor
+	}
+	if perLevel != "" {
+		return perLevel
+	}
+	return t.Heading.FontColor
+}
+
+// headingFontStyle returns the resolved bold/italic for the given heading level.
+// Per-level overrides take precedence over the general heading font style.
+func (t *DocxTheme) headingFontStyle(level int) (bold, italic bool) {
+	style := t.Heading.FontStyle
+	var perLevel string
+	switch level {
+	case 1:
+		perLevel = t.Heading.H1FontStyle
+	case 2:
+		perLevel = t.Heading.H2FontStyle
+	case 3:
+		perLevel = t.Heading.H3FontStyle
+	case 4:
+		perLevel = t.Heading.H4FontStyle
+	case 5:
+		perLevel = t.Heading.H5FontStyle
+	case 6:
+		perLevel = t.Heading.H6FontStyle
+	}
+	if perLevel != "" {
+		style = perLevel
+	}
+	bold = style == "bold" || style == "bold_italic"
+	italic = style == "italic" || style == "bold_italic"
+	return bold, italic
+}
+
+// lineHeightValue returns the OOXML w:line value for the base line height.
+// OOXML line spacing in auto mode: 240 = single (1.0), 276 = 1.15, 360 = 1.5, etc.
+func (t *DocxTheme) lineHeightValue() int {
+	lh := t.Base.LineHeight
+	if lh <= 0 {
+		return 259 // default ~1.08 (Word default)
+	}
+	return int(math.Round(lh * 240))
+}
+
 // itoa is a shorthand for strconv.Itoa.
 func itoa(i int) string {
 	return strconv.Itoa(i)
+}
+
+// fontStyleBoldItalic parses a font_style string into bold and italic booleans.
+func fontStyleBoldItalic(style string) (bold, italic bool) {
+	bold = style == "bold" || style == "bold_italic"
+	italic = style == "italic" || style == "bold_italic"
+	return bold, italic
 }
