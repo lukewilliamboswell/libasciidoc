@@ -94,12 +94,6 @@ func WithCSS(hrefs []string) Setting {
 func WithBackEnd(backend string) Setting {
 	return func(config *Configuration) {
 		config.Attributes.Set("backend", backend)
-		switch backend {
-		case "html", "html5", "xhtml", "xhtml5":
-			config.Attributes.Set("basebackend-html", true)
-		default:
-			config.Attributes.Unset("basebackend-html")
-		}
 		config.BackEnd = backend
 		switch backend {
 		case "html", "html5", "xhtml", "xhtml5":
