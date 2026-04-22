@@ -617,24 +617,24 @@ func (d *docxDocument) writeLegalAbstractNum(b *strings.Builder) {
 	type legalLevel struct {
 		numFmt     string
 		lvlText    string
-		lvlRestart int // -1 = no restart; N = restart after level N
-		indent     int // left indent in twips
-		hanging    int // hanging indent in twips
+		pStyle     string // paragraph style linked to this level
+		lvlRestart int    // -1 = no restart; N = restart after level N
+		indent     int    // left indent in twips
+		hanging    int    // hanging indent in twips
 	}
 
 	levels := []legalLevel{
-		// Level 0: "1."
-		{numFmt: "decimal", lvlText: "%1.", lvlRestart: -1, indent: 480, hanging: 480},
-		// Level 1: "1.1" — restarts when level 0 increments (default)
-		{numFmt: "decimal", lvlText: "%1.%2", lvlRestart: -1, indent: 480, hanging: 480},
-		// Level 2: "1.1.1" — restarts when level 1 increments (default)
-		{numFmt: "decimal", lvlText: "%1.%2.%3", lvlRestart: -1, indent: 720, hanging: 720},
-		// Level 3: "(a)" — restarts when level 1 (sub-clause heading) increments,
-		// which also cascades from level 0 changes.
-		{numFmt: "lowerLetter", lvlText: "(%4)", lvlRestart: 1, indent: 1440, hanging: 480},
-		// Level 4: "(i)" — restarts when level 3 increments (default)
+		// Level 0: "1." linked to Heading2 (clause headings)
+		{numFmt: "decimal", lvlText: "%1.", pStyle: "Heading2", lvlRestart: -1, indent: 480, hanging: 480},
+		// Level 1: "1.1" linked to Heading3 (sub-clause headings)
+		{numFmt: "decimal", lvlText: "%1.%2", pStyle: "Heading3", lvlRestart: -1, indent: 480, hanging: 480},
+		// Level 2: "1.1.1" linked to Heading4 (sub-sub-clause headings)
+		{numFmt: "decimal", lvlText: "%1.%2.%3", pStyle: "Heading4", lvlRestart: -1, indent: 720, hanging: 720},
+		// Level 3: "(a)" linked to ListParagraph
+		{numFmt: "lowerLetter", lvlText: "(%4)", pStyle: "ListParagraph", lvlRestart: 1, indent: 1440, hanging: 480},
+		// Level 4: "(i)"
 		{numFmt: "lowerRoman", lvlText: "(%5)", lvlRestart: -1, indent: 1920, hanging: 480},
-		// Level 5: "(A)" — restarts when level 4 increments (default)
+		// Level 5: "(A)"
 		{numFmt: "upperLetter", lvlText: "(%6)", lvlRestart: -1, indent: 2400, hanging: 480},
 	}
 
@@ -649,6 +649,11 @@ func (d *docxDocument) writeLegalAbstractNum(b *strings.Builder) {
 		if lvl.lvlRestart >= 0 {
 			b.WriteString(`<w:lvlRestart w:val="`)
 			b.WriteString(strconv.Itoa(lvl.lvlRestart))
+			b.WriteString(`"/>`)
+		}
+		if lvl.pStyle != "" {
+			b.WriteString(`<w:pStyle w:val="`)
+			b.WriteString(xmlAttr(lvl.pStyle))
 			b.WriteString(`"/>`)
 		}
 		b.WriteString(`<w:lvlText w:val="`)

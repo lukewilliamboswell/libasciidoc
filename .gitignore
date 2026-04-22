@@ -66,3 +66,6 @@ coverage.txt
 profile*.*
 !make/*.mk
 coverprofile.out
+
+# ignore built binary from $ go build ./cmd/libasciidoc
+libasciidoc

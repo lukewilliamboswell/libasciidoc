@@ -24,8 +24,9 @@ func (r *docxRenderer) renderList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderOrderedList(l *types.List) error {
-	// Legal numbering: each list gets its own w:num referencing the
-	// shared legal abstractNum, with startOverride to restart at (a).
+	// Legal numbering: use the shared multi-level numID at ilvl 3+.
+	// Each list gets its own w:num (with startOverride) referencing the
+	// legal abstractNum so that (a) restarts under each heading.
 	if r.inLegalNumbering && r.legalNumID > 0 {
 		// ilvl 3 = (a), ilvl 4 = (i), ilvl 5 = (A)
 		ilvl := 2 + r.listLevel
@@ -43,7 +44,7 @@ func (r *docxRenderer) renderOrderedList(l *types.List) error {
 		return nil
 	}
 
-	// Regular numbering: create a separate numbering definition per list.
+	// Regular numbering outside legal sections.
 	indent := (r.listLevel - 1) * twipsPerLevel
 	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
 	for _, item := range l.Elements {
