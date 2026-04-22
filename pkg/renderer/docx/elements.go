@@ -40,6 +40,9 @@ func (r *docxRenderer) renderElement(element interface{}) error {
 	case *types.ThematicBreak:
 		r.renderThematicBreak()
 		return nil
+	case *types.PageBreak:
+		r.writer.WriteString(`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`)
+		return nil
 	case *types.InternalCrossReference, *types.ExternalCrossReference, *types.QuotedText,
 		*types.InlinePassthrough, *types.InlineButton, *types.InlineImage,
 		*types.InlineLink, *types.InlineMenu, *types.Icon, *types.StringElement,
@@ -67,7 +70,7 @@ func (r *docxRenderer) renderElement(element interface{}) error {
 }
 
 func (r *docxRenderer) renderThematicBreak() {
-	_ = r.renderTextParagraph("────────────────", paragraphOptions{})
+	r.writer.WriteString(`<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/></w:pBdr></w:pPr></w:p>`)
 }
 
 func (r *docxRenderer) renderDelimitedBlock(b *types.DelimitedBlock) error {

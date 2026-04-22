@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -20,6 +21,8 @@ const (
 	relTypeImage          = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
 	relTypeHeader         = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
 	relTypeFooter         = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"
+	relTypeSettings       = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings"
+	relTypeFontTable      = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable"
 
 	// twipsPerLevel is the indentation increment per numbering level (in twips).
 	twipsPerLevel = 360
@@ -51,6 +54,10 @@ type docxDocument struct {
 	headerRelID      string
 	footerRelID      string
 	theme            *DocxTheme
+	title            string    // document title for core properties
+	creators         string    // semicolon-joined author names
+	created          time.Time // document creation timestamp
+	modified         time.Time // document modification timestamp
 }
 
 type relationship struct {
@@ -210,11 +217,15 @@ func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
 	zw := zip.NewWriter(buf)
 	files := map[string]string{
 		"[Content_Types].xml":          d.contentTypesXML(),
-		"_rels/.rels":                  packageRelsXML(),
+		"_rels/.rels":                  d.packageRelsXML(),
 		"word/document.xml":            d.documentXML(),
 		"word/styles.xml":              d.stylesXML(),
 		"word/numbering.xml":           d.numberingXML(),
+		"word/settings.xml":            settingsXML(),
+		"word/fontTable.xml":           d.fontTableXML(),
 		"word/_rels/document.xml.rels": d.documentRelsXML(),
+		"docProps/core.xml":            d.corePropertiesXML(),
+		"docProps/app.xml":             appPropertiesXML(),
 	}
 	if d.hasFootnotes {
 		files["word/footnotes.xml"] = d.footnotesXML()
@@ -259,10 +270,14 @@ func writeZipFile(zw *zip.Writer, name string, data []byte) error {
 	return err
 }
 
-func packageRelsXML() string {
+func (d *docxDocument) packageRelsXML() string {
+	const relTypeCoreProperties = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
+	const relTypeExtendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"
 	return xmlHeader() +
 		`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
 		`<Relationship Id="rId1" Type="` + relTypeOfficeDocument + `" Target="word/document.xml"/>` +
+		`<Relationship Id="rId2" Type="` + relTypeCoreProperties + `" Target="docProps/core.xml"/>` +
+		`<Relationship Id="rId3" Type="` + relTypeExtendedProperties + `" Target="docProps/app.xml"/>` +
 		`</Relationships>`
 }
 
@@ -272,6 +287,8 @@ func (d *docxDocument) documentRelsXML() string {
 	b.WriteString(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`)
 	b.WriteString(`<Relationship Id="rId1" Type="` + relTypeStyles + `" Target="styles.xml"/>`)
 	b.WriteString(`<Relationship Id="rId2" Type="` + relTypeNumbering + `" Target="numbering.xml"/>`)
+	b.WriteString(`<Relationship Id="rId4" Type="` + relTypeSettings + `" Target="settings.xml"/>`)
+	b.WriteString(`<Relationship Id="rId5" Type="` + relTypeFontTable + `" Target="fontTable.xml"/>`)
 	if d.hasFootnotes {
 		b.WriteString(`<Relationship Id="rId3" Type="` + relTypeFootnotes + `" Target="footnotes.xml"/>`)
 	}
@@ -385,6 +402,10 @@ func (d *docxDocument) contentTypesXML() string {
 	if d.hasFooter {
 		b.WriteString(`<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`)
 	}
+	b.WriteString(`<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>`)
+	b.WriteString(`<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>`)
+	b.WriteString(`<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>`)
+	b.WriteString(`<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>`)
 	b.WriteString(`</Types>`)
 	return b.String()
 }
@@ -1061,6 +1082,97 @@ func xmlText(s string) string {
 
 func xmlAttr(s string) string {
 	return xmlAttrReplacer.Replace(s)
+}
+
+func settingsXML() string {
+	return xmlHeader() +
+		`<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+		`<w:defaultTabStop w:val="720"/>` +
+		`<w:compat>` +
+		`<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>` +
+		`</w:compat>` +
+		`</w:settings>`
+}
+
+func (d *docxDocument) fontTableXML() string {
+	type fontEntry struct {
+		name, family, pitch string
+	}
+	// Collect fonts in precedence order; first occurrence wins on dedup.
+	entries := []fontEntry{
+		{name: d.theme.Base.FontFamily, family: "swiss", pitch: "variable"},
+		{name: d.theme.Code.FontFamily, family: "modern", pitch: "fixed"},
+	}
+	if d.theme.Heading.FontFamily != "" && d.theme.Heading.FontFamily != d.theme.Base.FontFamily {
+		entries = append(entries, fontEntry{name: d.theme.Heading.FontFamily, family: "swiss", pitch: "variable"})
+	}
+	entries = append(entries, fontEntry{name: "Symbol", family: "auto", pitch: "default"})
+
+	// Deduplicate by name, keeping first occurrence.
+	seen := make(map[string]bool)
+	var unique []fontEntry
+	for _, e := range entries {
+		if e.name == "" || seen[e.name] {
+			continue
+		}
+		seen[e.name] = true
+		unique = append(unique, e)
+	}
+	sort.Slice(unique, func(i, j int) bool { return unique[i].name < unique[j].name })
+
+	b := &strings.Builder{}
+	b.WriteString(xmlHeader())
+	b.WriteString(`<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
+	for _, f := range unique {
+		b.WriteString(`<w:font w:name="`)
+		b.WriteString(xmlAttr(f.name))
+		b.WriteString(`"><w:charset w:val="00"/><w:family w:val="`)
+		b.WriteString(xmlAttr(f.family))
+		b.WriteString(`"/><w:pitch w:val="`)
+		b.WriteString(xmlAttr(f.pitch))
+		b.WriteString(`"/></w:font>`)
+	}
+	b.WriteString(`</w:fonts>`)
+	return b.String()
+}
+
+func (d *docxDocument) corePropertiesXML() string {
+	b := &strings.Builder{}
+	b.WriteString(xmlHeader())
+	b.WriteString(`<cp:coreProperties`)
+	b.WriteString(` xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"`)
+	b.WriteString(` xmlns:dc="http://purl.org/dc/elements/1.1/"`)
+	b.WriteString(` xmlns:dcterms="http://purl.org/dc/terms/"`)
+	b.WriteString(` xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`)
+	if d.title != "" {
+		b.WriteString(`<dc:title>`)
+		b.WriteString(xmlText(d.title))
+		b.WriteString(`</dc:title>`)
+	}
+	if d.creators != "" {
+		b.WriteString(`<dc:creator>`)
+		b.WriteString(xmlText(d.creators))
+		b.WriteString(`</dc:creator>`)
+	}
+	if !d.created.IsZero() {
+		b.WriteString(`<dcterms:created xsi:type="dcterms:W3CDTF">`)
+		b.WriteString(d.created.UTC().Format("2006-01-02T15:04:05Z"))
+		b.WriteString(`</dcterms:created>`)
+	}
+	if !d.modified.IsZero() {
+		b.WriteString(`<dcterms:modified xsi:type="dcterms:W3CDTF">`)
+		b.WriteString(d.modified.UTC().Format("2006-01-02T15:04:05Z"))
+		b.WriteString(`</dcterms:modified>`)
+	}
+	b.WriteString(`</cp:coreProperties>`)
+	return b.String()
+}
+
+func appPropertiesXML() string {
+	return xmlHeader() +
+		`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">` +
+		`<Application>libasciidoc</Application>` +
+		`</Properties>`
 }
 
 func imageContentType(ext string) string {

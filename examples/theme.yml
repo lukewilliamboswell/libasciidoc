@@ -1,0 +1,183 @@
+# Asciidoctor PDF theme for libasciidoc DOCX output.
+#
+# This file documents every supported theme property with its default value.
+# Uncomment and modify the properties you want to customise.
+#
+# Usage:
+#   libasciidoc -b docx --theme theme.yml mydoc.adoc
+#
+# Only non-zero / non-empty values override the defaults.
+# Colours are 6-digit hex (no # prefix). Lengths are in pt unless noted.
+
+# -- Page layout -------------------------------------------------------------
+page:
+  size: A4              # A4, Letter, Legal
+  layout: portrait      # portrait, landscape
+  margin: [20, 20, 20, 20]  # [top, right, bottom, left] in mm; supports "25mm", "1in", "72pt"
+
+# -- Base document font ------------------------------------------------------
+base:
+  font_family: Aptos
+  font_size: 11         # in pt
+  # font_color: "000000"
+  # font_style: normal  # bold, italic, bold_italic
+  # text_align: left    # left, center, right, justify
+  # line_height: 1.08   # ratio (1.0 = single, 1.5 = one-and-a-half, 2.0 = double)
+
+# -- Paragraph spacing -------------------------------------------------------
+# prose:
+#   margin_bottom: 8    # space after paragraphs in pt (default ~8pt)
+#   text_align: left    # overrides base text_align for body paragraphs
+#   text_indent: 0      # first-line indent in pt
+
+# -- Headings ----------------------------------------------------------------
+heading:
+  font_style: bold      # bold, italic, bold_italic
+  # font_family: ""     # empty = inherit from base
+  # font_color: ""
+  # text_transform: ""  # uppercase, lowercase, capitalize, none
+  # margin_top: 0       # space before heading in pt
+  # margin_bottom: 0    # space after heading in pt
+  #
+  # Per-level overrides (h1-h6). Unset values inherit from heading above.
+  # h1:
+  #   font_size: 15     # in pt (default: formula 32 - level*2 half-points)
+  #   font_color: ""
+  #   font_style: ""
+  #   text_transform: ""
+  # h2:
+  #   font_size: 14
+  # h3:
+  #   font_size: 13
+  # h4:
+  #   font_size: 12
+  # h5:
+  #   font_size: 11
+  # h6:
+  #   font_size: 10
+
+# -- Title page --------------------------------------------------------------
+title_page:
+  title:
+    font_size: 20
+    font_style: bold    # bold, italic, bold_italic
+    # font_color: ""
+    # font_family: ""
+  subtitle:
+    font_size: 12
+    # font_color: ""
+    # font_family: ""
+    # font_style: ""    # default: italic
+
+# -- Tables ------------------------------------------------------------------
+table:
+  border_color: auto
+  border_width: 0.5     # in pt
+  # cell_padding: 0     # in pt (applied as cell margins on all sides)
+  # grid_color: ""      # colour for internal grid lines (defaults to border_color)
+  # grid_width: 0       # width for internal grid lines (defaults to border_width)
+  # stripe_background_color: ""  # alternating data-row background
+  head:
+    # background_color: ""
+    # font_style: ""    # bold, italic, bold_italic (default: bold from table structure)
+  # foot:
+  #   background_color: ""
+  #   font_style: ""
+
+# -- Lists -------------------------------------------------------------------
+list:
+  indent: 36            # base indent in pt
+  # item_spacing: 0     # vertical space between items in pt
+  # marker_font_color: ""  # colour of bullets / numbers
+
+# -- Code blocks -------------------------------------------------------------
+code:
+  font_family: Courier New
+  font_size: 10         # in pt
+  # font_color: ""
+  # background_color: ""  # paragraph shading behind code blocks
+  # border_color: ""
+  # border_width: 0
+  # line_height: 0      # ratio (e.g. 1.2)
+
+# -- Inline code (codespan) --------------------------------------------------
+# codespan:
+#   font_family: ""     # defaults to code.font_family
+#   font_size: 0        # defaults to base
+#   font_color: ""
+#   background_color: ""  # inline run shading
+
+# -- Links -------------------------------------------------------------------
+link:
+  font_color: "0563C1"
+  # font_style: ""      # bold, italic, bold_italic
+  # text_decoration: underline  # underline, none
+
+# -- Blockquotes -------------------------------------------------------------
+# quote:
+#   font_size: 0        # defaults to base
+#   font_color: ""
+#   font_style: ""      # default: italic
+#   font_family: ""
+#   border_color: ""    # left border colour
+#   border_width: 0     # left border width in pt
+
+# -- Admonitions (NOTE, TIP, WARNING, CAUTION, IMPORTANT) --------------------
+# admonition:
+#   font_color: ""
+#   font_size: 0        # defaults to base
+#   background_color: ""  # paragraph shading
+#   border_color: ""
+#   border_width: 0
+#   label:
+#     font_style: bold  # bold, italic, bold_italic
+#     font_color: ""
+
+# -- Sidebar blocks -----------------------------------------------------------
+# sidebar:
+#   background_color: ""
+#   border_color: ""
+#   border_width: 0
+#   font_color: ""
+#   font_size: 0
+
+# -- Example blocks -----------------------------------------------------------
+# example:
+#   background_color: ""
+#   border_color: ""
+#   border_width: 0
+#   font_color: ""
+#   font_size: 0
+
+# -- Captions (figure / table) -----------------------------------------------
+# caption:
+#   font_size: 0        # defaults to code font size
+#   font_style: italic  # bold, italic, bold_italic
+#   font_color: ""
+#   font_family: ""
+#   text_align: ""      # left, center, right
+
+# -- Description lists -------------------------------------------------------
+# description_list:
+#   term_font_style: bold  # bold, italic, bold_italic
+#   term_font_color: ""
+#   term_font_family: ""   # defaults to heading font if set
+#   term_font_size: 0
+
+# -- Running header ----------------------------------------------------------
+# header:
+#   content: ""         # text to display; use {page-number} for page numbers
+#   font_size: 0
+#   font_color: ""
+#   font_family: ""
+#   font_style: ""
+#   height: 0           # in mm
+
+# -- Running footer ----------------------------------------------------------
+# footer:
+#   content: ""         # e.g. "Page {page-number}"
+#   font_size: 0
+#   font_color: ""
+#   font_family: ""
+#   font_style: ""
+#   height: 0           # in mm

@@ -28,6 +28,8 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 	var metadata types.Metadata
 	metadata.LastUpdated = config.LastUpdated.Format(configuration.LastUpdatedFormat)
 	metadata.TableOfContents = doc.TableOfContents
+	d.created = config.LastUpdated
+	d.modified = config.LastUpdated
 
 	// Process header attribute declarations
 	if header, _ := doc.Header(); header != nil {
@@ -71,6 +73,7 @@ bodyAttributes:
 			return metadata, fmt.Errorf("unable to render document title: %w", err)
 		}
 		metadata.Title = title
+		d.title = title
 
 		// Add title to the document
 		if err := r.renderTextParagraph(title, paragraphOptions{style: "Title"}); err != nil {
@@ -84,7 +87,8 @@ bodyAttributes:
 			for i, author := range authors {
 				authorNames[i] = author.FullName()
 			}
-			if err := r.renderTextParagraph(strings.Join(authorNames, "; "), paragraphOptions{style: "Subtitle"}); err != nil {
+			d.creators = strings.Join(authorNames, "; ")
+			if err := r.renderTextParagraph(d.creators, paragraphOptions{style: "Subtitle"}); err != nil {
 				return metadata, fmt.Errorf("unable to render document authors: %w", err)
 			}
 		}

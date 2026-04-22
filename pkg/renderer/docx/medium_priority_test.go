@@ -93,9 +93,10 @@ after`)
 
 			Expect(doc.text()).To(ContainSubstring("before"))
 			Expect(doc.text()).To(ContainSubstring("after"))
-			// The thematic break should be its own paragraph with the dash chars
-			breakPara := doc.findParagraph("\u2500")
-			Expect(breakPara).ToNot(BeNil())
+			// The thematic break renders as a paragraph with a bottom border
+			docXML := doc.documentXML()
+			Expect(docXML).To(ContainSubstring(`<w:pBdr>`))
+			Expect(docXML).To(ContainSubstring(`<w:bottom w:val="single"`))
 		})
 	})
 
