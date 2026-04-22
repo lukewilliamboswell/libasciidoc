@@ -153,7 +153,7 @@ printf("Hello world!\n"); // <1>
 <div class="content">
 <pre class="chroma highlight"><code data-lang="c"><span class="tok-cp">#include</span> <span class="tok-cpf">&lt;stdio.h&gt;</span>
 
-<span class="tok-n">printf</span><span class="tok-p">(</span><span class="tok-s">&#34;Hello world!</span><span class="tok-se">\n</span><span class="tok-s">&#34;</span><span class="tok-p">);</span> <span class="tok-c1">// 
+<span class="tok-nf">printf</span><span class="tok-p">(</span><span class="tok-s">&#34;Hello world!</span><span class="tok-se">\n</span><span class="tok-s">&#34;</span><span class="tok-p">);</span> <span class="tok-c1">// 
 </span><b class="conum">(1)</b>
 <span class="tok-o">&lt;</span><span class="tok-n">a</span><span class="tok-o">&gt;</span><span class="tok-n">link</span><span class="tok-o">&lt;/</span><span class="tok-n">a</span><span class="tok-o">&gt;</span></code></pre>
 </div>
@@ -185,7 +185,7 @@ printf("Hello world!\n"); // <1>
 <div class="content">
 <pre class="chroma highlight"><code data-lang="c"><span class="myprefix-cp">#include</span> <span class="myprefix-cpf">&lt;stdio.h&gt;</span>
 
-<span class="myprefix-n">printf</span><span class="myprefix-p">(</span><span class="myprefix-s">&#34;Hello world!</span><span class="myprefix-se">\n</span><span class="myprefix-s">&#34;</span><span class="myprefix-p">);</span> <span class="myprefix-c1">// 
+<span class="myprefix-nf">printf</span><span class="myprefix-p">(</span><span class="myprefix-s">&#34;Hello world!</span><span class="myprefix-se">\n</span><span class="myprefix-s">&#34;</span><span class="myprefix-p">);</span> <span class="myprefix-c1">// 
 </span><b class="conum">(1)</b>
 <span class="myprefix-o">&lt;</span><span class="myprefix-n">a</span><span class="myprefix-o">&gt;</span><span class="myprefix-n">link</span><span class="myprefix-o">&lt;/</span><span class="myprefix-n">a</span><span class="myprefix-o">&gt;</span></code></pre>
 </div>
@@ -217,7 +217,7 @@ printf("Hello world!\n"); // <1>
 <div class="content">
 <pre class="chroma highlight"><code data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span>
 
-<span class="n">printf</span><span class="p">(</span><span class="s">&#34;Hello world!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span> <span class="c1">// 
+<span class="nf">printf</span><span class="p">(</span><span class="s">&#34;Hello world!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span> <span class="c1">// 
 </span><b class="conum">(1)</b>
 <span class="o">&lt;</span><span class="n">a</span><span class="o">&gt;</span><span class="n">link</span><span class="o">&lt;/</span><span class="n">a</span><span class="o">&gt;</span></code></pre>
 </div>
@@ -374,8 +374,8 @@ type Foo struct{
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span> <span class="tok-nx">Foo</span> <span class="tok-kd">struct</span><span class="tok-p">{</span>
-    <span class="tok-nx">Field</span> <span class="tok-kt">string</span>
+<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span><span class="tok-w"> </span><span class="tok-nx">Foo</span><span class="tok-w"> </span><span class="tok-kd">struct</span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">Field</span><span class="tok-w"> </span><span class="tok-kt">string</span>
 <span class="tok-p">}</span></code></pre>
 </div>
 </div>
@@ -435,8 +435,8 @@ type Foo struct{
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span> <span class="tok-nx">Foo</span> <span class="tok-kd">struct</span><span class="tok-p">{</span>
-    <span class="tok-nx">Field</span> <span class="tok-kt">string</span>
+<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span><span class="tok-w"> </span><span class="tok-nx">Foo</span><span class="tok-w"> </span><span class="tok-kd">struct</span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">Field</span><span class="tok-w"> </span><span class="tok-kt">string</span>
 <span class="tok-p">}</span></code></pre>
 </div>
 </div>
@@ -457,8 +457,8 @@ type Foo struct{
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span> <span class="tok-nx">Foo</span> <span class="tok-kd">struct</span><span class="tok-p">{</span>
-    <span class="tok-nx">Field</span> <span class="tok-kt">string</span>
+<pre class="pygments highlight"><code data-lang="go"><span class="tok-kd">type</span><span class="tok-w"> </span><span class="tok-nx">Foo</span><span class="tok-w"> </span><span class="tok-kd">struct</span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">Field</span><span class="tok-w"> </span><span class="tok-kt">string</span>
 <span class="tok-p">}</span></code></pre>
 </div>
 </div>
@@ -480,8 +480,8 @@ type Foo struct{
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="go"><span style="color:#069;font-weight:bold">type</span> Foo <span style="color:#069;font-weight:bold">struct</span>{
-    Field <span style="color:#078;font-weight:bold">string</span>
+<pre class="pygments highlight"><code data-lang="go"><span style="color:#069;font-weight:bold">type</span><span style="color:#bbb"> </span>Foo<span style="color:#bbb"> </span><span style="color:#069;font-weight:bold">struct</span>{
+<span style="color:#bbb">    </span>Field<span style="color:#bbb"> </span><span style="color:#078;font-weight:bold">string</span>
 }</code></pre>
 </div>
 </div>
@@ -501,7 +501,7 @@ const Cookie = "cookie"
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="pygments highlight nowrap"><code data-lang="go"><span style="color:#069;font-weight:bold">const</span> Cookie = <span style="color:#c30">&#34;cookie&#34;</span></code></pre>
+<pre class="pygments highlight nowrap"><code data-lang="go"><span style="color:#069;font-weight:bold">const</span><span style="color:#bbb"> </span>Cookie<span style="color:#bbb"> </span>=<span style="color:#bbb"> </span><span style="color:#c30">&#34;cookie&#34;</span></code></pre>
 </div>
 </div>
 `
@@ -537,7 +537,7 @@ Copyright (C)
 ----`
 				expected := `<div class="listingblock">
 <div class="content">
-<pre class="chroma highlight"><code data-lang="c"><span class="tok-n">Copyright</span> <span class="tok-p">(</span><span class="tok-n">C</span><span class="tok-p">)</span></code></pre>
+<pre class="chroma highlight"><code data-lang="c"><span class="tok-nf">Copyright</span> <span class="tok-p">(</span><span class="tok-n">C</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 `
@@ -594,7 +594,7 @@ Copyright (C)
 					"```\n"
 			expected := `<div class="listingblock">
 <div class="content">
-<pre class="chroma highlight"><code data-lang="c"><span class="tok-n">Copyright</span> <span class="tok-p">(</span><span class="tok-n">C</span><span class="tok-p">)</span></code></pre>
+<pre class="chroma highlight"><code data-lang="c"><span class="tok-nf">Copyright</span> <span class="tok-p">(</span><span class="tok-n">C</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 `
