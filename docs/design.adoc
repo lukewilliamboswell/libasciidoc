@@ -40,3 +40,7 @@ This so-called "draft document" is then processed to return a "final document" i
 == HTMl5 Rendering
 
 The HTML5 renderer takes the final document and applies templates for each element. Having the sections in a hierarchical manner makes life easier in term of surrounding `<div>` tags.
+
+== DOCX Rendering
+
+The DOCX renderer (`pkg/renderer/docx/`) takes the final document and writes an OpenXML package directly using the Go standard library. Unlike the SGML-based HTML/XHTML renderers which use Go text templates, the DOCX renderer builds the required ZIP parts (`word/document.xml`, relationships, styles, numbering, footnotes, and media) and writes WordprocessingML paragraphs, runs, tables, images, links, bookmarks, and footnote references directly.

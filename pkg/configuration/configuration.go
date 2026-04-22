@@ -90,7 +90,7 @@ func WithCSS(hrefs []string) Setting {
 	}
 }
 
-// WithBackEnd sets the backend format, valid values are "html", "html5", "xhtml", "xhtml5", and "" (defaults to html5)
+// WithBackEnd sets the backend format, valid values are "html", "html5", "xhtml", "xhtml5", "docx", and "" (defaults to html5)
 func WithBackEnd(backend string) Setting {
 	return func(config *Configuration) {
 		config.Attributes.Set("backend", backend)

@@ -73,6 +73,7 @@ Using `-b` (or `--backend`) the following formats are supported:
 
 * `html5` (also `html`), this is the default
 * `xhtml5` (also `xhtml`)
+* `docx` for Microsoft Word (.docx) output
 
 == Installation
 

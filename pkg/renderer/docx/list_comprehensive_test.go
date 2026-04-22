@@ -1,0 +1,186 @@
+package docx_test
+
+import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("list comprehensive", func() {
+
+	Context("ordered list styles", func() {
+
+		It("should render decimal style by default with correct numId on paragraphs", func() {
+			doc := renderDocx(`. first
+. second`)
+
+			p := doc.findParagraph("first")
+			Expect(p).ToNot(BeNil())
+			Expect(p.NumID).ToNot(BeEmpty())
+			Expect(p.NumLevel).To(Equal("0"))
+
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("decimal"))
+		})
+
+		It("should render upperalpha style", func() {
+			doc := renderDocx(`[upperalpha]
+. Alpha
+. Bravo`)
+
+			p := doc.findParagraph("Alpha")
+			Expect(p).ToNot(BeNil())
+			Expect(p.NumID).ToNot(BeEmpty())
+
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("upperLetter"))
+		})
+
+		It("should render lowerroman style", func() {
+			doc := renderDocx(`[lowerroman]
+. one
+. two`)
+
+			p := doc.findParagraph("one")
+			Expect(p).ToNot(BeNil())
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("lowerRoman"))
+		})
+
+		It("should render upperroman style", func() {
+			doc := renderDocx(`[upperroman]
+. One
+. Two`)
+
+			p := doc.findParagraph("One")
+			Expect(p).ToNot(BeNil())
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("upperRoman"))
+		})
+	})
+
+	Context("nested lists", func() {
+
+		It("should render nested unordered lists with increasing ilvl", func() {
+			doc := renderDocx(`* level 1a
+** level 2a
+** level 2b
+* level 1b`)
+
+			p1 := doc.findParagraph("level 1a")
+			Expect(p1).ToNot(BeNil())
+			Expect(p1.NumID).ToNot(BeEmpty())
+			Expect(p1.NumLevel).To(Equal("0"))
+
+			p2 := doc.findParagraph("level 2a")
+			Expect(p2).ToNot(BeNil())
+			Expect(p2.NumID).ToNot(BeEmpty())
+			Expect(p2.NumLevel).To(Equal("1"))
+		})
+
+		It("should render nested ordered lists with increasing ilvl", func() {
+			doc := renderDocx(`. first
+.. nested first
+.. nested second
+. second`)
+
+			pTop := doc.findParagraph("first")
+			Expect(pTop).ToNot(BeNil())
+			Expect(pTop.NumLevel).To(Equal("0"))
+
+			pNested := doc.findParagraph("nested first")
+			Expect(pNested).ToNot(BeNil())
+			Expect(pNested.NumLevel).To(Equal("1"))
+		})
+
+		It("should render mixed ordered and unordered nesting with different formats", func() {
+			doc := renderDocx(`. ordered item
+* unordered nested
+* another nested
+. second ordered`)
+
+			pOrdered := doc.findParagraph("ordered item")
+			Expect(pOrdered).ToNot(BeNil())
+			Expect(pOrdered.NumID).ToNot(BeEmpty())
+			orderedDef := doc.findNumberingDef(pOrdered.NumID)
+			Expect(orderedDef).ToNot(BeNil())
+			Expect(orderedDef.Levels[0].Format).To(Equal("decimal"))
+
+			pUnordered := doc.findParagraph("unordered nested")
+			Expect(pUnordered).ToNot(BeNil())
+			Expect(pUnordered.NumID).ToNot(BeEmpty())
+			unorderedDef := doc.findNumberingDef(pUnordered.NumID)
+			Expect(unorderedDef).ToNot(BeNil())
+			Expect(unorderedDef.Levels[0].Format).To(Equal("bullet"))
+		})
+	})
+
+	Context("callout lists", func() {
+
+		It("should render callout list items with angle-bracket prefixes", func() {
+			doc := renderDocx(`[source,go]
+----
+fmt.Println("hello") // <1>
+os.Exit(0)           // <2>
+----
+<1> Print a greeting
+<2> Exit the program`)
+
+			p1 := doc.findParagraph("Print a greeting")
+			Expect(p1).ToNot(BeNil())
+			Expect(p1.Style).To(Equal("ListParagraph"))
+			// The callout prefix should appear as a run in the paragraph
+			Expect(p1.text()).To(ContainSubstring("<1>"))
+
+			p2 := doc.findParagraph("Exit the program")
+			Expect(p2).ToNot(BeNil())
+			Expect(p2.text()).To(ContainSubstring("<2>"))
+		})
+	})
+
+	Context("list continuation", func() {
+
+		It("should render continuation paragraphs as ListParagraph without numbering", func() {
+			doc := renderDocx(`* First item
++
+Continuation paragraph for first item.
+
+* Second item`)
+
+			// First item has numbering
+			p1 := doc.findParagraph("First item")
+			Expect(p1).ToNot(BeNil())
+			Expect(p1.NumID).ToNot(BeEmpty())
+
+			// Continuation paragraph should be styled but unnumbered
+			pCont := doc.findParagraph("Continuation paragraph")
+			Expect(pCont).ToNot(BeNil())
+			Expect(pCont.Style).To(Equal("ListParagraph"))
+			Expect(pCont.NumID).To(BeEmpty(), "continuation paragraph should not have numId")
+
+			// Second item has numbering
+			p2 := doc.findParagraph("Second item")
+			Expect(p2).ToNot(BeNil())
+			Expect(p2.NumID).ToNot(BeEmpty())
+		})
+	})
+
+	Context("bullet format in numbering", func() {
+
+		It("should define bullet format for unordered lists", func() {
+			doc := renderDocx(`* item one
+* item two`)
+
+			p := doc.findParagraph("item one")
+			Expect(p).ToNot(BeNil())
+			Expect(p.NumID).ToNot(BeEmpty())
+
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("bullet"))
+		})
+	})
+})

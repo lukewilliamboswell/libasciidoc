@@ -28,7 +28,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:   "libasciidoc [flags] FILE",
-		Short: `libasciidoc is a tool to convert from Asciidoc to HTML`,
+		Short: `libasciidoc is a tool to convert from Asciidoc to HTML or DOCX`,
 		Args:  cobra.ArbitraryArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			lvl, err := log.ParseLevel(logLevel)
@@ -54,7 +54,7 @@ func NewRootCmd() *cobra.Command {
 			}
 			attrs := parseAttributes(attributes)
 			for _, sourcePath := range args {
-				out, close := getOut(cmd, sourcePath, outputName)
+				out, close := getOut(cmd, sourcePath, outputName, backend)
 				if out != nil {
 					defer close() //nolint:errcheck
 					// log.Debugf("Starting to process file %v", path)
@@ -97,7 +97,7 @@ func newCloseFileFunc(c io.Closer) closeFunc {
 	}
 }
 
-func getOut(cmd *cobra.Command, sourcePath, outputName string) (io.Writer, closeFunc) {
+func getOut(cmd *cobra.Command, sourcePath, outputName, backend string) (io.Writer, closeFunc) {
 	if outputName == "-" {
 		// outfile is STDOUT
 		return cmd.OutOrStdout(), defaultCloseFunc()
@@ -111,7 +111,11 @@ func getOut(cmd *cobra.Command, sourcePath, outputName string) (io.Writer, close
 	} else if sourcePath != "" {
 		// outfile is based on sourcePath
 		path, _ := filepath.Abs(sourcePath)
-		outname := strings.TrimSuffix(path, filepath.Ext(path)) + ".html"
+		ext := ".html"
+		if backend == "docx" {
+			ext = ".docx"
+		}
+		outname := strings.TrimSuffix(path, filepath.Ext(path)) + ext
 		outfile, err := os.Create(outname)
 		if err != nil {
 			log.Warnf("Cannot create output file - %v, skipping", outname)

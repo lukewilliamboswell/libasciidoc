@@ -3,6 +3,7 @@ package main_test
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 
 	main "github.com/bytesparadise/libasciidoc/cmd/libasciidoc"
 
@@ -38,6 +39,24 @@ var _ = Describe("root cmd", func() {
 		content, err := os.ReadFile("test/test.html")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(content).ToNot(BeEmpty())
+	})
+
+	It("render docx with backend-aware file output", func() {
+		// given
+		dir := GinkgoT().TempDir()
+		source := filepath.Join(dir, "sample.adoc")
+		Expect(os.WriteFile(source, []byte("= Sample\n\ncontent"), 0o644)).To(Succeed())
+		root := main.NewRootCmd()
+		buf := new(bytes.Buffer)
+		root.SetOutput(buf)
+		root.SetArgs([]string{"-b", "docx", source})
+		// when
+		err := root.Execute()
+		// then
+		Expect(err).ToNot(HaveOccurred())
+		content, err := os.ReadFile(filepath.Join(dir, "sample.docx"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(content[:2])).To(Equal("PK"))
 	})
 
 	It("fail to parse bad log level", func() {
