@@ -295,3 +295,119 @@ var _ = DescribeTable("insert element in slice",
 			&types.Section{},
 		}),
 )
+
+var _ = Describe("merge (via NewInlineElements)", func() {
+
+	It("should merge strings", func() {
+		result, err := types.NewInlineElements("hello", " ", "world")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(1))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "hello world"}))
+	})
+
+	It("should merge bytes into string", func() {
+		result, err := types.NewInlineElements([]byte("he"), []byte("llo"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(1))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "hello"}))
+	})
+
+	It("should flush buffer on non-string element", func() {
+		link := &types.InlineLink{}
+		result, err := types.NewInlineElements("before ", link, " after")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(3))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "before "}))
+		Expect(result[1]).To(Equal(link))
+		Expect(result[2]).To(Equal(&types.StringElement{Content: " after"}))
+	})
+
+	It("should handle nested slices", func() {
+		result, err := types.NewInlineElements(
+			[]interface{}{"nested ", "content"},
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(1))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "nested content"}))
+	})
+
+	It("should skip nil elements", func() {
+		result, err := types.NewInlineElements("a", nil, "b")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(1))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "ab"}))
+	})
+
+	It("should trim trailing space before em-dash symbol", func() {
+		sym := &types.Symbol{Name: " -- "}
+		result, err := types.NewInlineElements("hello ", sym, " world")
+		Expect(err).NotTo(HaveOccurred())
+		// "hello " should be trimmed to "hello" before the symbol
+		Expect(result).To(HaveLen(3))
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "hello"}))
+		Expect(result[1]).To(Equal(sym))
+		Expect(result[2]).To(Equal(&types.StringElement{Content: " world"}))
+	})
+})
+
+var _ = Describe("Reduce", func() {
+
+	It("should return single string from one StringElement", func() {
+		result := types.Reduce([]interface{}{
+			&types.StringElement{Content: "hello"},
+		})
+		Expect(result).To(Equal("hello"))
+	})
+
+	It("should return nil for empty slice", func() {
+		result := types.Reduce([]interface{}{})
+		Expect(result).To(BeNil())
+	})
+
+	It("should return nil for nil elements", func() {
+		result := types.Reduce([]interface{}{nil, nil})
+		Expect(result).To(BeNil())
+	})
+
+	It("should return slice when multiple non-string elements remain", func() {
+		link := &types.InlineLink{}
+		result := types.Reduce([]interface{}{
+			&types.StringElement{Content: "text"},
+			link,
+		})
+		slice, ok := result.([]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(slice).To(HaveLen(2))
+	})
+
+	It("should apply options to string result", func() {
+		result := types.Reduce(
+			[]interface{}{&types.StringElement{Content: "  hello  "}},
+			func(s string) string {
+				return "trimmed"
+			},
+		)
+		Expect(result).To(Equal("trimmed"))
+	})
+
+	It("should handle StringElement input directly", func() {
+		result := types.Reduce(&types.StringElement{Content: "hello"})
+		Expect(result).To(Equal("hello"))
+	})
+
+	It("should handle string input directly", func() {
+		result := types.Reduce("hello")
+		Expect(result).To(Equal("hello"))
+	})
+
+	It("should return nil for empty string", func() {
+		result := types.Reduce("")
+		Expect(result).To(BeNil())
+	})
+
+	It("should return non-slice non-string input unchanged", func() {
+		link := &types.InlineLink{}
+		result := types.Reduce(link)
+		Expect(result).To(Equal(link))
+	})
+})

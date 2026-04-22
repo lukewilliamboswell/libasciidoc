@@ -8,7 +8,15 @@ import (
 )
 
 func (r *docxRenderer) renderCrossReference(para *strings.Builder, ref *types.InternalCrossReference, style runStyle) error {
-	refID, _ := ref.ID.(string)
+	refID, ok := ref.ID.(string)
+	if !ok {
+		text, err := r.renderPlainText(ref.ID)
+		if err != nil {
+			return err
+		}
+		r.writeTextRun(para, text, style)
+		return nil
+	}
 	// Resolve the canonical element reference ID, which may differ in case
 	// from the xref ID (e.g. parser produces "_target_section" but section
 	// ID is "_Target_Section"). Use the canonical form for both label

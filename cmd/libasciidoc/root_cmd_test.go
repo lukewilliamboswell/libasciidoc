@@ -66,7 +66,7 @@ var _ = Describe("root cmd", func() {
 		root := main.NewRootCmd()
 		buf := new(bytes.Buffer)
 		root.SetOutput(buf)
-		root.SetArgs([]string{"--log", "debug1", "-s", "test/test.adoc"})
+		root.SetArgs([]string{"--log-level", "debug1", "-s", "test/test.adoc"})
 		// when
 		err := root.Execute()
 		// then

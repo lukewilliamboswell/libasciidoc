@@ -1,18 +1,19 @@
 package docx
 
 import (
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
-	"github.com/pkg/errors"
 )
 
 // Render renders the document as a DOCX file and writes it to the output writer.
 func Render(doc *types.Document, config *configuration.Configuration, output io.Writer) (types.Metadata, error) {
 	ctx, err := newContext(doc, config)
 	if err != nil {
-		return types.Metadata{}, errors.Wrap(err, "unable to render docx document")
+		return types.Metadata{}, fmt.Errorf("unable to render docx document: %w", err)
 	}
 
 	d := newDocxDocument()
@@ -54,20 +55,20 @@ bodyAttributes:
 
 	// Section numbering
 	if ctx.sectionNumbering, err = doc.SectionNumbers(); err != nil {
-		return metadata, errors.Wrap(err, "unable to render docx document")
+		return metadata, fmt.Errorf("unable to render docx document: %w", err)
 	}
 
 	// Render document title
 	if header, _ := doc.Header(); header != nil && header.Title != nil {
 		title, err := r.renderPlainText(header.Title)
 		if err != nil {
-			return metadata, errors.Wrap(err, "unable to render document title")
+			return metadata, fmt.Errorf("unable to render document title: %w", err)
 		}
 		metadata.Title = title
 
 		// Add title to the document
 		if err := r.renderTextParagraph(title, paragraphOptions{style: "Title"}); err != nil {
-			return metadata, errors.Wrap(err, "unable to render document title")
+			return metadata, fmt.Errorf("unable to render document title: %w", err)
 		}
 
 		// Add authors
@@ -77,8 +78,8 @@ bodyAttributes:
 			for i, author := range authors {
 				authorNames[i] = author.FullName()
 			}
-			if err := r.renderTextParagraph(joinStrings(authorNames, "; "), paragraphOptions{style: "Subtitle"}); err != nil {
-				return metadata, errors.Wrap(err, "unable to render document authors")
+			if err := r.renderTextParagraph(strings.Join(authorNames, "; "), paragraphOptions{style: "Subtitle"}); err != nil {
+				return metadata, fmt.Errorf("unable to render document authors: %w", err)
 			}
 		}
 
@@ -91,18 +92,18 @@ bodyAttributes:
 	// Render body elements
 	elements, err := r.bodyElementsWithTableOfContents(doc)
 	if err != nil {
-		return metadata, errors.Wrap(err, "unable to render docx document")
+		return metadata, fmt.Errorf("unable to render docx document: %w", err)
 	}
 	if err := r.renderElements(elements); err != nil {
-		return metadata, errors.Wrap(err, "unable to render docx document")
+		return metadata, fmt.Errorf("unable to render docx document: %w", err)
 	}
 	if err := r.renderFootnotes(doc.Footnotes); err != nil {
-		return metadata, errors.Wrap(err, "unable to render docx footnotes")
+		return metadata, fmt.Errorf("unable to render docx footnotes: %w", err)
 	}
 
 	// Write the document
-	if err := d.WriteTo(output); err != nil {
-		return metadata, errors.Wrap(err, "unable to write docx document")
+	if _, err := d.WriteTo(output); err != nil {
+		return metadata, fmt.Errorf("unable to write docx document: %w", err)
 	}
 
 	return metadata, nil
@@ -137,15 +138,4 @@ func (r *docxRenderer) bodyElementsWithTableOfContents(doc *types.Document) ([]i
 		copy(result[1:], elements)
 		return result, nil
 	}
-}
-
-func joinStrings(values []string, sep string) string {
-	if len(values) == 0 {
-		return ""
-	}
-	result := values[0]
-	for _, value := range values[1:] {
-		result += sep + value
-	}
-	return result
 }

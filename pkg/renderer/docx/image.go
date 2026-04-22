@@ -10,6 +10,15 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 )
 
+// EMU (English Metric Unit) conversion factors for OOXML drawing dimensions.
+const (
+	emuPerInch  = 914400
+	emuPerCm    = 360000
+	emuPerMm    = 36000
+	emuPerPx    = 9525  // at 96 DPI
+	defaultImageWidthEMU = 3657600 // 4 inches
+)
+
 func (r *docxRenderer) renderImageBlock(img *types.ImageBlock) error {
 	src := r.resolveImagePath(img.Location)
 	para := r.startParagraph(paragraphOptions{})
@@ -96,7 +105,7 @@ func imageSize(attrs types.Attributes) (int64, int64) {
 	width := dimensionToEMU(attrs.GetAsStringWithDefault(types.AttrWidth, ""))
 	height := dimensionToEMU(attrs.GetAsStringWithDefault(types.AttrHeight, ""))
 	if width == 0 {
-		width = 3657600
+		width = defaultImageWidthEMU
 	}
 	if height == 0 {
 		height = width * 3 / 4
@@ -123,13 +132,13 @@ func dimensionToEMU(value string) int64 {
 	}
 	switch unit {
 	case "in":
-		return int64(n * 914400)
+		return int64(n * emuPerInch)
 	case "cm":
-		return int64(n * 360000)
+		return int64(n * emuPerCm)
 	case "mm":
-		return int64(n * 36000)
+		return int64(n * emuPerMm)
 	default:
-		return int64(n * 9525)
+		return int64(n * emuPerPx)
 	}
 }
 

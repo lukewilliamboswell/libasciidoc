@@ -24,7 +24,7 @@ func (r *docxRenderer) renderList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderOrderedList(l *types.List) error {
-	indent := (r.listLevel - 1) * 360
+	indent := (r.listLevel - 1) * twipsPerLevel
 	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
 	for _, item := range l.Elements {
 		if ole, ok := item.(*types.OrderedListElement); ok {
@@ -37,7 +37,7 @@ func (r *docxRenderer) renderOrderedList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderUnorderedList(l *types.List) error {
-	indent := (r.listLevel - 1) * 360
+	indent := (r.listLevel - 1) * twipsPerLevel
 	numID := r.doc.addNumbering("bullet", 1, indent)
 	for _, item := range l.Elements {
 		if ule, ok := item.(*types.UnorderedListElement); ok {
@@ -58,9 +58,13 @@ func (r *docxRenderer) renderUnorderedList(l *types.List) error {
 func (r *docxRenderer) renderLabeledList(l *types.List) error {
 	for _, item := range l.Elements {
 		if lle, ok := item.(*types.LabeledListElement); ok {
-			// Render term as bold paragraph
+			// Render term as bold paragraph, using heading font if configured
 			termPara := r.startParagraph(paragraphOptions{})
-			if err := r.renderInlineElements(termPara, lle.Term, runStyle{bold: true}); err != nil {
+			termStyle := runStyle{bold: true}
+			if r.ctx.theme.Heading.FontFamily != "" {
+				termStyle.font = r.ctx.theme.Heading.FontFamily
+			}
+			if err := r.renderInlineElements(termPara, lle.Term, termStyle); err != nil {
 				return err
 			}
 			r.endParagraph(termPara)
@@ -160,5 +164,3 @@ func orderedListFormat(l *types.List) string {
 		return "decimal"
 	}
 }
-
-var _ = strconv.Itoa

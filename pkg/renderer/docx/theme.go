@@ -15,6 +15,7 @@ type DocxTheme struct {
 	Table   TableTheme
 	List    ListTheme
 	Code    CodeTheme
+	Link    LinkTheme
 }
 
 // PageTheme controls page dimensions and margins.
@@ -33,13 +34,18 @@ type BaseTheme struct {
 
 // HeadingTheme controls heading styles.
 type HeadingTheme struct {
-	FontFamily string
-	FontColor  string
-	FontStyle  string  // "bold", "italic", "bold_italic"
-	H1FontSize float64 // in pt; 0 means use formula fallback
-	H2FontSize float64
-	H3FontSize float64
-	H4FontSize float64
+	FontFamily    string
+	FontColor     string
+	FontStyle     string // "bold", "italic", "bold_italic"
+	TextTransform string // "uppercase", "lowercase", "capitalize", or "" for none
+	H1FontSize    float64 // in pt; 0 means use formula fallback
+	H2FontSize    float64
+	H3FontSize    float64
+	H4FontSize    float64
+	H1TextTransform string // per-level overrides; empty means inherit from TextTransform
+	H2TextTransform string
+	H3TextTransform string
+	H4TextTransform string
 }
 
 // TitlePageTheme controls the document title and subtitle.
@@ -68,6 +74,11 @@ type ListTheme struct {
 type CodeTheme struct {
 	FontFamily string
 	FontSize   float64 // in pt
+}
+
+// LinkTheme controls hyperlink styling.
+type LinkTheme struct {
+	FontColor string // 6-hex e.g. "0563C1"; used for Hyperlink character style
 }
 
 // DefaultTheme returns a theme matching the previously hardcoded values,
@@ -101,6 +112,9 @@ func DefaultTheme() *DocxTheme {
 		Code: CodeTheme{
 			FontFamily: "Courier New",
 			FontSize:   10, // 20 half-points
+		},
+		Link: LinkTheme{
+			FontColor: "0563C1",
 		},
 	}
 }
@@ -166,6 +180,26 @@ func (t *DocxTheme) headingSizeHalfPt(level int) int {
 		size = 20
 	}
 	return size
+}
+
+// headingTextTransform returns the text_transform value for the given heading level (1-9).
+// Per-level overrides take precedence over the general heading text_transform.
+func (t *DocxTheme) headingTextTransform(level int) string {
+	var perLevel string
+	switch level {
+	case 1:
+		perLevel = t.Heading.H1TextTransform
+	case 2:
+		perLevel = t.Heading.H2TextTransform
+	case 3:
+		perLevel = t.Heading.H3TextTransform
+	case 4:
+		perLevel = t.Heading.H4TextTransform
+	}
+	if perLevel != "" {
+		return perLevel
+	}
+	return t.Heading.TextTransform
 }
 
 // itoa is a shorthand for strconv.Itoa.

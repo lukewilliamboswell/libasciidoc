@@ -38,6 +38,7 @@ type yamlTheme struct {
 	Table   *yamlTableTheme   `yaml:"table"`
 	List    *yamlListTheme    `yaml:"list"`
 	Code    *yamlCodeTheme    `yaml:"code"`
+	Link    *yamlLinkTheme    `yaml:"link"`
 }
 
 type yamlPageTheme struct {
@@ -67,17 +68,19 @@ type yamlBaseTheme struct {
 }
 
 type yamlHeadingTheme struct {
-	FontFamily string          `yaml:"font_family"`
-	FontColor  string          `yaml:"font_color"`
-	FontStyle  string          `yaml:"font_style"`
-	H1         *yamlFontSize   `yaml:"h1"`
-	H2         *yamlFontSize   `yaml:"h2"`
-	H3         *yamlFontSize   `yaml:"h3"`
-	H4         *yamlFontSize   `yaml:"h4"`
+	FontFamily    string            `yaml:"font_family"`
+	FontColor     string            `yaml:"font_color"`
+	FontStyle     string            `yaml:"font_style"`
+	TextTransform string            `yaml:"text_transform"`
+	H1            *yamlHeadingLevel `yaml:"h1"`
+	H2            *yamlHeadingLevel `yaml:"h2"`
+	H3            *yamlHeadingLevel `yaml:"h3"`
+	H4            *yamlHeadingLevel `yaml:"h4"`
 }
 
-type yamlFontSize struct {
-	FontSize float64 `yaml:"font_size"`
+type yamlHeadingLevel struct {
+	FontSize      float64 `yaml:"font_size"`
+	TextTransform string  `yaml:"text_transform"`
 }
 
 type yamlTitleTheme struct {
@@ -109,6 +112,10 @@ type yamlListTheme struct {
 type yamlCodeTheme struct {
 	FontFamily string  `yaml:"font_family"`
 	FontSize   float64 `yaml:"font_size"`
+}
+
+type yamlLinkTheme struct {
+	FontColor string `yaml:"font_color"`
 }
 
 // applyTo merges parsed YAML values onto the default theme.
@@ -146,17 +153,40 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		if yt.Heading.FontStyle != "" {
 			t.Heading.FontStyle = yt.Heading.FontStyle
 		}
-		if yt.Heading.H1 != nil && yt.Heading.H1.FontSize > 0 {
-			t.Heading.H1FontSize = yt.Heading.H1.FontSize
+		if yt.Heading.TextTransform != "" {
+			t.Heading.TextTransform = yt.Heading.TextTransform
 		}
-		if yt.Heading.H2 != nil && yt.Heading.H2.FontSize > 0 {
-			t.Heading.H2FontSize = yt.Heading.H2.FontSize
+		if yt.Heading.H1 != nil {
+			if yt.Heading.H1.FontSize > 0 {
+				t.Heading.H1FontSize = yt.Heading.H1.FontSize
+			}
+			if yt.Heading.H1.TextTransform != "" {
+				t.Heading.H1TextTransform = yt.Heading.H1.TextTransform
+			}
 		}
-		if yt.Heading.H3 != nil && yt.Heading.H3.FontSize > 0 {
-			t.Heading.H3FontSize = yt.Heading.H3.FontSize
+		if yt.Heading.H2 != nil {
+			if yt.Heading.H2.FontSize > 0 {
+				t.Heading.H2FontSize = yt.Heading.H2.FontSize
+			}
+			if yt.Heading.H2.TextTransform != "" {
+				t.Heading.H2TextTransform = yt.Heading.H2.TextTransform
+			}
 		}
-		if yt.Heading.H4 != nil && yt.Heading.H4.FontSize > 0 {
-			t.Heading.H4FontSize = yt.Heading.H4.FontSize
+		if yt.Heading.H3 != nil {
+			if yt.Heading.H3.FontSize > 0 {
+				t.Heading.H3FontSize = yt.Heading.H3.FontSize
+			}
+			if yt.Heading.H3.TextTransform != "" {
+				t.Heading.H3TextTransform = yt.Heading.H3.TextTransform
+			}
+		}
+		if yt.Heading.H4 != nil {
+			if yt.Heading.H4.FontSize > 0 {
+				t.Heading.H4FontSize = yt.Heading.H4.FontSize
+			}
+			if yt.Heading.H4.TextTransform != "" {
+				t.Heading.H4TextTransform = yt.Heading.H4.TextTransform
+			}
 		}
 	}
 	if yt.Title != nil {
@@ -203,6 +233,11 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		}
 		if yt.Code.FontSize > 0 {
 			t.Code.FontSize = yt.Code.FontSize
+		}
+	}
+	if yt.Link != nil {
+		if yt.Link.FontColor != "" {
+			t.Link.FontColor = yt.Link.FontColor
 		}
 	}
 }

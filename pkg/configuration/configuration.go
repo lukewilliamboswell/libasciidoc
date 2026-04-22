@@ -77,7 +77,9 @@ func WithLastUpdated(value time.Time) Setting {
 // WithAttributes function to set the `attribute overrides`
 func WithAttributes(attrs map[string]interface{}) Setting {
 	return func(config *Configuration) {
-		config.Attributes = attrs
+		for k, v := range attrs {
+			config.Attributes[k] = v
+		}
 	}
 }
 

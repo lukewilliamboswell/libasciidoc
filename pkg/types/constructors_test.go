@@ -614,3 +614,506 @@ var _ = Describe("utilities", func() {
 		})
 	})
 })
+
+var _ = Describe("DocumentHeader", func() {
+
+	Describe("NewDocumentHeader", func() {
+
+		It("should create header with title only", func() {
+			title := []interface{}{&types.StringElement{Content: "My Title"}}
+			header, err := types.NewDocumentHeader(title, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(header.Title).To(HaveLen(1))
+			Expect(header.Elements).To(BeEmpty())
+		})
+
+		It("should create header with authors and revision", func() {
+			title := []interface{}{&types.StringElement{Content: "Title"}}
+			authors := types.DocumentAuthors{
+				&types.DocumentAuthor{
+					DocumentAuthorFullName: &types.DocumentAuthorFullName{FirstName: "John"},
+				},
+			}
+			revision := &types.DocumentRevision{Revnumber: "1.0"}
+			ar := &types.DocumentAuthorsAndRevision{
+				Authors:  authors,
+				Revision: revision,
+			}
+			header, err := types.NewDocumentHeader(title, ar, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(header.Title).To(HaveLen(1))
+			Expect(header.Elements).To(HaveLen(2)) // authors + revision declarations
+		})
+
+		It("should include extra attributes", func() {
+			title := []interface{}{&types.StringElement{Content: "Title"}}
+			extra := []interface{}{
+				&types.AttributeDeclaration{Name: "toc", Value: ""},
+			}
+			header, err := types.NewDocumentHeader(title, nil, extra)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(header.Elements).To(HaveLen(1))
+		})
+	})
+
+	Describe("Authors", func() {
+
+		It("should return authors from AttrAuthors declaration", func() {
+			authors := types.DocumentAuthors{
+				&types.DocumentAuthor{
+					DocumentAuthorFullName: &types.DocumentAuthorFullName{FirstName: "Jane"},
+					Email:                 "jane@example.com",
+				},
+			}
+			header := &types.DocumentHeader{
+				Elements: []interface{}{
+					&types.AttributeDeclaration{
+						Name:  types.AttrAuthors,
+						Value: authors,
+					},
+				},
+			}
+			result := header.Authors()
+			Expect(result).To(HaveLen(1))
+			Expect(result[0].DocumentAuthorFullName.FirstName).To(Equal("Jane"))
+		})
+
+		It("should return authors from individual AttrAuthor and AttrEmail", func() {
+			header := &types.DocumentHeader{
+				Elements: []interface{}{
+					&types.AttributeDeclaration{Name: types.AttrAuthor, Value: "John"},
+					&types.AttributeDeclaration{Name: types.AttrEmail, Value: "john@example.com"},
+				},
+			}
+			result := header.Authors()
+			Expect(result).To(HaveLen(1))
+			Expect(result[0].DocumentAuthorFullName.FirstName).To(Equal("John"))
+			Expect(result[0].Email).To(Equal("john@example.com"))
+		})
+
+		It("should return nil when no author declarations", func() {
+			header := &types.DocumentHeader{
+				Elements: []interface{}{
+					&types.AttributeDeclaration{Name: "toc", Value: ""},
+				},
+			}
+			Expect(header.Authors()).To(BeNil())
+		})
+	})
+
+	Describe("Revision", func() {
+
+		It("should return revision when present", func() {
+			rev := &types.DocumentRevision{Revnumber: "2.0"}
+			header := &types.DocumentHeader{
+				Elements: []interface{}{
+					&types.AttributeDeclaration{Name: types.AttrRevision, Value: rev},
+				},
+			}
+			result := header.Revision()
+			Expect(result).NotTo(BeNil())
+			Expect(result.Revnumber).To(Equal("2.0"))
+		})
+
+		It("should return nil when no revision", func() {
+			header := &types.DocumentHeader{
+				Elements: []interface{}{},
+			}
+			Expect(header.Revision()).To(BeNil())
+		})
+	})
+
+	Describe("IsEmpty", func() {
+
+		It("should be true for empty header", func() {
+			header := &types.DocumentHeader{}
+			Expect(header.IsEmpty()).To(BeTrue())
+		})
+
+		It("should be false with title", func() {
+			header := &types.DocumentHeader{
+				Title: []interface{}{&types.StringElement{Content: "Title"}},
+			}
+			Expect(header.IsEmpty()).To(BeFalse())
+		})
+	})
+})
+
+var _ = Describe("NewAttributeReference", func() {
+
+	It("should return PredefinedAttribute for known names", func() {
+		result, err := types.NewAttributeReference("nbsp", "{nbsp}")
+		Expect(err).NotTo(HaveOccurred())
+		_, ok := result.(*types.PredefinedAttribute)
+		Expect(ok).To(BeTrue())
+	})
+
+	It("should return AttributeReference for unknown names", func() {
+		result, err := types.NewAttributeReference("custom-attr", "{custom-attr}")
+		Expect(err).NotTo(HaveOccurred())
+		_, ok := result.(*types.AttributeReference)
+		Expect(ok).To(BeTrue())
+	})
+})
+
+var _ = Describe("NewDocumentAuthorsAndRevision", func() {
+
+	It("should create with authors and revision", func() {
+		authors := types.DocumentAuthors{
+			&types.DocumentAuthor{
+				DocumentAuthorFullName: &types.DocumentAuthorFullName{FirstName: "Jane"},
+			},
+		}
+		rev := &types.DocumentRevision{Revnumber: "1.0"}
+		ar, err := types.NewDocumentAuthorsAndRevision(authors, rev)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ar.Authors).To(HaveLen(1))
+		Expect(ar.Revision).NotTo(BeNil())
+	})
+
+	It("should create with authors only", func() {
+		authors := types.DocumentAuthors{}
+		ar, err := types.NewDocumentAuthorsAndRevision(authors, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ar.Revision).To(BeNil())
+	})
+})
+
+var _ = Describe("Paragraph", func() {
+
+	Describe("NewParagraph", func() {
+
+		It("should append newlines to all but last raw line", func() {
+			rl1, _ := types.NewRawLine("line1")
+			rl2, _ := types.NewRawLine("line2")
+			rl3, _ := types.NewRawLine("line3")
+			p, err := types.NewParagraph(nil, rl1, rl2, rl3)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(p.Elements).To(HaveLen(3))
+			Expect(rl1.Content).To(Equal("line1\n"))
+			Expect(rl2.Content).To(Equal("line2\n"))
+			Expect(rl3.Content).To(Equal("line3"))
+		})
+
+		It("should set style attribute", func() {
+			rl, _ := types.NewRawLine("content")
+			p, err := types.NewParagraph("source", rl)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(p.Attributes[types.AttrStyle]).To(Equal("source"))
+		})
+
+		It("should have nil attributes without style", func() {
+			rl, _ := types.NewRawLine("content")
+			p, err := types.NewParagraph(nil, rl)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(p.Attributes).To(BeNil())
+		})
+	})
+
+	Describe("mapAttributes via AddAttributes", func() {
+
+		It("should map positional-1 to style", func() {
+			rl, _ := types.NewRawLine("content")
+			p, _ := types.NewParagraph(nil, rl)
+			p.AddAttributes(types.Attributes{
+				types.AttrPositional1: "source",
+			})
+			Expect(p.Attributes[types.AttrStyle]).To(Equal("source"))
+		})
+
+		It("should map positional-2 to language for source style", func() {
+			rl, _ := types.NewRawLine("content")
+			p, _ := types.NewParagraph(nil, rl)
+			p.AddAttributes(types.Attributes{
+				types.AttrPositional1: "source",
+				types.AttrPositional2: "go",
+			})
+			Expect(p.Attributes[types.AttrStyle]).To(Equal("source"))
+			Expect(p.Attributes[types.AttrLanguage]).To(Equal("go"))
+		})
+
+		It("should map positional-2 to quote author for quote style", func() {
+			rl, _ := types.NewRawLine("content")
+			p, _ := types.NewParagraph(nil, rl)
+			p.AddAttributes(types.Attributes{
+				types.AttrPositional1: "quote",
+				types.AttrPositional2: "Author Name",
+				types.AttrPositional3: "Book Title",
+			})
+			Expect(p.Attributes[types.AttrStyle]).To(Equal("quote"))
+			Expect(p.Attributes[types.AttrQuoteAuthor]).To(Equal("Author Name"))
+			Expect(p.Attributes[types.AttrQuoteTitle]).To(Equal("Book Title"))
+		})
+	})
+
+	Describe("AddElement", func() {
+
+		It("should append newline to last raw line before adding", func() {
+			rl1, _ := types.NewRawLine("line1")
+			rl2, _ := types.NewRawLine("line2")
+			p, _ := types.NewParagraph(nil, rl1)
+			err := p.AddElement(rl2)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(p.Elements).To(HaveLen(2))
+			Expect(rl1.Content).To(Equal("line1\n"))
+		})
+	})
+})
+
+var _ = Describe("Section", func() {
+
+	Describe("ResolveID", func() {
+
+		It("should use existing ID attribute", func() {
+			s := &types.Section{
+				Attributes: types.Attributes{
+					types.AttrID: "existing-id",
+				},
+				Title: []interface{}{&types.StringElement{Content: "My Title"}},
+			}
+			refs := types.ElementReferences{}
+			err := s.ResolveID(types.Attributes{}, refs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Attributes[types.AttrID]).To(Equal("existing-id"))
+		})
+
+		It("should generate ID from title", func() {
+			s := &types.Section{
+				Title: []interface{}{&types.StringElement{Content: "My Title"}},
+			}
+			refs := types.ElementReferences{}
+			err := s.ResolveID(types.Attributes{}, refs)
+			Expect(err).NotTo(HaveOccurred())
+			id, ok := s.Attributes[types.AttrID].(string)
+			Expect(ok).To(BeTrue())
+			Expect(id).To(Equal("_My_Title"))
+		})
+
+		It("should add suffix for duplicate IDs", func() {
+			s := &types.Section{
+				Title: []interface{}{&types.StringElement{Content: "My Title"}},
+			}
+			refs := types.ElementReferences{
+				"_My_Title": "existing",
+			}
+			err := s.ResolveID(types.Attributes{}, refs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Attributes[types.AttrID]).To(Equal("_My_Title_2"))
+		})
+	})
+
+	Describe("SetTitle", func() {
+
+		It("should extract inline ID attribute from trailing element", func() {
+			s := &types.Section{}
+			s.SetTitle([]interface{}{
+				&types.StringElement{Content: "My Title"},
+				&types.Attribute{Key: types.AttrID, Value: "custom-id"},
+			})
+			// Title should not contain the attribute
+			Expect(s.Title).To(HaveLen(1))
+			Expect(s.Attributes[types.AttrID]).To(Equal("custom-id"))
+		})
+
+		It("should trim trailing spaces from title", func() {
+			s := &types.Section{}
+			s.SetTitle([]interface{}{
+				&types.StringElement{Content: "My Title   "},
+			})
+			se := s.Title[0].(*types.StringElement)
+			Expect(se.Content).To(Equal("My Title"))
+		})
+	})
+})
+
+var _ = Describe("InternalCrossReference", func() {
+
+	Describe("ResolveID", func() {
+
+		It("should resolve string ID with spaces", func() {
+			xref, _ := types.NewInternalCrossReference("my section", nil)
+			err := xref.ResolveID(types.Attributes{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(xref.ID).To(Equal("_my_section")) // spaces replaced with separators
+		})
+
+		It("should not modify string ID without spaces", func() {
+			xref, _ := types.NewInternalCrossReference("my_section", nil)
+			err := xref.ResolveID(types.Attributes{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(xref.ID).To(Equal("my_section"))
+		})
+
+		It("should resolve slice ID", func() {
+			xref, _ := types.NewInternalCrossReference(
+				[]interface{}{&types.StringElement{Content: "My Section"}},
+				nil,
+			)
+			err := xref.ResolveID(types.Attributes{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(xref.ID).To(Equal("_My_Section"))
+		})
+	})
+})
+
+var _ = Describe("YamlFrontMatter", func() {
+
+	It("should parse valid YAML", func() {
+		fm, err := types.NewYamlFrontMatter("title: My Doc\nauthor: Jane\n")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fm.Attributes).To(HaveKeyWithValue("title", "My Doc"))
+		Expect(fm.Attributes).To(HaveKeyWithValue("author", "Jane"))
+	})
+
+	It("should return nil attributes for empty YAML", func() {
+		fm, err := types.NewYamlFrontMatter("")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fm.Attributes).To(BeNil())
+	})
+
+	It("should return error for invalid YAML", func() {
+		_, err := types.NewYamlFrontMatter(":\n  - :\n    :\n  bad: [")
+		Expect(err).To(HaveOccurred())
+	})
+})
+
+var _ = Describe("CounterSubstitution", func() {
+
+	It("should convert string value to rune", func() {
+		cs, err := types.NewCounterSubstitution("mycount", false, "A", "{counter:mycount:A}")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cs.Name).To(Equal("mycount"))
+		Expect(cs.Value).To(Equal('A'))
+		Expect(cs.Hidden).To(BeFalse())
+	})
+
+	It("should keep non-string value as-is", func() {
+		cs, err := types.NewCounterSubstitution("mycount", true, nil, "{counter2:mycount}")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cs.Value).To(BeNil())
+		Expect(cs.Hidden).To(BeTrue())
+	})
+})
+
+var _ = Describe("Preamble", func() {
+
+	It("should have content with a paragraph", func() {
+		p := &types.Preamble{
+			Elements: []interface{}{
+				&types.Paragraph{},
+			},
+		}
+		Expect(p.HasContent()).To(BeTrue())
+	})
+
+	It("should not have content with only blank lines", func() {
+		p := &types.Preamble{
+			Elements: []interface{}{
+				&types.BlankLine{},
+				&types.AttributeDeclaration{Name: "foo"},
+			},
+		}
+		Expect(p.HasContent()).To(BeFalse())
+	})
+
+	It("should not have content when empty", func() {
+		p := &types.Preamble{}
+		Expect(p.HasContent()).To(BeFalse())
+	})
+})
+
+var _ = Describe("DelimitedBlock", func() {
+
+	It("should append newlines to all but last raw line", func() {
+		rl1, _ := types.NewRawLine("line1")
+		rl2, _ := types.NewRawLine("line2")
+		b, err := types.NewDelimitedBlock(types.Listing, []interface{}{rl1, rl2})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(b.Kind).To(Equal(types.Listing))
+		Expect(rl1.Content).To(Equal("line1\n"))
+		Expect(rl2.Content).To(Equal("line2"))
+	})
+})
+
+var _ = Describe("EscapedQuotedText", func() {
+
+	It("should strip matching backslashes", func() {
+		result, err := types.NewEscapedQuotedText(`\`, "*", &types.StringElement{Content: "bold"})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(HaveLen(3))
+		// backslash stripped, marker preserved
+		Expect(result[0]).To(Equal(&types.StringElement{Content: "*"}))
+		Expect(result[2]).To(Equal(&types.StringElement{Content: "*"}))
+	})
+
+	It("should keep extra backslashes", func() {
+		result, err := types.NewEscapedQuotedText(`\\`, "*", &types.StringElement{Content: "bold"})
+		Expect(err).NotTo(HaveOccurred())
+		// 2 backslashes - 1 marker length = 1 extra backslash
+		Expect(result[0]).To(Equal(&types.StringElement{Content: `\*`}))
+	})
+})
+
+var _ = Describe("Footnotes", func() {
+
+	It("should add a new footnote and return reference", func() {
+		footnotes := types.NewFootnotes()
+		note := &types.Footnote{
+			Ref:      "fn1",
+			Elements: []interface{}{&types.StringElement{Content: "footnote text"}},
+		}
+		ref := footnotes.Reference(note)
+		Expect(ref.ID).To(Equal(1))
+		Expect(ref.Ref).To(Equal("fn1"))
+		Expect(ref.Duplicate).To(BeFalse())
+		Expect(footnotes.Notes).To(HaveLen(1))
+	})
+
+	It("should return duplicate reference for same ref", func() {
+		footnotes := types.NewFootnotes()
+		note1 := &types.Footnote{
+			Ref:      "fn1",
+			Elements: []interface{}{&types.StringElement{Content: "text"}},
+		}
+		footnotes.Reference(note1)
+		// Second reference with same ref but no elements (duplicate reference)
+		note2 := &types.Footnote{Ref: "fn1"}
+		ref := footnotes.Reference(note2)
+		Expect(ref.ID).To(Equal(1))
+		Expect(ref.Duplicate).To(BeTrue())
+	})
+
+	It("should return invalid reference for unknown ref without elements", func() {
+		footnotes := types.NewFootnotes()
+		note := &types.Footnote{Ref: "unknown"}
+		ref := footnotes.Reference(note)
+		Expect(ref.ID).To(Equal(types.InvalidFootnoteReference))
+	})
+})
+
+var _ = Describe("RawLine", func() {
+
+	It("should create from string", func() {
+		rl, err := types.NewRawLine("hello")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rl.Content).To(Equal("hello"))
+	})
+
+	It("should append content", func() {
+		rl, _ := types.NewRawLine("hello")
+		rl.Append(" world")
+		Expect(rl.Content).To(Equal("hello world"))
+	})
+
+	It("should check Contains", func() {
+		rl, _ := types.NewRawLine("hello world")
+		Expect(rl.Contains("world")).To(BeTrue())
+		Expect(rl.Contains("foo")).To(BeFalse())
+	})
+
+	It("should check HasSuffix", func() {
+		rl, _ := types.NewRawLine("hello world")
+		Expect(rl.HasSuffix("world")).To(BeTrue())
+		Expect(rl.HasSuffix("hello")).To(BeFalse())
+	})
+})

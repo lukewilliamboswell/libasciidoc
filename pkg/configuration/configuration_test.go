@@ -68,7 +68,7 @@ var _ = Describe("configuration", func() {
 
 	Describe("WithAttributes", func() {
 
-		It("should replace the attribute map", func() {
+		It("should merge attributes into the existing map", func() {
 			attrs := map[string]interface{}{
 				"key1": "val1",
 				"key2": "val2",
@@ -78,8 +78,8 @@ var _ = Describe("configuration", func() {
 			)
 			Expect(config.Attributes).To(HaveKeyWithValue("key1", "val1"))
 			Expect(config.Attributes).To(HaveKeyWithValue("key2", "val2"))
-			// default attributes should be replaced
-			Expect(config.Attributes).NotTo(HaveKey("basebackend-html"))
+			// default attributes should be preserved
+			Expect(config.Attributes).To(HaveKey("basebackend-html"))
 		})
 	})
 

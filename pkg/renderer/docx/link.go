@@ -39,7 +39,8 @@ func (r *docxRenderer) renderExternalHyperlink(para *strings.Builder, url string
 	para.WriteString(`<w:hyperlink r:id="`)
 	para.WriteString(xmlAttr(id))
 	para.WriteString(`" w:history="1">`)
-	if err := r.renderLabelInline(para, label, mergeRunStyle(style, runStyle{charStyle: "Hyperlink", underline: true, color: "0563C1"})); err != nil {
+	linkColor := r.ctx.theme.Link.FontColor
+	if err := r.renderLabelInline(para, label, mergeRunStyle(style, runStyle{charStyle: "Hyperlink", underline: true, color: linkColor})); err != nil {
 		return err
 	}
 	para.WriteString(`</w:hyperlink>`)
@@ -50,7 +51,8 @@ func (r *docxRenderer) renderInternalHyperlink(para *strings.Builder, id string,
 	para.WriteString(`<w:hyperlink w:anchor="`)
 	para.WriteString(xmlAttr(sanitizeBookmarkName(id)))
 	para.WriteString(`" w:history="1">`)
-	if err := r.renderLabelInline(para, label, mergeRunStyle(style, runStyle{charStyle: "Hyperlink", underline: true, color: "0563C1"})); err != nil {
+	linkColor := r.ctx.theme.Link.FontColor
+	if err := r.renderLabelInline(para, label, mergeRunStyle(style, runStyle{charStyle: "Hyperlink", underline: true, color: linkColor})); err != nil {
 		return err
 	}
 	para.WriteString(`</w:hyperlink>`)
@@ -97,6 +99,9 @@ func mergeRunStyle(base, extra runStyle) runStyle {
 	}
 	if extra.underline {
 		base.underline = true
+	}
+	if extra.font != "" {
+		base.font = extra.font
 	}
 	if extra.color != "" {
 		base.color = extra.color

@@ -1,6 +1,8 @@
 package sgml
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -10,7 +12,6 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,7 +42,7 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 	metadata.LastUpdated = ctx.config.LastUpdated.Format(configuration.LastUpdatedFormat)
 	renderedTitle, exists, err := r.renderDocumentTitle(ctx, doc)
 	if err != nil {
-		return metadata, errors.Wrapf(err, "unable to render full document")
+		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 	metadata.Title = string(renderedTitle) // retain an empty value if no title was defined in the document
 	if !exists {
@@ -71,27 +72,27 @@ elements:
 		}
 	}
 	if ctx.sectionNumbering, err = doc.SectionNumbers(); err != nil {
-		return metadata, errors.Wrapf(err, "unable to render full document")
+		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 
 	// needs to be set before rendering the content elements
 	if err := r.prerenderTableOfContents(ctx, doc.TableOfContents); err != nil {
-		return metadata, errors.Wrapf(err, "unable to render full document")
+		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 	metadata.TableOfContents = doc.TableOfContents
 	renderedHeader, renderedContent, err := r.splitAndRender(ctx, doc)
 	if err != nil {
-		return metadata, errors.Wrapf(err, "unable to render full document")
+		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 	roles, err := r.renderDocumentRoles(ctx, doc)
 	if err != nil {
-		return metadata, errors.Wrap(err, "unable to render fenced block content")
+		return metadata, fmt.Errorf("unable to render document roles: %w", err)
 	}
 	if ctx.config.WrapInHTMLBodyElement {
 		log.Debugf("Rendering full document...")
 		tmpl, err := r.article()
 		if err != nil {
-			return metadata, errors.Wrapf(err, "unable to render full document")
+			return metadata, fmt.Errorf("unable to render full document: %w", err)
 		}
 		err = tmpl.Execute(output, struct {
 			Doctype               string
@@ -125,13 +126,13 @@ elements:
 			IncludeHTMLBodyFooter: !ctx.attributes.Has(types.AttrNoFooter),
 		})
 		if err != nil {
-			return metadata, errors.Wrapf(err, "unable to render full document")
+			return metadata, fmt.Errorf("unable to render full document: %w", err)
 		}
 	} else {
 		log.Debugf("Rendering document body...")
 		_, err = output.Write([]byte(renderedContent))
 		if err != nil {
-			return metadata, errors.Wrapf(err, "unable to render full document")
+			return metadata, fmt.Errorf("unable to render full document: %w", err)
 		}
 	}
 	return metadata, err
@@ -243,7 +244,13 @@ func (r *sgmlRenderer) splitAndRenderForArticle(ctx *context, doc *types.Documen
 func (r *sgmlRenderer) splitAndRenderForManpage(ctx *context, doc *types.Document) (string, string, error) {
 	log.Debugf("rendering manpage (within HTML/Body: %t)", ctx.config.WrapInHTMLBodyElement)
 	elements := doc.BodyElements()
-	nameSection := elements[0].(*types.Section) // TODO: enforce
+	if len(elements) == 0 {
+		return "", "", errors.New("manpage document has no body elements")
+	}
+	nameSection, ok := elements[0].(*types.Section)
+	if !ok {
+		return "", "", fmt.Errorf("expected first element to be *Section, got %T", elements[0])
+	}
 	if ctx.config.WrapInHTMLBodyElement {
 		header, _ := doc.Header()
 		renderedHeader, err := r.renderManpageHeader(ctx, header, nameSection)
@@ -310,7 +317,7 @@ func (r *sgmlRenderer) renderDocumentTitle(_ *context, doc *types.Document) (str
 		// TODO: This feels wrong.  The title should not need markup.
 		title, err := RenderPlainText(header.Title)
 		if err != nil {
-			return "", true, errors.Wrap(err, "unable to render document title")
+			return "", true, fmt.Errorf("unable to render document title: %w", err)
 		}
 		return string(title), true, nil
 	}
@@ -355,7 +362,13 @@ func (r *sgmlRenderer) renderManpageHeader(ctx *context, header *types.DocumentH
 	if err != nil {
 		return "", err
 	}
-	description := nameSection.Elements[0].(*types.Paragraph) // TODO: type check
+	if len(nameSection.Elements) == 0 {
+		return "", errors.New("manpage name section has no elements")
+	}
+	description, ok := nameSection.Elements[0].(*types.Paragraph)
+	if !ok {
+		return "", fmt.Errorf("expected manpage name section element to be *Paragraph, got %T", nameSection.Elements[0])
+	}
 	if description.Attributes == nil {
 		description.Attributes = types.Attributes{}
 	}
@@ -367,7 +380,7 @@ func (r *sgmlRenderer) renderManpageHeader(ctx *context, header *types.DocumentH
 	output := &strings.Builder{}
 	tmpl, err := r.manpageHeader()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to load manpage header template")
+		return "", fmt.Errorf("unable to load manpage header template: %w", err)
 	}
 	if err = tmpl.Execute(output, struct {
 		Header    string
@@ -380,7 +393,7 @@ func (r *sgmlRenderer) renderManpageHeader(ctx *context, header *types.DocumentH
 		Content:   string(renderedContent),
 		IncludeH1: len(renderedHeader) > 0,
 	}); err != nil {
-		return "", errors.Wrap(err, "unable to render manpage header")
+		return "", fmt.Errorf("unable to render manpage header: %w", err)
 	}
 	return output.String(), nil
 }
@@ -419,12 +432,12 @@ func (r *sgmlRenderer) renderDocumentBody(ctx *context, source []interface{}, to
 	buff := &strings.Builder{}
 	renderedElements, err := r.renderElements(ctx, elements)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render document elements")
+		return "", fmt.Errorf("failed to render document elements: %w", err)
 	}
 	buff.WriteString(renderedElements)
 	renderedFootnotes, err := r.renderFootnotes(ctx, footnotes)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render document elements")
+		return "", fmt.Errorf("failed to render document footnotes: %w", err)
 	}
 	buff.WriteString(renderedFootnotes)
 	return buff.String(), nil

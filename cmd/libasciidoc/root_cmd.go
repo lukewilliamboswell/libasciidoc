@@ -77,13 +77,14 @@ func NewRootCmd() *cobra.Command {
 	}
 	rootCmd.SilenceUsage = true
 	flags := rootCmd.Flags()
-	flags.BoolVarP(&noHeaderFooter, "no-header-footer", "s", false, "do not render header/footer (default: false)")
-	flags.StringVarP(&outputName, "out-file", "o", "", "output file (default: based on path of input file); use - to output to STDOUT")
-	flags.StringVar(&logLevel, "log", "warn", "log level to set [debug|info|warn|error|fatal|panic]")
-	flags.StringArrayVarP(&css, "css", "", []string{}, "the paths to the CSS files to link to the document")
+	flags.BoolVarP(&noHeaderFooter, "no-header-footer", "s", false, "do not render header/footer")
+	flags.StringVarP(&outputName, "output", "o", "", "output file (default: based on path of input file); use - to output to STDOUT")
+	flags.StringVar(&logLevel, "log-level", "warn", "log level to set [debug|info|warn|error|fatal|panic]")
+	flags.StringArrayVar(&css, "css", []string{}, "the paths to the CSS files to link to the document")
 	flags.StringArrayVarP(&attributes, "attribute", "a", []string{}, "a document attribute to set in the form of name, name!, or name=value pair")
 	flags.StringVarP(&backend, "backend", "b", "html5", "backend to format the file")
 	flags.StringVar(&profile, "profile", "", "enable profiling")
+	_ = flags.MarkHidden("profile")
 	flags.StringVar(&themePath, "theme", "", "path to Asciidoctor PDF theme YAML file for DOCX styling")
 	return rootCmd
 }
@@ -106,14 +107,19 @@ func getOut(cmd *cobra.Command, sourcePath, outputName, backend string) (io.Writ
 		return cmd.OutOrStdout(), defaultCloseFunc()
 	} else if outputName != "" {
 		// outfile is specified in the command line
-		outfile, e := os.Create(outputName)
-		if e != nil {
+		outfile, err := os.Create(outputName)
+		if err != nil {
 			log.Warnf("Cannot create output file - %v, skipping", outputName)
+			return nil, defaultCloseFunc()
 		}
 		return outfile, newCloseFileFunc(outfile)
 	} else if sourcePath != "" {
 		// outfile is based on sourcePath
-		path, _ := filepath.Abs(sourcePath)
+		path, err := filepath.Abs(sourcePath)
+		if err != nil {
+			log.Warnf("Cannot resolve absolute path for %v: %v, skipping", sourcePath, err)
+			return nil, defaultCloseFunc()
+		}
 		ext := ".html"
 		if backend == "docx" {
 			ext = ".docx"
@@ -122,7 +128,7 @@ func getOut(cmd *cobra.Command, sourcePath, outputName, backend string) (io.Writ
 		outfile, err := os.Create(outname)
 		if err != nil {
 			log.Warnf("Cannot create output file - %v, skipping", outname)
-			return nil, nil
+			return nil, defaultCloseFunc()
 		}
 		return outfile, newCloseFileFunc(outfile)
 	}
@@ -133,7 +139,7 @@ func getOut(cmd *cobra.Command, sourcePath, outputName, backend string) (io.Writ
 func parseAttributes(attributes []string) map[string]interface{} {
 	result := make(map[string]interface{}, len(attributes))
 	for _, attr := range attributes {
-		data := strings.Split(attr, "=")
+		data := strings.SplitN(attr, "=", 2)
 		if len(data) > 1 {
 			result[data[0]] = data[1]
 		} else {

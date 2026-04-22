@@ -35,7 +35,7 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 		`</w:tblBorders></w:tblPr><w:tblGrid>`)
 	for i := 0; i < colCount; i++ {
 		r.writer.WriteString(`<w:gridCol w:w="`)
-		r.writer.WriteString(fmt.Sprint(9000 / colCount))
+		r.writer.WriteString(fmt.Sprint(tableGridWidthTwips / colCount))
 		r.writer.WriteString(`"/>`)
 	}
 	r.writer.WriteString(`</w:tblGrid>`)

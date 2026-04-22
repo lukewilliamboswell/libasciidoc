@@ -354,6 +354,87 @@ base:
 		})
 	})
 
+	Context("heading text_transform", func() {
+
+		It("should apply uppercase to all headings", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  text_transform: uppercase
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Caps).To(BeTrue())
+
+			h3 := doc.findStyle("Heading3")
+			Expect(h3).ToNot(BeNil())
+			Expect(h3.Caps).To(BeTrue())
+		})
+
+		It("should apply per-level text_transform overrides", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  text_transform: uppercase
+  h3:
+    font_size: 11
+    text_transform: none
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Caps).To(BeTrue())
+
+			h3 := doc.findStyle("Heading3")
+			Expect(h3).ToNot(BeNil())
+			Expect(h3.Caps).To(BeFalse())
+			Expect(h3.Size).To(Equal("22")) // 11pt
+		})
+
+		It("should not apply caps when text_transform is not set", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  font_style: bold
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Caps).To(BeFalse())
+		})
+	})
+
+	Context("link theme properties", func() {
+
+		It("should apply custom link color to Hyperlink style", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+link:
+  font_color: "1A1A1A"
+`)
+			styles := string(doc.files["word/styles.xml"])
+			Expect(styles).To(ContainSubstring(`w:styleId="Hyperlink"`))
+			Expect(styles).To(ContainSubstring(`w:val="1A1A1A"`))
+		})
+
+		It("should use default blue when link color is not set", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+base:
+  font_family: Arial
+`)
+			styles := string(doc.files["word/styles.xml"])
+			Expect(styles).To(ContainSubstring(`w:val="0563C1"`))
+		})
+	})
+
+	Context("description list with heading font", func() {
+
+		It("should use heading font for labeled list terms", func() {
+			doc := renderDocxWithTheme(`Term:: Description here`, `
+heading:
+  font_family: Georgia
+`)
+			r := doc.findRun("Term")
+			Expect(r).ToNot(BeNil())
+			Expect(r.Bold).To(BeTrue())
+			Expect(r.Font).To(Equal("Georgia"))
+		})
+	})
+
 	Context("theme loading errors", func() {
 
 		It("should fail with a missing theme file", func() {

@@ -129,7 +129,8 @@ type parsedRun struct {
 	Bold        bool
 	Italic      bool
 	Monospace   bool   // w:rFonts present (monospace font)
-	MonoFont    string // w:rFonts ascii value
+	MonoFont    string // w:rFonts ascii value (deprecated: use Font)
+	Font        string // w:rFonts ascii value
 	Highlight   bool // w:highlight
 	Subscript   bool // w:vertAlign val="subscript"
 	Superscript bool // w:vertAlign val="superscript"
@@ -484,6 +485,7 @@ func parseRunProperties(decoder *xml.Decoder, r *parsedRun) {
 					if a.Name.Local == "ascii" {
 						r.Monospace = true
 						r.MonoFont = a.Value
+						r.Font = a.Value
 					}
 				}
 			case "highlight":
@@ -765,6 +767,7 @@ type parsedStyle struct {
 	Size   string // w:sz val (half-points)
 	Bold   bool
 	Italic bool
+	Caps   bool   // w:caps
 	Color  string // w:color val
 }
 
@@ -785,6 +788,7 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 		RFonts *xmlRFonts `xml:"rFonts"`
 		B      *struct{}  `xml:"b"`
 		I      *struct{}  `xml:"i"`
+		Caps   *struct{}  `xml:"caps"`
 		Sz     *xmlSz     `xml:"sz"`
 		Color  *xmlColor  `xml:"color"`
 	}
@@ -805,6 +809,7 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 			Name:   s.Name.Val,
 			Bold:   s.RPr.B != nil,
 			Italic: s.RPr.I != nil,
+			Caps:   s.RPr.Caps != nil,
 		}
 		if s.RPr.RFonts != nil {
 			ps.Font = s.RPr.RFonts.Ascii

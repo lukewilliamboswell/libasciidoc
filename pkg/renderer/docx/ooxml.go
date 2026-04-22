@@ -18,6 +18,13 @@ const (
 	relTypeFootnotes      = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"
 	relTypeHyperlink      = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 	relTypeImage          = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+
+	// twipsPerLevel is the indentation increment per numbering level (in twips).
+	twipsPerLevel = 360
+	// listHangingTwips is the hanging indent for list items (in twips).
+	listHangingTwips = 360
+	// tableGridWidthTwips is the nominal page width used to compute equal column widths.
+	tableGridWidthTwips = 9000
 )
 
 type docxDocument struct {
@@ -132,8 +139,8 @@ func (d *docxDocument) nextDrawingID() int {
 	return id
 }
 
-func (d *docxDocument) WriteTo(output io.Writer) error {
-	buf := bytes.NewBuffer(nil)
+func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
+	buf := new(bytes.Buffer)
 	zw := zip.NewWriter(buf)
 	files := map[string]string{
 		"[Content_Types].xml":          d.contentTypesXML(),
@@ -154,21 +161,21 @@ func (d *docxDocument) WriteTo(output io.Writer) error {
 	sort.Strings(names)
 	for _, name := range names {
 		if err := writeZipFile(zw, name, []byte(files[name])); err != nil {
-			_ = zw.Close()
-			return err
+			zw.Close()
+			return 0, err
 		}
 	}
 	for _, media := range d.media {
 		if err := writeZipFile(zw, "word/media/"+media.Name, media.Data); err != nil {
-			_ = zw.Close()
-			return err
+			zw.Close()
+			return 0, err
 		}
 	}
 	if err := zw.Close(); err != nil {
-		return err
+		return 0, err
 	}
-	_, err := output.Write(buf.Bytes())
-	return err
+	n, err := output.Write(buf.Bytes())
+	return int64(n), err
 }
 
 func writeZipFile(zw *zip.Writer, name string, data []byte) error {
@@ -287,19 +294,32 @@ func (d *docxDocument) numberingXML() string {
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
 	b.WriteString(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
+	// OOXML requires all abstractNum elements before all num elements.
 	for _, def := range d.numbering {
 		b.WriteString(`<w:abstractNum w:abstractNumId="`)
 		b.WriteString(strconv.Itoa(def.AbstractID))
 		b.WriteString(`">`)
+		// Unique nsid prevents Word from merging identical abstractNums.
+		b.WriteString(`<w:nsid w:val="`)
+		b.WriteString(fmt.Sprintf("%08X", 0x10000000+def.AbstractID))
+		b.WriteString(`"/>`)
+		b.WriteString(`<w:multiLevelType w:val="singleLevel"/>`)
 		for level := 0; level < 9; level++ {
 			d.writeNumberingLevel(b, def, level)
 		}
 		b.WriteString(`</w:abstractNum>`)
+	}
+	for _, def := range d.numbering {
 		b.WriteString(`<w:num w:numId="`)
 		b.WriteString(strconv.Itoa(def.NumID))
 		b.WriteString(`"><w:abstractNumId w:val="`)
 		b.WriteString(strconv.Itoa(def.AbstractID))
-		b.WriteString(`"/></w:num>`)
+		b.WriteString(`"/>`)
+		// Explicit startOverride forces this num instance to restart.
+		b.WriteString(`<w:lvlOverride w:ilvl="0"><w:startOverride w:val="`)
+		b.WriteString(strconv.Itoa(def.Start))
+		b.WriteString(`"/></w:lvlOverride>`)
+		b.WriteString(`</w:num>`)
 	}
 	b.WriteString(`</w:numbering>`)
 	return b.String()
@@ -307,8 +327,8 @@ func (d *docxDocument) numberingXML() string {
 
 func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefinition, level int) {
 	baseIndent := ptToTwips(d.theme.List.Indent)
-	indent := def.Indent + baseIndent + level*360
-	hanging := 360
+	indent := def.Indent + baseIndent + level*twipsPerLevel
+	hanging := listHangingTwips
 	b.WriteString(`<w:lvl w:ilvl="`)
 	b.WriteString(strconv.Itoa(level))
 	b.WriteString(`">`)
@@ -363,25 +383,28 @@ func (d *docxDocument) stylesXML() string {
 	b.WriteString(`"/><w:szCs w:val="`)
 	b.WriteString(baseSz)
 	b.WriteString(`"/></w:rPr></w:rPrDefault></w:docDefaults>`)
-	b.WriteString(styleParagraph("Normal", "Normal", "", ptToHalfPt(t.Base.FontSize), false, false, t.Base.FontColor))
-	b.WriteString(styleParagraph("Title", "Title", "", ptToHalfPt(t.Title.TitleFontSize), titleBold, titleItalic, t.Title.TitleFontColor))
-	b.WriteString(styleParagraph("Subtitle", "Subtitle", "", ptToHalfPt(t.Title.SubtitleFontSize), false, true, t.Title.SubtitleFontColor))
+	b.WriteString(styleParagraph("Normal", "Normal", "", ptToHalfPt(t.Base.FontSize), false, false, false, t.Base.FontColor))
+	b.WriteString(styleParagraph("Title", "Title", "", ptToHalfPt(t.Title.TitleFontSize), titleBold, titleItalic, false, t.Title.TitleFontColor))
+	b.WriteString(styleParagraph("Subtitle", "Subtitle", "", ptToHalfPt(t.Title.SubtitleFontSize), false, true, false, t.Title.SubtitleFontColor))
 	for i := 1; i <= 9; i++ {
-		b.WriteString(styleParagraph("Heading"+strconv.Itoa(i), "heading "+strconv.Itoa(i), headingFont, t.headingSizeHalfPt(i), headingBold, headingItalic, headingColor))
+		caps := t.headingTextTransform(i) == "uppercase"
+		b.WriteString(styleParagraph("Heading"+strconv.Itoa(i), "heading "+strconv.Itoa(i), headingFont, t.headingSizeHalfPt(i), headingBold, headingItalic, caps, headingColor))
 	}
-	b.WriteString(styleParagraph("Quote", "Quote", "", ptToHalfPt(t.Base.FontSize), false, true, ""))
-	b.WriteString(styleParagraph("Admonition", "Admonition", "", ptToHalfPt(t.Base.FontSize), false, false, ""))
-	b.WriteString(styleParagraph("Caption", "Caption", "", ptToHalfPt(t.Code.FontSize), false, true, ""))
-	b.WriteString(styleParagraph("CodeBlock", "Code Block", t.Code.FontFamily, ptToHalfPt(t.Code.FontSize), false, false, ""))
-	b.WriteString(styleParagraph("ListParagraph", "List Paragraph", "", ptToHalfPt(t.Base.FontSize), false, false, ""))
-	b.WriteString(styleParagraph("FootnoteText", "Footnote Text", "", 18, false, false, ""))
-	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>`)
+	b.WriteString(styleParagraph("Quote", "Quote", "", ptToHalfPt(t.Base.FontSize), false, true, false, ""))
+	b.WriteString(styleParagraph("Admonition", "Admonition", "", ptToHalfPt(t.Base.FontSize), false, false, false, ""))
+	b.WriteString(styleParagraph("Caption", "Caption", "", ptToHalfPt(t.Code.FontSize), false, true, false, ""))
+	b.WriteString(styleParagraph("CodeBlock", "Code Block", t.Code.FontFamily, ptToHalfPt(t.Code.FontSize), false, false, false, ""))
+	b.WriteString(styleParagraph("ListParagraph", "List Paragraph", "", ptToHalfPt(t.Base.FontSize), false, false, false, ""))
+	b.WriteString(styleParagraph("FootnoteText", "Footnote Text", "", 18, false, false, false, ""))
+	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="`)
+	b.WriteString(xmlAttr(t.Link.FontColor))
+	b.WriteString(`"/><w:u w:val="single"/></w:rPr></w:style>`)
 	b.WriteString(`<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="Footnote Reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>`)
 	b.WriteString(`</w:styles>`)
 	return b.String()
 }
 
-func styleParagraph(id, name, font string, size int, bold, italic bool, color string) string {
+func styleParagraph(id, name, font string, size int, bold, italic, caps bool, color string) string {
 	b := &strings.Builder{}
 	b.WriteString(`<w:style w:type="paragraph" w:styleId="`)
 	b.WriteString(xmlAttr(id))
@@ -403,6 +426,9 @@ func styleParagraph(id, name, font string, size int, bold, italic bool, color st
 	if italic {
 		b.WriteString(`<w:i/>`)
 	}
+	if caps {
+		b.WriteString(`<w:caps/>`)
+	}
 	if color != "" {
 		b.WriteString(`<w:color w:val="`)
 		b.WriteString(xmlAttr(color))
@@ -420,14 +446,17 @@ func xmlHeader() string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
 }
 
+var (
+	xmlTextReplacer = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
+	xmlAttrReplacer = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+)
+
 func xmlText(s string) string {
-	replacer := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
-	return replacer.Replace(s)
+	return xmlTextReplacer.Replace(s)
 }
 
 func xmlAttr(s string) string {
-	replacer := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
-	return replacer.Replace(s)
+	return xmlAttrReplacer.Replace(s)
 }
 
 func imageContentType(ext string) string {

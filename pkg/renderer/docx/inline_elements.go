@@ -13,6 +13,7 @@ type runStyle struct {
 	italic        bool
 	monospace     bool
 	monoFont      string // font name for monospace (from theme); empty means "Courier New"
+	font          string // explicit font override (non-monospace)
 	highlight     bool
 	subscript     bool
 	superscript   bool
@@ -156,13 +157,22 @@ func (r *docxRenderer) writeTextRun(para *strings.Builder, text string, style ru
 }
 
 func writeRunProperties(para *strings.Builder, style runStyle) {
-	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" {
+	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" && style.font == "" {
 		return
 	}
 	para.WriteString("<w:rPr>")
 	if style.charStyle != "" {
 		para.WriteString(`<w:rStyle w:val="`)
 		para.WriteString(xmlAttr(style.charStyle))
+		para.WriteString(`"/>`)
+	}
+	if style.font != "" && !style.monospace {
+		para.WriteString(`<w:rFonts w:ascii="`)
+		para.WriteString(xmlAttr(style.font))
+		para.WriteString(`" w:hAnsi="`)
+		para.WriteString(xmlAttr(style.font))
+		para.WriteString(`" w:cs="`)
+		para.WriteString(xmlAttr(style.font))
 		para.WriteString(`"/>`)
 	}
 	if style.bold {

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
-	"github.com/pkg/errors"
 )
 
 func (r *docxRenderer) renderPlainText(element interface{}) (string, error) {
@@ -108,7 +107,7 @@ func (r *docxRenderer) renderUserMacroInline(para *strings.Builder, m *types.Use
 		r.writeTextRun(para, m.RawText, style)
 		return nil
 	}
-	buf := bytes.NewBuffer(nil)
+	buf := new(bytes.Buffer)
 	if err := tmpl.Execute(buf, m); err != nil {
 		return err
 	}
@@ -166,7 +165,7 @@ func (r *docxRenderer) prerenderTableOfContentsEntry(entry *types.ToCSection) er
 	entry.Number = r.ctx.sectionNumbering[entry.ID]
 	target, found := r.ctx.elementReferences[entry.ID]
 	if !found {
-		return errors.Errorf("unable to render table of contents entry title for '%s'", entry.ID)
+		return fmt.Errorf("unable to render table of contents entry title for '%s'", entry.ID)
 	}
 	title, err := r.renderPlainText(target)
 	if err != nil {
