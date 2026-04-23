@@ -59,6 +59,31 @@ func arrangeListElements(elements []interface{}) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, e)
+		case *types.Table:
+			log.Debug("checking elements in Table cells")
+			var err error
+			if e.Header != nil {
+				for _, cell := range e.Header.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			for _, row := range e.Rows {
+				for _, cell := range row.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			if e.Footer != nil {
+				for _, cell := range e.Footer.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			result = append(result, e)
 		case *types.ListElements:
 			log.Debug("arranging list elements in ListElements")
 			l, err := doArrangeListElements(e.Elements)

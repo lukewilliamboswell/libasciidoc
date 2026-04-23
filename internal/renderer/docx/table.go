@@ -158,6 +158,11 @@ func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool,
 				return err
 			}
 			r.endParagraph(para)
+		case *types.List:
+			if err := r.renderList(e); err != nil {
+				r.writer = old
+				return err
+			}
 		default:
 			if err := r.renderElement(elem); err != nil {
 				r.writer = old

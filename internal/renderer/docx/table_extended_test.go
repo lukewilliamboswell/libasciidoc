@@ -113,6 +113,96 @@ table:
 		Expect(docXML).To(ContainSubstring(`w:tblW w:w="0" w:type="auto"`))
 	})
 
+	It("should render an unordered list inside an asciidoc cell", func() {
+		doc := renderDocx(`[cols="1,3"]
+|===
+| Label
+a|
+* Alpha
+* Beta
+* Gamma
+|===`)
+
+		// All three items must appear in table cell runs
+		Expect(doc.findTableCellRun("Alpha")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Beta")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Gamma")).ToNot(BeNil())
+
+		// The list paragraphs must carry a numbering ID (i.e. be bulleted)
+		tables := doc.parseTables()
+		Expect(tables).To(HaveLen(1))
+		var listParas []parsedParagraph
+		for _, row := range tables[0].Rows {
+			for _, cell := range row.Cells {
+				for _, p := range cell.Paragraphs {
+					if p.NumID != "" {
+						listParas = append(listParas, p)
+					}
+				}
+			}
+		}
+		Expect(listParas).To(HaveLen(3), "expected 3 bulleted paragraphs in cell")
+	})
+
+	It("should render an ordered list inside an asciidoc cell", func() {
+		doc := renderDocx(`[cols="1,3"]
+|===
+| Steps
+a|
+. Download
+. Install
+. Restart
+|===`)
+
+		Expect(doc.findTableCellRun("Download")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Install")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Restart")).ToNot(BeNil())
+
+		tables := doc.parseTables()
+		Expect(tables).To(HaveLen(1))
+		var listParas []parsedParagraph
+		for _, row := range tables[0].Rows {
+			for _, cell := range row.Cells {
+				for _, p := range cell.Paragraphs {
+					if p.NumID != "" {
+						listParas = append(listParas, p)
+					}
+				}
+			}
+		}
+		Expect(listParas).To(HaveLen(3), "expected 3 numbered paragraphs in cell")
+	})
+
+	It("should render a styled ordered list inside an asciidoc cell", func() {
+		doc := renderDocx(`[cols="1,3"]
+|===
+| Options
+a|
+[loweralpha]
+. Enable logging
+. Configure endpoint
+. Verify connectivity
+|===`)
+
+		Expect(doc.findTableCellRun("Enable logging")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Configure endpoint")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("Verify connectivity")).ToNot(BeNil())
+
+		tables := doc.parseTables()
+		Expect(tables).To(HaveLen(1))
+		var listParas []parsedParagraph
+		for _, row := range tables[0].Rows {
+			for _, cell := range row.Cells {
+				for _, p := range cell.Paragraphs {
+					if p.NumID != "" {
+						listParas = append(listParas, p)
+					}
+				}
+			}
+		}
+		Expect(listParas).To(HaveLen(3), "expected 3 lettered paragraphs in cell")
+	})
+
 	It("should apply percentage width from theme", func() {
 		doc := renderDocxWithTheme(`|===
 | A | B
