@@ -28,6 +28,7 @@ type paragraphOptions struct {
 	numID        int
 	level        int
 	bookmarkName string
+	indentLeft   int // left indent in twips (0 = no indent)
 }
 
 func (r *docxRenderer) renderInlineElements(para *strings.Builder, elements []interface{}, style runStyle) error {
@@ -121,7 +122,7 @@ func (r *docxRenderer) endParagraph(para *strings.Builder) {
 }
 
 func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {
-	if opts.style == "" && opts.numID == 0 {
+	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 {
 		return
 	}
 	para.WriteString("<w:pPr>")
@@ -136,6 +137,11 @@ func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {
 		para.WriteString(`"/><w:numId w:val="`)
 		para.WriteString(fmt.Sprint(opts.numID))
 		para.WriteString(`"/></w:numPr>`)
+	}
+	if opts.indentLeft > 0 {
+		para.WriteString(`<w:ind w:left="`)
+		para.WriteString(fmt.Sprint(opts.indentLeft))
+		para.WriteString(`"/>`)
 	}
 	para.WriteString("</w:pPr>")
 }

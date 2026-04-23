@@ -20,7 +20,7 @@ func (r *docxRenderer) renderParagraph(p *types.Paragraph) error {
 }
 
 func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
-	para := r.startParagraph(paragraphOptions{})
+	para := r.startParagraph(paragraphOptions{indentLeft: r.legalIndent})
 	if err := r.renderCheckPrefix(para, p); err != nil {
 		return err
 	}

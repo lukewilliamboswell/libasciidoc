@@ -1,0 +1,371 @@
+= DOCX Theme Reference
+:toc: left
+:toclevels: 3
+
+The DOCX backend supports an Asciidoctor-PDF-inspired theme YAML file for controlling the visual appearance of generated Word documents.
+
+== Usage
+
+[source,bash]
+----
+libasciidoc -b docx --theme theme.yml document.adoc
+----
+
+== Units
+
+Dimension properties accept values with optional unit suffixes:
+
+[cols="1,2,2"]
+|===
+| Unit | Example | Notes
+
+| `mm`   | `10mm`   | Millimeters
+| `in`   | `0.5in`  | Inches
+| `pt`   | `24pt`   | Points (1/72 inch)
+| _(bare)_ | `24`   | Points (default when no unit specified)
+|===
+
+Currently unit support is available for `list.indent` and `page.margin`. Other dimension properties use points.
+
+== Color Values
+
+All color properties accept 6-digit hexadecimal strings *without* the `#` prefix:
+
+[source,yaml]
+----
+font_color: "1A1A1A"
+border_color: "333333"
+----
+
+Always quote color values to prevent YAML from interpreting them as numbers.
+
+== Theme Sections
+
+=== page
+
+Controls page dimensions and margins.
+
+[source,yaml]
+----
+page:
+  layout: portrait          # portrait | landscape
+  size: A4                  # A4 | Letter | Legal
+  margin: [25mm, 20mm, 25mm, 20mm]  # [top, right, bottom, left]
+----
+
+=== base
+
+Default document font and paragraph settings. These apply to all body text unless overridden by a more specific section.
+
+[source,yaml]
+----
+base:
+  font_family: Aptos
+  font_color: "1A1A1A"
+  font_size: 10.5           # in pt
+  font_style: bold           # bold | italic | bold_italic
+  text_align: justify        # left | center | right | justify
+  line_height: 1.15          # ratio (1.0 = single, 2.0 = double)
+----
+
+=== heading
+
+Controls heading styles (Heading1 through Heading9). Properties set at the top level apply to all headings. Per-level overrides are available for h1 through h6.
+
+[source,yaml]
+----
+heading:
+  font_family: Georgia
+  font_color: "000000"
+  font_style: bold
+  text_transform: uppercase  # uppercase | none
+  margin_top: 12             # space before heading in pt
+  margin_bottom: 6           # space after heading in pt
+  h1:
+    font_size: 16
+  h2:
+    font_size: 13
+    text_transform: uppercase
+  h3:
+    font_size: 11
+    text_transform: none
+    font_color: "336699"
+    font_style: bold_italic
+  h4:
+    font_size: 10.5
+    text_transform: none
+----
+
+=== title_page
+
+Controls the document title and subtitle paragraphs.
+
+[source,yaml]
+----
+title_page:
+  title:
+    font_size: 22
+    font_style: bold
+    font_color: "000000"
+    font_family: Georgia
+    text_transform: uppercase  # uppercase | none
+    text_align: center         # left | center | right
+  subtitle:
+    font_size: 14
+    font_color: "333333"
+    font_family: Georgia
+    font_style: italic
+----
+
+=== table
+
+Controls table rendering including borders, header rows, and cell padding.
+
+[source,yaml]
+----
+table:
+  width: full                # "full" (fit page), "auto" (fit content), or "80%" (percentage)
+  font_size: 9.5
+  border_color: "333333"
+  border_width: 0.5          # outer border width in pt
+  grid_color: "CCCCCC"       # internal grid line color
+  grid_width: 0.25           # internal grid line width in pt
+  cell_padding: 4            # cell margins in pt
+  stripe_background_color: "F9F9F9"  # alternating row background
+  head:
+    background_color: "F0F0F0"
+    font_style: bold
+  foot:
+    background_color: "F0F0F0"
+    font_style: bold
+----
+
+=== list
+
+Controls ordered and unordered list indentation. When `:sectnums:` is active, `indent` also controls the step size for the multi-level legal numbering hierarchy.
+
+[source,yaml]
+----
+list:
+  indent: 10mm              # indent step per level (supports units)
+  item_spacing: 4           # vertical space between items in pt
+  marker_font_color: "666666"
+----
+
+=== code
+
+Controls fenced code blocks and literal paragraphs.
+
+[source,yaml]
+----
+code:
+  font_family: Courier New
+  font_size: 9
+  font_color: "333333"
+  background_color: "F5F5F5"
+  border_color: "CCCCCC"
+  border_width: 0.5
+  line_height: 1.2
+----
+
+=== codespan
+
+Controls inline monospace text (backtick-delimited).
+
+[source,yaml]
+----
+codespan:
+  font_family: Courier New
+  font_size: 9
+  font_color: "C7254E"
+  background_color: "F9F2F4"
+----
+
+=== link
+
+Controls hyperlink styling for both internal cross-references and external URLs.
+
+[source,yaml]
+----
+link:
+  font_color: "0563C1"       # link color
+  font_style: bold            # bold | italic | bold_italic
+  text_decoration: underline  # underline | none
+----
+
+=== prose
+
+Controls paragraph spacing and alignment for body text.
+
+[source,yaml]
+----
+prose:
+  margin_bottom: 8           # space after paragraphs in pt
+  text_align: justify         # left | center | right | justify
+  text_indent: 0              # first-line indent in pt
+----
+
+=== quote
+
+Controls blockquote styling.
+
+[source,yaml]
+----
+quote:
+  font_size: 10
+  font_color: "555555"
+  font_style: italic
+  font_family: Georgia
+  border_color: "CCCCCC"
+  border_width: 2
+----
+
+=== admonition
+
+Controls TIP, NOTE, WARNING, CAUTION, and IMPORTANT blocks.
+
+[source,yaml]
+----
+admonition:
+  font_color: "333333"
+  font_size: 10
+  background_color: "F5F5F5"
+  border_color: "CCCCCC"
+  border_width: 0.5
+  label:
+    font_style: bold
+    font_color: "000000"
+----
+
+=== caption
+
+Controls figure and table captions.
+
+[source,yaml]
+----
+caption:
+  font_size: 9
+  font_style: italic
+  font_color: "666666"
+  font_family: Georgia
+  text_align: center
+----
+
+=== description list
+
+Controls labeled/description list term styling.
+
+[source,yaml]
+----
+description_list:
+  term_font_style: bold
+  term_font_color: "000000"
+  term_font_family: Georgia  # defaults to heading font if not set
+  term_font_size: 10.5
+----
+
+=== header / footer
+
+Controls running headers and footers on every page. The `content` field supports placeholder variables.
+
+[source,yaml]
+----
+header:
+  content: "{document-title}"
+  font_size: 8
+  font_color: "999999"
+  font_family: Aptos
+  font_style: italic
+  height: 15                  # in mm
+
+footer:
+  content: "Page {page-number} of {page-count}"
+  font_size: 8
+  font_color: "999999"
+  font_family: Aptos
+----
+
+Available placeholders for header/footer content:
+
+* `\{document-title}` -- the document title
+* `\{page-number}` -- current page number
+* `\{page-count}` -- total page count
+
+== Legal Numbering
+
+When `:sectnums:` is enabled in the AsciiDoc source, the DOCX backend generates a multi-level numbering definition following the modern decimal system for contracts:
+
+[cols="1,1,2,2"]
+|===
+| Level | Format | AsciiDoc Source | Example
+
+| 0 | `1.`     | `== Heading`           | 1. Interpretation
+| 1 | `1.1`    | `=== Sub-heading`      | 1.1 Definitions
+| 2 | `1.1.1`  | `==== Sub-sub-heading`  | 1.1.1 General
+| 3 | `(a)`    | `[loweralpha]` list    | (a) first item
+| 4 | `(i)`    | `[lowerroman]` list    | (i) sub-item
+| 5 | `(A)`    | `[upperalpha]` list    | (A) deep item
+|===
+
+Heading levels 0-2 use continuous decimal numbering. List levels 3-5 restart under each new heading. The indentation step for all levels is controlled by `list.indent`.
+
+Sections before `:sectnums:` (e.g., Parties, Background) and after `:!sectnums:` (e.g., Execution, Schedules) remain unnumbered.
+
+== Full Example
+
+[source,yaml]
+----
+page:
+  layout: portrait
+  size: A4
+  margin: [30mm, 25mm, 25mm, 30mm]
+base:
+  font_family: Aptos
+  font_color: "1A1A1A"
+  font_size: 10.5
+  line_height: 1.15
+heading:
+  font_family: Aptos
+  font_color: "000000"
+  font_style: bold
+  text_transform: uppercase
+  margin_top: 12
+  margin_bottom: 6
+  h2:
+    font_size: 13
+    text_transform: uppercase
+  h3:
+    font_size: 11
+    text_transform: none
+  h4:
+    font_size: 10.5
+    text_transform: none
+title_page:
+  title:
+    font_size: 11
+    font_style: bold
+    font_color: "000000"
+    text_transform: uppercase
+    text_align: center
+  subtitle:
+    font_size: 14
+    font_color: "333333"
+table:
+  width: full
+  font_size: 9.5
+  border_color: "333333"
+  border_width: 0.5
+  head:
+    background_color: "F5F5F5"
+list:
+  indent: 10mm
+code:
+  font_family: Courier New
+  font_size: 9
+link:
+  font_color: "1A1A1A"
+footer:
+  content: "Page {page-number} of {page-count}"
+  font_size: 8
+  font_color: "999999"
+----

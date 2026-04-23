@@ -43,7 +43,8 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	}
 	innerBorder := `w:val="single" w:sz="` + gridSz + `" w:space="0" w:color="` + xmlAttr(gridColor) + `"`
 
-	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>` +
+	tblW, tblWType := tableWidthAttrs(theme.Width)
+	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="` + tblW + `" w:type="` + tblWType + `"/><w:tblBorders>` +
 		`<w:top ` + outerBorder + `/><w:left ` + outerBorder + `/><w:bottom ` + outerBorder + `/>` +
 		`<w:right ` + outerBorder + `/><w:insideH ` + innerBorder + `/><w:insideV ` + innerBorder + `/>` +
 		`</w:tblBorders>`)

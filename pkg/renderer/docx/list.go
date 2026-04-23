@@ -81,7 +81,7 @@ func (r *docxRenderer) renderLabeledList(l *types.List) error {
 	for _, item := range l.Elements {
 		if lle, ok := item.(*types.LabeledListElement); ok {
 			// Render term with description list theme
-			termPara := r.startParagraph(paragraphOptions{})
+			termPara := r.startParagraph(paragraphOptions{indentLeft: r.legalIndent})
 			bold, italic := fontStyleBoldItalic(dl.TermFontStyle)
 			termStyle := runStyle{bold: bold, italic: italic, color: dl.TermFontColor}
 			if dl.TermFontFamily != "" {

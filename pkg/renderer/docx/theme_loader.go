@@ -108,13 +108,16 @@ type yamlTitleTheme struct {
 }
 
 type yamlTitleEntry struct {
-	FontSize   float64 `yaml:"font_size"`
-	FontStyle  string  `yaml:"font_style"`
-	FontColor  string  `yaml:"font_color"`
-	FontFamily string  `yaml:"font_family"`
+	FontSize      float64 `yaml:"font_size"`
+	FontStyle     string  `yaml:"font_style"`
+	FontColor     string  `yaml:"font_color"`
+	FontFamily    string  `yaml:"font_family"`
+	TextTransform string  `yaml:"text_transform"`
+	TextAlign     string  `yaml:"text_align"`
 }
 
 type yamlTableTheme struct {
+	Width         string         `yaml:"width"` // "auto", "full", or percentage like "80%"
 	FontSize      float64        `yaml:"font_size"`
 	BorderColor   string         `yaml:"border_color"`
 	BorderWidth   float64        `yaml:"border_width"`
@@ -137,9 +140,9 @@ type yamlTableFoot struct {
 }
 
 type yamlListTheme struct {
-	Indent          float64 `yaml:"indent"`
-	ItemSpacing     float64 `yaml:"item_spacing"`
-	MarkerFontColor string  `yaml:"marker_font_color"`
+	Indent          interface{} `yaml:"indent"` // supports: 24 (pt), "10mm", "0.5in", "24pt"
+	ItemSpacing     float64     `yaml:"item_spacing"`
+	MarkerFontColor string      `yaml:"marker_font_color"`
 }
 
 type yamlCodeTheme struct {
@@ -308,6 +311,12 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 			if yt.Title.Title.FontFamily != "" {
 				t.Title.TitleFontFamily = yt.Title.Title.FontFamily
 			}
+			if yt.Title.Title.TextTransform != "" {
+				t.Title.TitleTextTransform = yt.Title.Title.TextTransform
+			}
+			if yt.Title.Title.TextAlign != "" {
+				t.Title.TitleTextAlign = yt.Title.Title.TextAlign
+			}
 		}
 		if yt.Title.Subtitle != nil {
 			if yt.Title.Subtitle.FontSize > 0 {
@@ -325,6 +334,9 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		}
 	}
 	if yt.Table != nil {
+		if yt.Table.Width != "" {
+			t.Table.Width = yt.Table.Width
+		}
 		if yt.Table.FontSize > 0 {
 			t.Table.FontSize = yt.Table.FontSize
 		}
@@ -364,8 +376,10 @@ func (yt *yamlTheme) applyTo(t *DocxTheme) {
 		}
 	}
 	if yt.List != nil {
-		if yt.List.Indent > 0 {
-			t.List.Indent = yt.List.Indent
+		if yt.List.Indent != nil {
+			if v := parseLengthPt(yt.List.Indent); v > 0 {
+				t.List.Indent = v
+			}
 		}
 		if yt.List.ItemSpacing > 0 {
 			t.List.ItemSpacing = yt.List.ItemSpacing
@@ -591,6 +605,35 @@ func applyRunningHF(src *yamlRunningHFTheme, dst *RunningHFTheme) {
 
 // parseLengthMM extracts a numeric value in millimeters from a YAML margin entry.
 // Handles numeric values (treated as mm) and string values with units ("25mm", "1in", "72pt").
+// parseLengthPt extracts a numeric value in points from a YAML entry.
+// Bare numbers are treated as pt. Supports "10mm", "0.5in", "24pt".
+func parseLengthPt(v interface{}) float64 {
+	switch val := v.(type) {
+	case int:
+		return float64(val)
+	case float64:
+		return val
+	case string:
+		s := strings.TrimSpace(val)
+		if strings.HasSuffix(s, "mm") {
+			f, _ := strconv.ParseFloat(strings.TrimSuffix(s, "mm"), 64)
+			return f / 25.4 * 72 // mm to pt
+		}
+		if strings.HasSuffix(s, "in") {
+			f, _ := strconv.ParseFloat(strings.TrimSuffix(s, "in"), 64)
+			return f * 72 // in to pt
+		}
+		if strings.HasSuffix(s, "pt") {
+			f, _ := strconv.ParseFloat(strings.TrimSuffix(s, "pt"), 64)
+			return f
+		}
+		f, _ := strconv.ParseFloat(s, 64)
+		return f
+	default:
+		return 0
+	}
+}
+
 func parseLengthMM(v interface{}) float64 {
 	switch val := v.(type) {
 	case int:

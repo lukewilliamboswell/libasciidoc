@@ -48,12 +48,23 @@ func (r *docxRenderer) renderSection(s *types.Section) error {
 	}
 	r.endParagraph(para)
 
-	// Track legal numbering scope for child elements (lists).
+	// Track legal numbering scope and indent for child elements.
 	wasLegal := r.inLegalNumbering
+	wasIndent := r.legalIndent
 	if number != "" && r.legalNumID > 0 {
 		r.inLegalNumbering = true
+		// Body text indents to align with heading text position.
+		ilvl := s.Level - 1
+		if ilvl < 0 {
+			ilvl = 0
+		}
+		step := ptToTwips(r.ctx.theme.List.Indent)
+		r.legalIndent = step * (ilvl + 1)
 	}
-	defer func() { r.inLegalNumbering = wasLegal }()
+	defer func() {
+		r.inLegalNumbering = wasLegal
+		r.legalIndent = wasIndent
+	}()
 
 	// Render child elements
 	return r.renderElements(s.Elements)

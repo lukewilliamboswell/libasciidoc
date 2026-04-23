@@ -11,4 +11,5 @@ type docxRenderer struct {
 	listLevel        int
 	legalNumID       int  // shared multi-level numID for legal numbering (0 = not active)
 	inLegalNumbering bool // true when inside a section with legal numbering
+	legalIndent      int  // left indent in twips for body text under current heading
 }

@@ -623,19 +623,22 @@ func (d *docxDocument) writeLegalAbstractNum(b *strings.Builder) {
 		hanging    int    // hanging indent in twips
 	}
 
+	// Indent step from theme (list.indent in pt, converted to twips).
+	step := ptToTwips(d.theme.List.Indent)
+
 	levels := []legalLevel{
-		// Level 0: "1." linked to Heading2 (clause headings)
-		{numFmt: "decimal", lvlText: "%1.", pStyle: "Heading2", lvlRestart: -1, indent: 480, hanging: 480},
-		// Level 1: "1.1" linked to Heading3 (sub-clause headings)
-		{numFmt: "decimal", lvlText: "%1.%2", pStyle: "Heading3", lvlRestart: -1, indent: 480, hanging: 480},
-		// Level 2: "1.1.1" linked to Heading4 (sub-sub-clause headings)
-		{numFmt: "decimal", lvlText: "%1.%2.%3", pStyle: "Heading4", lvlRestart: -1, indent: 720, hanging: 720},
-		// Level 3: "(a)" linked to ListParagraph
-		{numFmt: "lowerLetter", lvlText: "(%4)", pStyle: "ListParagraph", lvlRestart: 1, indent: 1440, hanging: 480},
-		// Level 4: "(i)"
-		{numFmt: "lowerRoman", lvlText: "(%5)", lvlRestart: -1, indent: 1920, hanging: 480},
-		// Level 5: "(A)"
-		{numFmt: "upperLetter", lvlText: "(%6)", lvlRestart: -1, indent: 2400, hanging: 480},
+		// Level 0: "1." — number at 0mm, text at 15mm
+		{numFmt: "decimal", lvlText: "%1.", pStyle: "Heading2", lvlRestart: -1, indent: step * 1, hanging: step},
+		// Level 1: "1.1" — number at 15mm, text at 30mm
+		{numFmt: "decimal", lvlText: "%1.%2", pStyle: "Heading3", lvlRestart: -1, indent: step * 2, hanging: step},
+		// Level 2: "1.1.1" — number at 30mm, text at 45mm
+		{numFmt: "decimal", lvlText: "%1.%2.%3", pStyle: "Heading4", lvlRestart: -1, indent: step * 3, hanging: step},
+		// Level 3: "(a)" — number at 15mm, text at 30mm
+		{numFmt: "lowerLetter", lvlText: "(%4)", pStyle: "ListParagraph", lvlRestart: 1, indent: step * 2, hanging: step},
+		// Level 4: "(i)" — number at 30mm, text at 45mm
+		{numFmt: "lowerRoman", lvlText: "(%5)", lvlRestart: -1, indent: step * 3, hanging: step},
+		// Level 5: "(A)" — number at 45mm, text at 60mm
+		{numFmt: "upperLetter", lvlText: "(%6)", lvlRestart: -1, indent: step * 4, hanging: step},
 	}
 
 	for i, lvl := range levels {
@@ -784,11 +787,13 @@ func (d *docxDocument) stylesXML() string {
 
 	// Title style
 	titleBold, titleItalic := fontStyleBoldItalic(t.Title.TitleFontStyle)
+	titleCaps := t.Title.TitleTextTransform == "uppercase"
 	b.WriteString(styleParaXML(styleParaOpts{
 		id: "Title", name: "Title",
 		font: t.Title.TitleFontFamily,
 		size: ptToHalfPt(t.Title.TitleFontSize), bold: titleBold, italic: titleItalic,
-		color: t.Title.TitleFontColor,
+		caps: titleCaps, color: t.Title.TitleFontColor,
+		align: t.Title.TitleTextAlign,
 	}))
 
 	// Subtitle style
@@ -905,7 +910,20 @@ func (d *docxDocument) stylesXML() string {
 
 	// Remaining styles
 	b.WriteString(styleParaXML(styleParaOpts{id: "ListParagraph", name: "List Paragraph", size: ptToHalfPt(t.Base.FontSize)}))
-	b.WriteString(styleParaXML(styleParaOpts{id: "TOCEntry", name: "TOC Entry", size: ptToHalfPt(t.Base.FontSize)}))
+	// TOC entry styles: level 1 = bold, level 2 = indented, level 3 = further indented + smaller
+	tocIndent := ptToTwips(t.List.Indent)
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "TOCEntry1", name: "TOC Entry 1",
+		size: ptToHalfPt(t.Base.FontSize), bold: true,
+	}))
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "TOCEntry2", name: "TOC Entry 2",
+		size: ptToHalfPt(t.Base.FontSize), indentLeft: tocIndent,
+	}))
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "TOCEntry3", name: "TOC Entry 3",
+		size: ptToHalfPt(t.Base.FontSize) - 2, indentLeft: tocIndent * 2,
+	}))
 	b.WriteString(styleParaXML(styleParaOpts{id: "FootnoteText", name: "Footnote Text", size: 18}))
 
 	// Hyperlink character style
@@ -950,6 +968,7 @@ type styleParaOpts struct {
 	spaceAfter      int     // w:spacing w:after (twips)
 	lineSpacing     int     // w:spacing w:line (240 = single)
 	align           string  // text alignment
+	indentLeft      int     // w:ind w:left (twips)
 }
 
 func styleParaXML(opts styleParaOpts) string {
@@ -962,7 +981,7 @@ func styleParaXML(opts styleParaOpts) string {
 
 	// Paragraph properties (pPr)
 	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
-		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != ""
+		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0
 	if hasPPr {
 		b.WriteString(`<w:pPr>`)
 		if opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 {
@@ -1008,6 +1027,11 @@ func styleParaXML(opts styleParaOpts) string {
 			b.WriteString(`" w:space="4" w:color="`)
 			b.WriteString(xmlAttr(opts.borderLeft))
 			b.WriteString(`"/></w:pBdr>`)
+		}
+		if opts.indentLeft > 0 {
+			b.WriteString(`<w:ind w:left="`)
+			b.WriteString(strconv.Itoa(opts.indentLeft))
+			b.WriteString(`"/>`)
 		}
 		if opts.align != "" {
 			b.WriteString(`<w:jc w:val="`)

@@ -83,6 +83,8 @@ type TitlePageTheme struct {
 	TitleFontStyle     string // "bold", "italic", "bold_italic"
 	TitleFontColor     string
 	TitleFontFamily    string
+	TitleTextTransform string // "uppercase", "lowercase", "capitalize", or ""
+	TitleTextAlign     string // "left", "center", "right", "justify"
 	SubtitleFontSize   float64
 	SubtitleFontColor  string
 	SubtitleFontFamily string
@@ -91,6 +93,7 @@ type TitlePageTheme struct {
 
 // TableTheme controls table rendering.
 type TableTheme struct {
+	Width         string  // "auto" (fit content), "full" (fit page/window), or percentage like "80%"
 	FontSize      float64
 	BorderColor   string
 	BorderWidth   float64 // in pt
@@ -232,6 +235,7 @@ func DefaultTheme() *DocxTheme {
 			SubtitleFontSize: 12, // 24 half-points
 		},
 		Table: TableTheme{
+			Width:       "full", // auto-fit to page width (window)
 			BorderColor: "auto",
 			BorderWidth: 0.5, // w:sz="4" = 4 eighths of a point = 0.5pt
 		},
@@ -254,6 +258,27 @@ func DefaultTheme() *DocxTheme {
 		DescriptionList: DescriptionListTheme{
 			TermFontStyle: "bold",
 		},
+	}
+}
+
+// tableWidthAttrs returns the OOXML w:tblW attributes for the given Width
+// theme value. "full" = 100% of page width, "auto" = fit to content,
+// a percentage like "80%" = that fraction of page width.
+func tableWidthAttrs(width string) (w string, wType string) {
+	switch {
+	case width == "full" || width == "":
+		return "5000", "pct" // 5000 fiftieths-of-a-percent = 100%
+	case width == "auto":
+		return "0", "auto"
+	case len(width) > 1 && width[len(width)-1] == '%':
+		pctStr := width[:len(width)-1]
+		pct, err := strconv.ParseFloat(pctStr, 64)
+		if err != nil || pct <= 0 || pct > 100 {
+			return "5000", "pct" // fallback to full
+		}
+		return strconv.Itoa(int(math.Round(pct * 50))), "pct" // 50 per percent
+	default:
+		return "5000", "pct" // fallback to full
 	}
 }
 

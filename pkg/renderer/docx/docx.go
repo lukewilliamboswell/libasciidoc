@@ -76,7 +76,11 @@ bodyAttributes:
 		d.title = title
 
 		// Add title to the document
-		if err := r.renderTextParagraph(title, paragraphOptions{style: "Title"}); err != nil {
+		displayTitle := title
+		if ctx.theme.Title.TitleTextTransform == "uppercase" {
+			displayTitle = strings.ToUpper(title)
+		}
+		if err := r.renderTextParagraph(displayTitle, paragraphOptions{style: "Title"}); err != nil {
 			return metadata, fmt.Errorf("unable to render document title: %w", err)
 		}
 

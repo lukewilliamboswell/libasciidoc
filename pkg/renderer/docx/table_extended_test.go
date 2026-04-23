@@ -92,4 +92,36 @@ var _ = Describe("tables extended", func() {
 			Expect(row.Cells).To(HaveLen(4))
 		}
 	})
+
+	It("should default to full-width table (auto-fit to window)", func() {
+		doc := renderDocx(`|===
+| A | B
+| C | D
+|===`)
+		docXML := doc.documentXML()
+		Expect(docXML).To(ContainSubstring(`w:tblW w:w="5000" w:type="pct"`))
+	})
+
+	It("should apply auto width from theme", func() {
+		doc := renderDocxWithTheme(`|===
+| A | B
+|===`, `
+table:
+  width: auto
+`)
+		docXML := doc.documentXML()
+		Expect(docXML).To(ContainSubstring(`w:tblW w:w="0" w:type="auto"`))
+	})
+
+	It("should apply percentage width from theme", func() {
+		doc := renderDocxWithTheme(`|===
+| A | B
+|===`, `
+table:
+  width: "80%"
+`)
+		docXML := doc.documentXML()
+		// 80% = 80 * 50 = 4000 fiftieths-of-a-percent
+		Expect(docXML).To(ContainSubstring(`w:tblW w:w="4000" w:type="pct"`))
+	})
 })
