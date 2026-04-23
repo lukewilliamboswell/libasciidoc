@@ -1,11 +1,22 @@
-= Q1 2025 Project Status Report
-Jane Smith, Engineering Lead
+= {quarter} {year} Project Status Report
+{author-name}, {author-title}
 :toc:
 :doctype: article
+// -- Report metadata --
+:author-name: Jane Smith
+:author-title: Engineering Lead
+:company: Acme Platform
+:quarter: Q1
+:year: 2025
+:prev-quarter: Q4
+:prev-year: 2024
+:next-quarter: Q2
+:new-customers: 12
+:total-customers: 47
 
 == Executive Summary
 
-The Acme Platform team completed three major milestones in Q1. The new authentication system launched on schedule, API response times improved by 40%, and we onboarded 12 new enterprise customers. This report summarises progress, highlights risks, and outlines the Q2 roadmap.
+The {company} team completed three major milestones in {quarter}. The new authentication system launched on schedule, API response times improved by 40%, and we onboarded {new-customers} new enterprise customers. This report summarises progress, highlights risks, and outlines the {next-quarter} roadmap.
 
 == Accomplishments
 
@@ -23,7 +34,7 @@ Rollout completed on 15 March with zero downtime.
 
 [cols="2,1,1,1", options="header"]
 |===
-| Metric                  | Q4 2024  | Q1 2025  | Change
+| Metric                  | {prev-quarter} {prev-year}  | {quarter} {year}  | Change
 | API p50 latency (ms)    | 120      | 72       | -40%
 | API p99 latency (ms)    | 850      | 340      | -60%
 | Error rate (%)          | 0.8      | 0.3      | -63%
@@ -32,11 +43,11 @@ Rollout completed on 15 March with zero downtime.
 
 === Customer Growth
 
-We onboarded 12 new enterprise customers in Q1, bringing the total to 47. Notable additions include WidgetCorp (1,200 seats) and DataFlow Inc (800 seats).
+We onboarded {new-customers} new enterprise customers in {quarter}, bringing the total to {total-customers}. Notable additions include WidgetCorp (1,200 seats) and DataFlow Inc (800 seats).
 
 == Risks and Mitigations
 
-WARNING: The legacy billing integration is scheduled for deprecation in Q3. Three enterprise customers still depend on it.
+WARNING: The legacy billing integration is scheduled for deprecation in Q3 {year}. Three enterprise customers still depend on it.
 
 .Risk Matrix
 [cols="2,1,2", options="header"]
@@ -47,7 +58,7 @@ WARNING: The legacy billing integration is scheduled for deprecation in Q3. Thre
 | Key engineer departing        | Low      | Knowledge transfer in progress
 |===
 
-== Q2 Roadmap
+== {next-quarter} Roadmap
 
 . Migrate remaining customers off legacy billing
 . Launch self-service onboarding portal

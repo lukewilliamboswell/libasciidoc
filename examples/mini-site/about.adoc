@@ -1,7 +1,9 @@
 = About
 :weight: 3
+:project-name: My Project
+:licence: MIT
 
-My Project is an example application used to demonstrate the libasciidoc static site generator.
+{project-name} is an example application used to demonstrate the libasciidoc static site generator.
 
 == The Team
 
@@ -9,4 +11,4 @@ This project is maintained by a small team of developers who believe that good d
 
 == Licence
 
-This example is released under the MIT licence. Use it as a starting point for your own documentation site.
+This example is released under the {licence} licence. Use it as a starting point for your own documentation site.

@@ -2,8 +2,22 @@
 Author Name <author@example.com>
 :toc:
 :icons: font
+// -- Document attributes --
+:project-name: libasciidoc
+:project-version: 0.9.0
+:project-url: https://github.com/lukewilliamboswell/libasciidoc
 
-This document demonstrates the most common AsciiDoc elements supported by libasciidoc. Use it as a quick reference or a test file to verify your setup.
+This document demonstrates the most common AsciiDoc elements supported by {project-name}. Use it as a quick reference or a test file to verify your setup.
+
+== Attributes
+
+AsciiDoc attributes let you define reusable values once and reference them throughout the document. This document uses:
+
+* `project-name` = {project-name}
+* `project-version` = {project-version}
+* `project-url` = {project-url}
+
+Change the values in the header and every reference updates automatically. This is useful for version numbers, product names, URLs, and any other value that appears in multiple places.
 
 == Text Formatting
 
@@ -35,7 +49,7 @@ SSD:: Persistent storage for files and applications.
 
 == Links and Cross-References
 
-Visit the https://asciidoc.org[AsciiDoc website] for the full language specification.
+Visit the https://asciidoc.org[AsciiDoc website] for the full language specification, or see the {project-url}[{project-name} repository] for this tool's source code.
 
 See <<code-blocks>> for examples of source code.
 
@@ -69,7 +83,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("Hello from libasciidoc!")
+	fmt.Println("Hello from {project-name}!")
 }
 ----
 
