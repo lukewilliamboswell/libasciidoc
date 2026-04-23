@@ -1,7 +1,5 @@
 = DOCX Theme Reference
 :weight: 3
-:toc: left
-:toclevels: 3
 
 The DOCX backend supports an Asciidoctor-PDF-inspired theme YAML file for controlling the visual appearance of generated Word documents.
 

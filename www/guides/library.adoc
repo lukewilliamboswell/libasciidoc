@@ -26,10 +26,13 @@ metadata, err := asciidoc.Convert(reader, writer, config)
 
 === ConvertFile
 
-Reads AsciiDoc from a file path and writes the rendered output to an `io.Writer`:
+Reads AsciiDoc from a file path and writes the rendered output to an `io.Writer`. The input filename is set via the configuration:
 
 [source,go]
 ----
+config := configuration.NewConfiguration(
+    configuration.WithFilename("document.adoc"),
+)
 metadata, err := asciidoc.ConvertFile(writer, config)
 ----
 

@@ -3,7 +3,7 @@
 
 == Install
 
-If you have https://go.dev/dl/[Go] installed (version 1.21 or later), you can install directly:
+If you have https://go.dev/dl/[Go] installed (version 1.24 or later), you can install directly:
 
  go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2doc@latest
  go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2html@latest

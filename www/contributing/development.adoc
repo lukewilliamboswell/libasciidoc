@@ -23,11 +23,12 @@ Build the CLI tools:
 
 == Run the Site Locally
 
-To preview documentation changes:
+To preview documentation changes, build the site and serve it locally:
 
- ./serve.sh
+ go build -o ascii2html ./cmd/ascii2html
+ ./ascii2html --static-site --css style.css -o _site www/
 
-This builds `ascii2doc`, generates the site into `_site/`, and serves it on `http://localhost:8080`.
+Then open `_site/index.html` in your browser, or serve the directory with any static file server.
 
 == Project Structure
 
