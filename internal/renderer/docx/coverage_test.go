@@ -334,7 +334,7 @@ var _ = Describe("imageContentType via embedded images", func() {
 		bmpData := make([]byte, 58)
 		bmpData[0] = 'B'
 		bmpData[1] = 'M'
-		bmpData[2] = 58 // file size low byte
+		bmpData[2] = 58  // file size low byte
 		bmpData[10] = 54 // pixel data offset
 		bmpData[14] = 40 // DIB header size
 		bmpData[18] = 1  // width = 1
@@ -389,5 +389,112 @@ var _ = Describe("renderLabelInline edge cases", func() {
 		rel := doc.findRelationshipByID(p.Links[0].RelID)
 		Expect(rel).ToNot(BeNil())
 		Expect(rel.Target).To(ContainSubstring("other.html"))
+	})
+})
+
+var _ = Describe("renderElement — attribute declarations and resets in body", func() {
+
+	It("should process attribute declarations that appear after body content", func() {
+		// AttributeDeclaration and AttributeReset mid-body hit the renderElement cases
+		// (not the pre-pass loop, which stops at the first non-attribute element).
+		doc := renderDocx(`= Document
+
+First paragraph.
+
+:custom-label: Foo
+:numbered!:
+
+Second paragraph.`)
+
+		Expect(doc.findParagraph("First paragraph")).ToNot(BeNil())
+		Expect(doc.findParagraph("Second paragraph")).ToNot(BeNil())
+	})
+
+	It("should render a document with YAML front matter", func() {
+		// FrontMatter is preserved in doc.BodyElements() before the DocumentHeader
+		// and hits the renderElement *types.FrontMatter case.
+		doc := renderDocx("---\ntitle: My Title\nauthor: Jane\n---\n\nBody paragraph.")
+
+		Expect(doc.text()).To(ContainSubstring("Body paragraph"))
+	})
+})
+
+var _ = Describe("bodyElementsWithTableOfContents — preamble placement", func() {
+
+	It("should inject table of contents into the preamble when :toc: preamble is set", func() {
+		doc := renderDocx(`= Document
+:toc: preamble
+
+This is the preamble content before sections.
+
+== First Section
+
+Content under first section.
+
+== Second Section
+
+Content under second section.`)
+
+		// The TOC heading and section entries should appear.
+		Expect(doc.text()).To(ContainSubstring("First Section"))
+		Expect(doc.text()).To(ContainSubstring("Second Section"))
+	})
+})
+
+var _ = Describe("inline elements — experimental macros and special inline types", func() {
+
+	It("should render btn macro as plain text (InlineButton)", func() {
+		doc := renderDocx(`:experimental:
+
+Click btn:[OK] to confirm.`)
+
+		Expect(doc.text()).To(ContainSubstring("OK"))
+	})
+
+	It("should render menu macro as path-joined text (InlineMenu)", func() {
+		doc := renderDocx(`:experimental:
+
+Choose menu:File[Open].`)
+
+		Expect(doc.text()).To(ContainSubstring("File"))
+	})
+
+	It("should render index term inline and in TOC (IndexTerm)", func() {
+		doc := renderDocx(`A paragraph with an ((index term)) inline.`)
+
+		Expect(doc.text()).To(ContainSubstring("index term"))
+	})
+
+	It("should render concealed index term without visible text (ConcealedIndexTerm)", func() {
+		doc := renderDocx(`A paragraph with a (((concealed term))) that is not visible.`)
+
+		Expect(doc.text()).To(ContainSubstring("paragraph"))
+		Expect(doc.text()).NotTo(ContainSubstring("concealed term"))
+	})
+
+	It("should render section title with bold inline for TOC plain-text extraction (QuotedText in renderPlainText)", func() {
+		// The section title with *bold* produces a QuotedText element stored in
+		// elementReferences, so prerenderTableOfContentsEntry calls
+		// renderPlainText(*types.QuotedText), exercising that branch.
+		doc := renderDocx(`= Document
+:toc:
+
+== Section with *bold* text
+
+Content here.`)
+
+		Expect(doc.text()).To(ContainSubstring("bold"))
+		Expect(doc.text()).To(ContainSubstring("text"))
+	})
+
+	It("should render callout numbers as text in callout list items (Callout)", func() {
+		doc := renderDocx(`[source,go]
+----
+fmt.Println("hello") // <1>
+----
+<1> Print a greeting`)
+
+		Expect(doc.text()).To(ContainSubstring("Print a greeting"))
+		Expect(doc.text()).To(ContainSubstring("<1>"))
 	})
 })

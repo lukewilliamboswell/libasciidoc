@@ -564,4 +564,14 @@ Our story begins.`
 		})
 	})
 
+	Context("file I/O", func() {
+
+		It("should return error when source file does not exist", func() {
+			out := &strings.Builder{}
+			_, err := asciidoc.ConvertFile(out, configuration.NewConfiguration(
+				configuration.WithFilename("nonexistent-file-that-does-not-exist.adoc")))
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 })
