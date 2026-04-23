@@ -1,0 +1,15 @@
+= Basic Document
+
+A quick-reference document demonstrating common AsciiDoc elements supported by libasciidoc: text formatting, lists, links, images, tables, code blocks, admonitions, blockquotes, and sidebars.
+
+== Generate HTML
+
+ ascii2html document.adoc > document.html
+
+== Generate DOCX
+
+ ascii2doc document.adoc
+
+This produces `document.docx` using default styling. To apply a custom theme:
+
+ ascii2doc --theme ../theme.yml document.adoc

@@ -1,0 +1,181 @@
+= Widget Service API Reference
+:toc:
+:icons: font
+:source-highlighter: chroma
+
+== Overview
+
+The Widget Service provides a RESTful API for managing widgets. All endpoints accept and return JSON. Authentication is via Bearer token in the `Authorization` header.
+
+Base URL: `https://api.example.com/v1`
+
+== Authentication
+
+All requests must include an `Authorization` header:
+
+[source,bash]
+----
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     https://api.example.com/v1/widgets
+----
+
+TIP: Tokens expire after 24 hours. Use the `/auth/refresh` endpoint to obtain a new token without re-authenticating.
+
+== Endpoints
+
+=== List Widgets
+
+`GET /widgets`
+
+Returns a paginated list of widgets.
+
+.Query Parameters
+[cols="1,1,2,1", options="header"]
+|===
+| Parameter | Type   | Description                    | Default
+| `page`    | int    | Page number (1-based)          | 1
+| `limit`   | int    | Items per page (max 100)       | 20
+| `status`  | string | Filter by status               | (all)
+| `sort`    | string | Sort field (`name`, `created`) | `created`
+|===
+
+.Response
+[source,json]
+----
+{
+  "data": [
+    {
+      "id": "w_abc123",
+      "name": "Sprocket",
+      "status": "active",
+      "created_at": "2025-01-15T09:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 142
+  }
+}
+----
+
+=== Create Widget
+
+`POST /widgets`
+
+.Request Body
+[source,json]
+----
+{
+  "name": "Sprocket",
+  "description": "A standard sprocket widget",
+  "tags": ["mechanical", "v2"]
+}
+----
+
+.Response Codes
+[cols="1,3", options="header"]
+|===
+| Code | Description
+| 201  | Widget created successfully
+| 400  | Invalid request body
+| 409  | Widget with this name already exists
+| 429  | Rate limit exceeded
+|===
+
+=== Get Widget
+
+`GET /widgets/\{id}`
+
+Returns a single widget by ID.
+
+WARNING: Widget IDs are case-sensitive. `w_abc123` and `w_ABC123` are different widgets.
+
+=== Delete Widget
+
+`DELETE /widgets/\{id}`
+
+Permanently deletes a widget. This action cannot be undone.
+
+CAUTION: Deleting a widget also removes all associated data including history, attachments, and audit logs.
+
+== Error Handling
+
+All errors return a consistent JSON structure:
+
+[source,json]
+----
+{
+  "error": {
+    "code": "WIDGET_NOT_FOUND",
+    "message": "No widget found with ID 'w_abc123'",
+    "request_id": "req_xyz789"
+  }
+}
+----
+
+.Common Error Codes
+[cols="2,1,3", options="header"]
+|===
+| Code                 | HTTP | Description
+| `UNAUTHORIZED`       | 401  | Missing or invalid Bearer token
+| `FORBIDDEN`          | 403  | Token lacks required permissions
+| `WIDGET_NOT_FOUND`   | 404  | Widget ID does not exist
+| `RATE_LIMITED`       | 429  | Too many requests; retry after `Retry-After` header
+| `INTERNAL_ERROR`     | 500  | Unexpected server error; include `request_id` in support tickets
+|===
+
+== Go Client Example
+
+[source,go]
+----
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	widget "github.com/example/widget-sdk-go"
+)
+
+func main() {
+	client := widget.NewClient("YOUR_TOKEN")
+
+	// List all active widgets
+	widgets, err := client.List(context.Background(), &widget.ListOptions{
+		Status: "active",
+		Limit:  50,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, w := range widgets.Data {
+		fmt.Printf("%s: %s (%s)\n", w.ID, w.Name, w.Status)
+	}
+
+	// Create a new widget
+	created, err := client.Create(context.Background(), &widget.CreateRequest{
+		Name:        "Gear Assembly",
+		Description: "Main gear assembly unit",
+		Tags:        []string{"mechanical", "assembly"},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Created: %s\n", created.ID)
+}
+----
+
+== Rate Limits
+
+[cols="1,1,1", options="header"]
+|===
+| Plan       | Requests/min | Burst
+| Free       | 60           | 10
+| Pro        | 600          | 50
+| Enterprise | 6000         | 200
+|===
+
+NOTE: Rate limit headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`) are included in every response.

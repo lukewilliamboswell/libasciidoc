@@ -1,0 +1,24 @@
+= Technical API Reference
+:weight: 4
+
+*What it demonstrates:* Technical documentation with multiple source code blocks (Go, JSON, bash), parameter tables, response codes, error handling patterns, and admonitions for warnings and tips.
+
+*Who it's for:* Go developers documenting APIs, libraries, or technical systems.
+
+== Run It
+
+ ascii2html examples/technical/api-reference.adoc
+ open examples/technical/api-reference.html
+
+== Source
+
+`examples/technical/api-reference.adoc`
+
+== Go Client Example
+
+Here's the Go client example from the document:
+
+[source,asciidoc]
+----
+include::../../examples/technical/api-reference.adoc[lines=130..160]
+----

@@ -22,6 +22,7 @@ link:guides/getting-started.html[Getting Started] — install the tools and conv
 == Learn More
 
 * link:guides/docx.html[DOCX Conversion] — generate styled Word documents with theme support
+* link:guides/docx-theme-reference.html[DOCX Theme Reference] — full reference for theme YAML properties
 * link:guides/static-site.html[Static Site Mode] — build a documentation website from AsciiDoc files
 * link:guides/library.html[Using the Library] — integrate libasciidoc into your Go application
 * link:examples/[Examples] — complete, runnable examples for common use cases

@@ -1,0 +1,15 @@
+= Legal Contract
+
+A realistic Software Licence Agreement demonstrating professional legal document structure with multi-level numbering, cross-references, definition lists, and signature tables.
+
+This example uses `:sectnums:` to produce hierarchical clause numbering (1. / 1.1 / 1.1.1) with alphabetic and roman sub-lists for contract clauses.
+
+== Generate DOCX
+
+ ascii2doc --theme legal-theme.yml contract.adoc
+
+This produces `contract.docx` styled for legal documents.
+
+== Generate HTML
+
+ ascii2html contract.adoc > contract.html

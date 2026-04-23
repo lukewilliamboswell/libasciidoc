@@ -1,0 +1,13 @@
+= Business Report
+
+A project status report demonstrating professional document structure with an executive summary, metrics tables, risk assessments, and appendices.
+
+== Generate DOCX
+
+ ascii2doc --theme report-theme.yml report.adoc
+
+This produces `report.docx` with the report theme applied.
+
+== Generate HTML
+
+ ascii2html report.adoc > report.html

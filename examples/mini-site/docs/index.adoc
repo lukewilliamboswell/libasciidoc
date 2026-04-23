@@ -1,0 +1,6 @@
+= Documentation
+:weight: 2
+
+This section contains the technical documentation for My Project.
+
+Browse the pages below to learn how to install, configure, and use the project.

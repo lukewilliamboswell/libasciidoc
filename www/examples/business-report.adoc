@@ -1,0 +1,25 @@
+= Business Report
+:weight: 2
+
+*What it demonstrates:* A professional business report converted to DOCX with a custom theme controlling fonts, colors, headers, footers, and page numbering.
+
+*Who it's for:* Users who need to produce polished Word documents for work -- reports, memos, proposals.
+
+== Run It
+
+ ascii2doc --theme examples/report/report-theme.yml examples/report/report.adoc
+ open examples/report/report.docx
+
+== Source Files
+
+* `examples/report/report.adoc` -- the report content
+* `examples/report/report-theme.yml` -- the theme file
+
+== Theme Highlights
+
+The theme uses corporate blue headings, styled table headers, and a confidential footer:
+
+[source,yaml]
+----
+include::../../examples/report/report-theme.yml[lines=7..33]
+----

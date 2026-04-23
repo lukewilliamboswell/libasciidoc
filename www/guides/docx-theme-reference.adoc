@@ -1,4 +1,5 @@
 = DOCX Theme Reference
+:weight: 3
 :toc: left
 :toclevels: 3
 
@@ -8,7 +9,7 @@ The DOCX backend supports an Asciidoctor-PDF-inspired theme YAML file for contro
 
 [source,bash]
 ----
-libasciidoc -b docx --theme theme.yml document.adoc
+ascii2doc --theme theme.yml document.adoc
 ----
 
 == Units
@@ -251,7 +252,7 @@ caption:
   text_align: center
 ----
 
-=== description list
+=== description_list
 
 Controls labeled/description list term styling.
 

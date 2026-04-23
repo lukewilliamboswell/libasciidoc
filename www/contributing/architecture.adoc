@@ -9,11 +9,41 @@ libasciidoc processes AsciiDoc documents through a pipeline: *parse* the input i
 AsciiDoc text → Parser → Document Model → Renderer → HTML5 / XHTML5 / DOCX
 ----
 
+== Document Model
+
+A document contains blocks, which can have attributes, nested blocks, and elements.
+
+Blocks are of the following types:
+
+* Section
+* Paragraph
+* Delimited block
+* Image
+* Table
+* List
+* File inclusion
+* Comment
+
+Tables, lists, and delimited blocks can contain other blocks.
+
+Blocks can also contain inline elements:
+
+* Quoted text (bold, italic, monospace, etc.)
+* Links
+* Inline images
+* Passthrough text
+* Footnotes
+* User-defined macros
+
+Attributes are set within square brackets (`[]`), both on top of document blocks and as a suffix of elements.
+
 == Major Components
 
 === Parser (`internal/parser/`)
 
-The parser reads AsciiDoc text and produces a structured document model (defined in the `types` package). It is generated from a PEG grammar.
+The parser is generated from a link:../../internal/parser/parser.peg[PEG grammar] and produces a "draft document" in which sections are not yet organized hierarchically, blocks are not attached to parent sections, blank lines are present, and document attribute declarations and substitutions have not been resolved. File inclusions are processed at this stage.
+
+This draft document is then transformed into a "final document" in which sections are organized hierarchically with their child blocks attached. Document attribute substitutions have been resolved (sometimes producing new elements such as links), and blank lines have been stripped (except within delimited blocks).
 
 === Document Model (`types/`)
 
@@ -21,11 +51,11 @@ The `types` package defines the data structures that represent an AsciiDoc docum
 
 === Renderers (`internal/renderer/`)
 
-Each output format has its own renderer that walks the document model and produces output. The renderers are:
+Each output format has its own renderer that walks the document model and produces output:
 
-* *HTML5* — the default, produces standards-compliant HTML5
-* *XHTML5* — produces XHTML5 (self-closing tags, XML-compliant)
-* *DOCX* — produces Office Open XML (Word documents) with optional theme support
+* *HTML5* — the default, produces standards-compliant HTML5 using Go text templates
+* *XHTML5* — produces XHTML5 (self-closing tags, XML-compliant) using Go text templates
+* *DOCX* — produces Office Open XML (Word documents) by building the required ZIP parts (`word/document.xml`, relationships, styles, numbering, footnotes, and media) and writing WordprocessingML directly, with optional theme support
 
 === Configuration (`configuration/`)
 

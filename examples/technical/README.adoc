@@ -1,0 +1,15 @@
+= Technical API Reference
+
+A comprehensive REST API documentation example with endpoint descriptions, request/response JSON examples, status code tables, Go client code, and rate limiting details.
+
+== Generate HTML
+
+ ascii2html api-reference.adoc > api-reference.html
+
+== Generate DOCX
+
+ ascii2doc api-reference.adoc
+
+To apply a custom theme:
+
+ ascii2doc --theme ../theme.yml api-reference.adoc

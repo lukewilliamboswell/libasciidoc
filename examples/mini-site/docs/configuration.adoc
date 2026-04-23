@@ -1,0 +1,35 @@
+= Configuration
+:weight: 2
+
+My Project is configured via a YAML file at `config.yml` in the project root.
+
+== Minimal Configuration
+
+[source,yaml]
+----
+server:
+  port: 8080
+  host: localhost
+
+database:
+  driver: sqlite
+  path: ./data.db
+----
+
+== Options
+
+[cols="2,1,3,1", options="header"]
+|===
+| Key             | Type   | Description          | Default
+| `server.port`   | int    | HTTP listen port     | 8080
+| `server.host`   | string | Bind address         | localhost
+| `database.driver`| string| Database driver      | sqlite
+| `database.path` | string | Path to database     | ./data.db
+|===
+
+== Environment Variables
+
+Any configuration key can be overridden via environment variable by converting dots to underscores and uppercasing:
+
+ export SERVER_PORT=9090
+ export DATABASE_DRIVER=postgres

@@ -1,0 +1,15 @@
+= Examples
+:weight: 3
+
+The `examples/` directory in the repository contains complete, runnable examples you can try immediately after installing libasciidoc. Clone the repo and follow along:
+
+ git clone https://github.com/lukewilliamboswell/libasciidoc.git
+ cd libasciidoc
+
+== Browse Examples
+
+* link:basic-document.html[Basic Document] — all common AsciiDoc elements in a single file
+* link:business-report.html[Business Report] — professional DOCX output with a custom theme
+* link:legal-contract.html[Legal Contract] — structured legal numbering with `:sectnums:`
+* link:technical-api.html[Technical API Reference] — code blocks, tables, and admonitions
+* link:mini-site.html[Mini Documentation Site] — static site generator with multi-page navigation

@@ -1,0 +1,117 @@
+= AsciiDoc Syntax Sampler
+Author Name <author@example.com>
+:toc:
+:icons: font
+
+This document demonstrates the most common AsciiDoc elements supported by libasciidoc. Use it as a quick reference or a test file to verify your setup.
+
+== Text Formatting
+
+This is a normal paragraph. You can use *bold*, _italic_, *_bold italic_*, `monospace`, and #highlighted# text. You can also use ^superscript^ and ~subscript~.
+
+== Lists
+
+=== Unordered
+
+* First item
+* Second item
+** Nested item
+** Another nested item
+* Third item
+
+=== Ordered
+
+. Step one
+. Step two
+.. Sub-step
+.. Another sub-step
+. Step three
+
+=== Description List
+
+CPU:: The brain of the computer.
+RAM:: Short-term memory used by running programs.
+SSD:: Persistent storage for files and applications.
+
+== Links and Cross-References
+
+Visit the https://asciidoc.org[AsciiDoc website] for the full language specification.
+
+See <<code-blocks>> for examples of source code.
+
+== Images
+
+You can include images with:
+
+ image::screenshot.png[A screenshot]
+
+== Tables
+
+[cols="1,2,1", options="header"]
+|===
+| Name    | Description              | Status
+| Alpha   | The first release        | Done
+| Beta    | Second release with fixes| In Progress
+| GA      | General availability     | Planned
+|===
+
+[[code-blocks]]
+== Code Blocks
+
+Inline code: `fmt.Println("hello")`.
+
+A Go code block with syntax highlighting:
+
+[source,go]
+----
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello from libasciidoc!")
+}
+----
+
+A shell session:
+
+[source,bash]
+----
+$ ascii2html document.adoc
+$ open document.html
+----
+
+== Admonitions
+
+NOTE: This is a note — useful for supplementary information.
+
+TIP: This is a tip — a helpful suggestion for the reader.
+
+WARNING: This is a warning — something the reader should be careful about.
+
+IMPORTANT: This is important — do not skip this.
+
+CAUTION: This is a caution — proceed with care.
+
+== Blockquotes
+
+[quote, Grace Hopper]
+____
+The most dangerous phrase in the language is, "We've always done it this way."
+____
+
+== Sidebar
+
+****
+This is a sidebar. Use it for tangential information that supports the main content but isn't part of the primary flow.
+****
+
+== Literal Block
+
+A literal block preserves whitespace and formatting exactly as written:
+
+....
+  this     text
+    preserves    spacing
+      exactly
+....

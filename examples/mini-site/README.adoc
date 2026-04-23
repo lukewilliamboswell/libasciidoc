@@ -1,0 +1,21 @@
+= Mini Documentation Site
+
+A multi-page documentation site demonstrating the static site generator. This example shows automatic navigation, page ordering via `:weight:` attributes, and nested sections.
+
+== Directory Structure
+
+----
+mini-site/
+  index.adoc
+  about.adoc
+  docs/
+    index.adoc
+    installation.adoc
+    configuration.adoc
+----
+
+== Build the Site
+
+ ascii2html --site mini-site/ --output _site/
+
+This generates a complete HTML site in `_site/` with navigation links between pages.

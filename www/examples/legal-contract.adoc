@@ -1,0 +1,25 @@
+= Legal Contract
+:weight: 3
+
+*What it demonstrates:* A formal legal document using `:sectnums:` for automatic multi-level legal numbering (1. / 1.1 / (a) / (i)), description lists for definitions, and sections that opt out of numbering for the Parties, Background, and Execution clauses.
+
+*Who it's for:* Users producing contracts, agreements, or other legal documents where structured numbering is essential.
+
+== Run It
+
+ ascii2doc --theme examples/legal/legal-theme.yml examples/legal/contract.adoc
+ open examples/legal/contract.docx
+
+== Source Files
+
+* `examples/legal/contract.adoc` -- the contract content
+* `examples/legal/legal-theme.yml` -- conservative legal theme
+
+== How Legal Numbering Works
+
+Notice how `:sectnums:` and `:!sectnums:` toggle numbering on and off. Sections before `:sectnums:` (Parties, Background) and after `:!sectnums:` (Execution) remain unnumbered:
+
+[source,asciidoc]
+----
+include::../../examples/legal/contract.adoc[lines=1..21]
+----

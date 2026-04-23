@@ -1,0 +1,66 @@
+# Corporate report theme for libasciidoc DOCX output.
+#
+# Usage:
+#   ascii2doc --theme report-theme.yml report.adoc
+
+page:
+  size: A4
+  layout: portrait
+  margin: [25mm, 20mm, 25mm, 20mm]
+
+base:
+  font_family: Aptos
+  font_color: "2D2D2D"
+  font_size: 11
+  line_height: 1.15
+
+heading:
+  font_family: Aptos
+  font_color: "1B3A5C"
+  font_style: bold
+  margin_top: 14
+  margin_bottom: 6
+  h1:
+    font_size: 18
+  h2:
+    font_size: 14
+  h3:
+    font_size: 12
+
+title_page:
+  title:
+    font_size: 22
+    font_style: bold
+    font_color: "1B3A5C"
+    text_align: center
+  subtitle:
+    font_size: 12
+    font_color: "555555"
+    font_style: italic
+
+table:
+  width: full
+  border_color: "1B3A5C"
+  border_width: 0.5
+  grid_color: "CCCCCC"
+  grid_width: 0.25
+  cell_padding: 4
+  head:
+    background_color: "E8EEF4"
+    font_style: bold
+
+code:
+  font_family: Courier New
+  font_size: 9
+  background_color: "F5F5F5"
+  border_color: "DDDDDD"
+  border_width: 0.5
+
+link:
+  font_color: "1B3A5C"
+
+footer:
+  content: "Confidential — Page {page-number} of {page-count}"
+  font_size: 8
+  font_color: "999999"
+  font_style: italic

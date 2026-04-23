@@ -1,0 +1,76 @@
+# Legal document theme for libasciidoc DOCX output.
+#
+# Designed for contracts and agreements: conservative fonts, tight spacing,
+# clear hierarchy with legal numbering via :sectnums:.
+#
+# Usage:
+#   ascii2doc --theme legal-theme.yml contract.adoc
+
+page:
+  size: A4
+  layout: portrait
+  margin: [30mm, 25mm, 25mm, 30mm]
+
+base:
+  font_family: Aptos
+  font_color: "1A1A1A"
+  font_size: 10.5
+  line_height: 1.15
+  text_align: justify
+
+prose:
+  margin_bottom: 6
+  text_indent: 0
+
+heading:
+  font_family: Aptos
+  font_color: "000000"
+  font_style: bold
+  text_transform: uppercase
+  margin_top: 12
+  margin_bottom: 6
+  h2:
+    font_size: 13
+    text_transform: uppercase
+  h3:
+    font_size: 11
+    text_transform: none
+  h4:
+    font_size: 10.5
+    text_transform: none
+
+title_page:
+  title:
+    font_size: 14
+    font_style: bold
+    font_color: "000000"
+    text_transform: uppercase
+    text_align: center
+  subtitle:
+    font_size: 11
+    font_color: "333333"
+
+list:
+  indent: 10mm
+
+table:
+  width: full
+  border_color: "333333"
+  border_width: 0.5
+  cell_padding: 4
+  head:
+    background_color: "F0F0F0"
+    font_style: bold
+
+code:
+  font_family: Courier New
+  font_size: 9
+
+link:
+  font_color: "1A1A1A"
+  text_decoration: underline
+
+footer:
+  content: "Page {page-number} of {page-count}"
+  font_size: 8
+  font_color: "999999"

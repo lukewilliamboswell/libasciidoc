@@ -1,0 +1,21 @@
+= Installation
+:weight: 1
+
+== Requirements
+
+* Go 1.21 or later
+* Git
+
+== Steps
+
+. Clone the repository:
++
+ git clone https://github.com/example/my-project.git
+
+. Build the project:
++
+ cd my-project && go build ./...
+
+. Verify the installation:
++
+ ./my-project version

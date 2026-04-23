@@ -1,0 +1,28 @@
+= Basic Document
+:weight: 1
+
+*What it demonstrates:* All common AsciiDoc elements in a single file -- headings, text formatting, lists, tables, code blocks, admonitions, blockquotes, and cross-references.
+
+*Who it's for:* Anyone new to AsciiDoc or libasciidoc who wants to see what's supported.
+
+== Run It
+
+Convert to HTML:
+
+ ascii2html examples/basic/document.adoc
+ open examples/basic/document.html
+
+Or generate a Word document:
+
+ ascii2doc examples/basic/document.adoc
+
+== Source
+
+`examples/basic/document.adoc`
+
+Here is a snippet from the source showing some of the elements:
+
+[source,asciidoc]
+----
+include::../../examples/basic/document.adoc[lines=12..33]
+----

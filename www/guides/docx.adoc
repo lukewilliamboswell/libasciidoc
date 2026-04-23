@@ -28,6 +28,10 @@ Themes can control:
 * Table of contents depth and formatting
 * Title page styling
 
+== Theme Reference
+
+For the full list of theme properties, see the link:docx-theme-reference.html[DOCX Theme Reference].
+
 == Tips
 
 * DOCX files can be opened in Microsoft Word, LibreOffice Writer, or Google Docs

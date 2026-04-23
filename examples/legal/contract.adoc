@@ -1,0 +1,129 @@
+= Software Licence Agreement
+:doctype: article
+:toc:
+
+[discrete]
+== Parties
+
+This Agreement is entered into as of 1 January 2025 between:
+
+. *Licensor:* Acme Software Pty Ltd (ACN 000 000 000), of 123 Collins Street, Melbourne VIC 3000
+. *Licensee:* The party identified in the Order Form
+
+(each a "Party" and together the "Parties").
+
+[discrete]
+== Background
+
+[loweralpha]
+. The Licensor has developed and owns the Software described in the Order Form.
+. The Licensee wishes to obtain a licence to use the Software on the terms set out in this Agreement.
+
+:sectnums:
+
+== Interpretation
+
+=== Definitions
+
+In this Agreement, unless the context otherwise requires:
+
+"Agreement":: means this Software Licence Agreement including any schedules and annexures.
+"Confidential Information":: means all information disclosed by one Party to the other that is marked as confidential or that a reasonable person would consider confidential.
+"Intellectual Property Rights":: means all patents, copyrights, trade marks, trade secrets, and other intellectual property rights.
+"Software":: means the software application specified in the Order Form.
+
+=== Construction
+
+In this Agreement, unless the context otherwise requires:
+
+[loweralpha]
+. headings are for convenience only and do not affect interpretation;
+. a reference to a Party includes its successors and permitted assigns;
+. words in the singular include the plural and vice versa;
+. a reference to a statute includes any amendment or re-enactment of it.
+
+== Grant of Licence
+
+=== Licence
+
+Subject to the terms of this Agreement, the Licensor grants to the Licensee a non-exclusive, non-transferable licence to:
+
+[loweralpha]
+. install and use the Software on the Licensee's systems;
+. make copies of the Software for backup and archival purposes only;
+. permit the Licensee's employees and contractors to use the Software in connection with the Licensee's business.
+
+=== Restrictions
+
+The Licensee must not:
+
+[loweralpha]
+. sublicense, sell, or distribute the Software to any third party;
+. modify, reverse engineer, decompile, or disassemble the Software;
+. remove any proprietary notices from the Software;
+. use the Software for any unlawful purpose.
+
+== Fees and Payment
+
+=== Licence Fee
+
+The Licensee must pay the licence fee specified in the Order Form within 30 days of the date of this Agreement.
+
+=== Late Payment
+
+If the Licensee fails to pay any amount by the due date, interest accrues on the outstanding amount at the rate of 2% per annum above the Reserve Bank of Australia cash rate.
+
+== Confidentiality
+
+=== Obligations
+
+Each Party must:
+
+[loweralpha]
+. keep the other Party's Confidential Information confidential;
+. not disclose Confidential Information to any third party without the prior written consent of the disclosing Party;
+. use Confidential Information only for the purposes of this Agreement.
+
+=== Exceptions
+
+The obligations in <<_obligations>> do not apply to information that:
+
+[loweralpha]
+. is or becomes publicly available through no fault of the receiving Party;
+. was known to the receiving Party before disclosure;
+. is independently developed by the receiving Party.
+
+== Limitation of Liability
+
+=== Maximum Liability
+
+To the maximum extent permitted by law, the Licensor's total liability under this Agreement is limited to the total licence fees paid by the Licensee in the 12 months preceding the claim.
+
+=== Exclusions
+
+The Licensor is not liable for any indirect, consequential, or incidental damages, including loss of profits, data, or business opportunity.
+
+:!sectnums:
+
+== Execution
+
+This Agreement may be executed in counterparts, each of which constitutes an original.
+
+Executed as an agreement.
+
+[cols="1,1", options="header"]
+|===
+| Licensor | Licensee
+
+| Acme Software Pty Ltd
+| [Company Name]
+
+| Signature: +++______________________+++
+| Signature: +++______________________+++
+
+| Name:
+| Name:
+
+| Date:
+| Date:
+|===
