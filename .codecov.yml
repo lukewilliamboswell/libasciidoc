@@ -20,4 +20,4 @@ comment:
   require_changes: no
 
 ignore:
-  - "pkg/parser/parser.go"
+  - "internal/parser/parser.go"

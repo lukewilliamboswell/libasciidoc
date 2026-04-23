@@ -80,10 +80,12 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 				})
 			}
 			attrs := parseAttributes(attributes)
+			if len(args) > 1 && outputName != "" && outputName != "-" {
+				return fmt.Errorf("cannot use a named output file with multiple input files; use -o - for stdout or omit -o to write per-file")
+			}
 			for _, sourcePath := range args {
-				out, close := getOut(cmd, sourcePath, outputName, backend)
+				out, closeOut := getOut(cmd, sourcePath, outputName, backend)
 				if out != nil {
-					defer close() //nolint:errcheck
 					config := configuration.NewConfiguration(
 						configuration.WithFilename(sourcePath),
 						configuration.WithAttributes(attrs),
@@ -92,6 +94,7 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 						configuration.WithHeaderFooter(!noHeaderFooter),
 						configuration.WithThemePath(themePath))
 					_, err := asciidoc.ConvertFile(out, config)
+					closeOut() //nolint:errcheck
 					if err != nil {
 						return err
 					}

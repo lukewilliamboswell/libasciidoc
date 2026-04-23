@@ -212,6 +212,7 @@ func NewAttributes(attributes ...interface{}) (Attributes, error) {
 	return result, nil
 }
 
+// Clone returns a shallow copy of the attributes map.
 func (a Attributes) Clone() Attributes {
 	result := Attributes{}
 	for k, v := range a {
@@ -239,7 +240,8 @@ func MergeAttributes(attributes ...interface{}) (Attributes, error) {
 	return result, nil
 }
 
-// NilIfEmpty returns `nil` if this `attributes` is empty
+// AddAll merges all entries from others into a and returns the result.
+// If a is nil a new Attributes map is allocated. If others is nil, a is returned unchanged.
 func (a Attributes) AddAll(others Attributes) Attributes {
 	if others == nil {
 		return a

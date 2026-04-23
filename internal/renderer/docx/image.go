@@ -65,6 +65,17 @@ func (r *docxRenderer) resolveImagePath(location *types.Location) string {
 		dir := filepath.Dir(r.ctx.config.Filename)
 		src = filepath.Join(dir, src)
 	}
+
+	// Guard against path traversal: local image paths must stay within the document root.
+	if !strings.Contains(src, "://") {
+		docDir := filepath.Dir(r.ctx.config.Filename)
+		allowedRoot, err1 := filepath.Abs(docDir)
+		resolvedSrc, err2 := filepath.Abs(src)
+		if err1 != nil || err2 != nil || (resolvedSrc != allowedRoot && !strings.HasPrefix(resolvedSrc, allowedRoot+string(os.PathSeparator))) {
+			return ""
+		}
+		src = resolvedSrc
+	}
 	return src
 }
 

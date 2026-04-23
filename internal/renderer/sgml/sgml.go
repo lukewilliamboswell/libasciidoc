@@ -26,7 +26,6 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 			"lastInStrings":      lastInStrings,
 			"toLower":            strings.ToLower,
 			"trimLineFeedSuffix": trimLineFeedSuffix,
-			"unescape":           unescapeString,
 			"valign":             valign,
 		},
 	}
