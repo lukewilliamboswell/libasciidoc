@@ -204,11 +204,15 @@ func traverseElements(elements []interface{}, enabled bool, prefix string) (map[
 // Metadata the document metadata returned after the rendering
 type Metadata struct {
 	Title           string
+	Description     string
 	LastUpdated     string
 	TableOfContents *TableOfContents
-	Authors         []*DocumentAuthor
+	Authors         DocumentAuthors
 	Revision        DocumentRevision
-	Attributes      map[string]interface{}
+	// Attributes contains user-defined document attributes (from the document
+	// header and caller-provided configuration), excluding internal/auto-generated
+	// attributes and those already represented by typed fields above.
+	Attributes map[string]interface{}
 }
 
 func NewTableOfContents(maxDepth int) *TableOfContents {

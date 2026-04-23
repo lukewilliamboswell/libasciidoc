@@ -4,16 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.Title}}</title>
-  {{range .CSS}}<link rel="stylesheet" href="{{.}}">
+  {{range .CSS}}<link rel="stylesheet" href="{{$.BasePath}}{{.}}">
   {{end}}
 </head>
 <body>
-  <nav>
-    {{template "navtree" .Nav}}
-  </nav>
-  <main>
-    {{.Content}}
-  </main>
+  <div class="site-layout">
+    <nav>
+      <div class="site-title"><a href="{{.BasePath}}index.html">libasciidoc</a></div>
+      {{template "navtree" .Nav}}
+    </nav>
+    <main>
+      <h1>{{.Title}}</h1>
+      {{.Content}}
+      <div class="site-footer">
+        Built with <a href="https://github.com/lukewilliamboswell/libasciidoc">libasciidoc</a>
+      </div>
+    </main>
+  </div>
 </body>
 </html>
 

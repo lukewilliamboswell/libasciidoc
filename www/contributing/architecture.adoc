@@ -1,0 +1,76 @@
+= Architecture Overview
+:weight: 2
+
+// Goal: Help contributors understand the codebase at a high level before they
+// dive into specific files. This is NOT API documentation — it's a map of
+// the territory. A contributor should read this and know:
+// - The major components and how data flows through them
+// - Where to look when they want to change something specific
+// - Key design decisions and their rationale
+//
+// Keep this high-level and update it as the architecture evolves. Don't
+// duplicate information that's obvious from reading the code.
+
+== Overview
+
+libasciidoc processes AsciiDoc documents through a pipeline: *parse* the input into a document model, then *render* that model into the desired output format.
+
+----
+AsciiDoc text → Parser → Document Model → Renderer → HTML5 / XHTML5 / DOCX
+----
+
+== Major Components
+
+=== Parser (`internal/parser/`)
+
+// TODO: Explain the PEG-based parser — that it's generated from parser.peg,
+// how the grammar maps to document elements, and what a contributor needs to
+// know to modify the grammar (e.g., regenerating the parser after changes).
+
+The parser reads AsciiDoc text and produces a structured document model (defined in the `types` package). It is generated from a PEG grammar.
+
+=== Document Model (`types/`)
+
+The `types` package defines the data structures that represent an AsciiDoc document: sections, paragraphs, lists, tables, inline elements, attributes, and metadata. This is the intermediate representation that both the parser produces and the renderers consume.
+
+=== Renderers (`internal/renderer/`)
+
+// TODO: Describe the renderer interface and how HTML5, XHTML5, and DOCX
+// renderers are organized. Explain how to add support for a new output format.
+
+Each output format has its own renderer that walks the document model and produces output. The renderers are:
+
+* *HTML5* — the default, produces standards-compliant HTML5
+* *XHTML5* — produces XHTML5 (self-closing tags, XML-compliant)
+* *DOCX* — produces Office Open XML (Word documents) with optional theme support
+
+=== Configuration (`configuration/`)
+
+The configuration package provides functional options for controlling how documents are parsed and rendered. It handles document attributes, backend selection, CSS, themes, and custom macros.
+
+=== Static Site Generator (`internal/site/`)
+
+// TODO: Briefly explain the site generation pipeline — directory walking,
+// page rendering, navigation tree construction, template application, and
+// asset copying. Link to the static-site guide for user-facing docs.
+
+The site generator builds a multi-page HTML website from a directory of AsciiDoc files. It handles navigation tree construction, page ordering via `:weight:` attributes, and layout templates.
+
+=== CLI (`internal/cli/`)
+
+The CLI package provides shared command-line flag parsing and dispatch logic used by both `ascii2html` and `ascii2doc` entry points.
+
+== Adding a New Feature
+
+// TODO: Add guidance for common contribution scenarios:
+// - Adding a new AsciiDoc element (parser grammar + types + renderers)
+// - Adding a new output format (renderer interface)
+// - Adding a new CLI flag (internal/cli)
+// - Adding a new site feature (internal/site)
+
+The typical flow for adding support for a new AsciiDoc element is:
+
+1. Add or modify the PEG grammar rule in the parser
+2. Add the corresponding type in the `types` package
+3. Implement rendering in each renderer (HTML5, XHTML5, DOCX)
+4. Add tests at each layer

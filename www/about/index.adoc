@@ -1,0 +1,39 @@
+= About
+:weight: 5
+
+// Goal: This page provides context about the project for anyone who wants to
+// understand its history, goals, and status. It helps users decide whether
+// this project is the right fit and whether it's actively maintained.
+// It also serves as the place to acknowledge the original project.
+
+== Project Goals
+
+libasciidoc aims to be a practical, native Go solution for converting AsciiDoc documents. Our priorities are:
+
+* *Correctness* — faithfully implement the AsciiDoc syntax
+* *Useful output formats* — HTML5 for the web, DOCX for professional documents
+* *Simplicity* — a small, focused tool that does its job well
+* *Library-first* — usable as both a CLI tool and a Go library
+
+== History
+
+This project is a fork of https://github.com/bytesparadise/libasciidoc[bytesparadise/libasciidoc], the original Go implementation of an AsciiDoc processor. This fork adds DOCX output support, static site generation, and modernized build tooling.
+
+== Status
+
+// TODO: Keep this section updated as the project matures. Be honest about
+// what works well and what's still in progress. Users appreciate transparency.
+
+libasciidoc is under active development. The HTML5 renderer is mature and covers most AsciiDoc syntax. The DOCX renderer is functional with theme support. The static site generator is new and supports basic documentation sites.
+
+== License
+
+// TODO: Confirm the license and link to the LICENSE file in the repository.
+
+libasciidoc is open source software. See the https://github.com/lukewilliamboswell/libasciidoc/blob/master/LICENSE[LICENSE] file for details.
+
+== Links
+
+* https://github.com/lukewilliamboswell/libasciidoc[GitHub Repository]
+* https://asciidoc.org[AsciiDoc Language]
+* https://github.com/bytesparadise/libasciidoc[Original Project (bytesparadise)]

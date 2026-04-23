@@ -71,6 +71,9 @@ coverprofile.out
 /ascii2doc
 /ascii2html
 
+# ignore generated site output
+_site/
+
 ## ignore temporary files from MS Office
 **/~$*
 

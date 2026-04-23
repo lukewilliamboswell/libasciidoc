@@ -1,0 +1,36 @@
+= Contributing
+:weight: 4
+
+// Goal: This section serves contributors — people who want to fix bugs, add
+// features, or improve documentation. The hub page should be welcoming and
+// help contributors quickly find what they need. We want to lower the barrier
+// to contribution as much as possible.
+
+We welcome contributions of all kinds — bug reports, feature requests, documentation improvements, and code changes.
+
+== Where to Start
+
+* link:development.html[Development Setup] — get the project building and tests running on your machine
+* link:architecture.html[Architecture Overview] — understand how the codebase is organized before diving in
+
+== Reporting Issues
+
+// TODO: Link to the GitHub Issues page once we've set up issue templates.
+// Consider adding templates for bug reports and feature requests to make
+// it easier for users to provide the information we need.
+
+If you find a bug or have a feature request, please open an issue on https://github.com/lukewilliamboswell/libasciidoc/issues[GitHub Issues].
+
+When reporting a bug, include:
+
+* The AsciiDoc input that produces the problem
+* The expected output
+* The actual output
+* Your libasciidoc version (`ascii2html version` or `ascii2doc version`)
+
+== Pull Requests
+
+// TODO: Document our PR process — what we expect in a PR, how we review,
+// any CI checks that need to pass. Keep it lightweight to encourage contributions.
+
+Fork the repository, make your changes on a branch, and open a pull request. We aim to review PRs promptly.

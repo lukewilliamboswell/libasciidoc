@@ -54,19 +54,23 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 			switch e := e.(type) {
 			case *types.AttributeDeclaration:
 				ctx.attributes[e.Name] = e.Value
+				ctx.documentAttributes[e.Name] = e.Value
 			case *types.AttributeReset:
 				delete(ctx.attributes, e.Name)
+				delete(ctx.documentAttributes, e.Name)
 			}
 		}
 	}
-	// also, process standalone attriute declaration before the first section
+	// also, process standalone attribute declaration before the first section
 elements:
 	for _, e := range doc.Elements {
 		switch e := e.(type) {
 		case *types.AttributeDeclaration:
 			ctx.attributes[e.Name] = e.Value
+			ctx.documentAttributes[e.Name] = e.Value
 		case *types.AttributeReset:
 			delete(ctx.attributes, e.Name)
+			delete(ctx.documentAttributes, e.Name)
 		default:
 			break elements
 		}
@@ -80,11 +84,19 @@ elements:
 		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 	metadata.TableOfContents = doc.TableOfContents
-	// expose document attributes for external consumers (e.g., static site generator)
-	metadata.Attributes = make(map[string]interface{}, len(ctx.attributes))
-	for k, v := range ctx.attributes {
-		metadata.Attributes[k] = v
+	// populate typed metadata fields
+	metadata.Description = ctx.attributes.GetAsStringWithDefault(types.AttrDescription, "")
+	if header, _ := doc.Header(); header != nil {
+		if authors := header.Authors(); authors != nil {
+			metadata.Authors = types.DocumentAuthors(authors)
+		}
+		if rev := header.Revision(); rev != nil {
+			metadata.Revision = *rev
+		}
 	}
+	// expose user-defined document attributes for external consumers (e.g., static site generators),
+	// excluding attributes already represented by typed Metadata fields
+	metadata.Attributes = filterDocumentAttributes(ctx.documentAttributes)
 	renderedHeader, renderedContent, err := r.splitAndRender(ctx, doc)
 	if err != nil {
 		return metadata, fmt.Errorf("unable to render full document: %w", err)
@@ -142,6 +154,44 @@ elements:
 	}
 	return metadata, err
 
+}
+
+// filterDocumentAttributes returns document attributes suitable for the Metadata.Attributes map,
+// excluding attributes already represented by typed Metadata fields (Description, Authors, Revision).
+// Returns nil if no attributes remain after filtering.
+func filterDocumentAttributes(attrs types.Attributes) map[string]interface{} {
+	if len(attrs) == 0 {
+		return nil
+	}
+	result := make(map[string]interface{})
+	for k, v := range attrs {
+		if !isTypedMetadataAttribute(k) {
+			result[k] = v
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// isTypedMetadataAttribute returns true for attributes that are already
+// represented by typed fields on types.Metadata (Description, Authors, Revision).
+func isTypedMetadataAttribute(key string) bool {
+	switch key {
+	case types.AttrDescription,
+		types.AttrAuthors, types.AttrAuthor, types.AttrEmail,
+		types.AttrRevision, "revnumber", "revdate", "revremark",
+		"firstname", "middlename", "lastname", "authorinitials":
+		return true
+	}
+	// Multi-author variants: author_2, email_2, firstname_2, etc.
+	for _, prefix := range []string{"author", "email", "firstname", "middlename", "lastname", "authorinitials"} {
+		if strings.HasPrefix(key, prefix+"_") {
+			return true
+		}
+	}
+	return false
 }
 
 var predefinedAttributes = map[string]string{

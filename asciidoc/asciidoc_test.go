@@ -61,7 +61,17 @@ var _ = Describe("documents", func() {
 				Expect(output).To(MatchHTMLFromFile("../test/compat/demo.html"))
 				Expect(metadata).To(MatchMetadata(types.Metadata{
 					Title:       "Libasciidoc Demo",
+					Description: "A demo of Libasciidoc. This document exercises numerous features of AsciiDoc to test Libasciidoc compliance.",
 					LastUpdated: info.ModTime().Format(configuration.LastUpdatedFormat),
+					Authors: types.DocumentAuthors{
+						&types.DocumentAuthor{
+							DocumentAuthorFullName: &types.DocumentAuthorFullName{
+								FirstName: "Xavier",
+								LastName:  "Coulon",
+							},
+							Email: "author@example.com",
+						},
+					},
 					TableOfContents: &types.TableOfContents{
 						MaxDepth: 2,
 						Sections: []*types.ToCSection{
@@ -105,6 +115,26 @@ var _ = Describe("documents", func() {
 								Number: "4",
 							},
 						},
+					},
+					Attributes: types.Attributes{
+						"libasciidoc-version": "0.7.0",
+						"library":            "Libasciidoc",
+						"idprefix":           nil,
+						"numbered":           nil,
+						"imagesdir":          "images",
+						"experimental":       nil,
+						"toc":                "preamble",
+						"toc-title": []interface{}{
+							&types.InlinePassthrough{
+								Kind: types.PassthroughMacro,
+								Elements: []interface{}{
+									&types.StringElement{
+										Content: "<h3>Contents</h3>",
+									},
+								},
+							},
+						},
+						"css-signature": "demo",
 					},
 				}))
 			})
