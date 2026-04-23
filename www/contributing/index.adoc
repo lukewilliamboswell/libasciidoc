@@ -1,7 +1,15 @@
 = Contributing
 :weight: 4
 
-We welcome contributions of all kinds — bug reports, feature requests, documentation improvements, and code changes.
+== About This Fork
+
+This is a personal fork maintained to meet my own needs. I'm happy to provide some assistance, but please understand that this is not a large community project with dedicated review bandwidth.
+
+If you'd like to make changes, please fork the repository and test everything thoroughly on your own before opening a pull request. I'm much more likely to engage with a PR that is well-tested, clearly explained, and narrowly scoped.
+
+== AI-Assisted Contributions
+
+You're welcome to use AI tools when contributing. However, if you do, please be up front about it. You are fully responsible for any code or changes you propose — "the AI generated it" is not a justification for submitting untested or poorly understood code. Review, understand, and test everything before opening a PR.
 
 == Where to Start
 
@@ -21,4 +29,8 @@ When reporting a bug, include:
 
 == Pull Requests
 
-Fork the repository, make your changes on a branch, and open a pull request. We aim to review PRs promptly.
+Fork the repository, make your changes on a branch, and open a pull request. Please ensure your changes:
+
+* Are thoroughly tested locally (run `go test ./...`)
+* Are narrowly scoped — one concern per PR
+* Include a clear description of what and why
