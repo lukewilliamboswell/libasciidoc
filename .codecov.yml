@@ -20,4 +20,7 @@ comment:
   require_changes: no
 
 ignore:
-  - "internal/parser/parser.go"
+  - "internal/parser/parser.go"   # generated PEG parser — not hand-written
+  - "internal/codegen/**"          # parser code-generator tool, not library
+  - "internal/testsupport/**"      # test helper infrastructure
+  - "cmd/**"                       # binary entry points (thin wrappers around internal/cli)
