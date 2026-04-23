@@ -69,3 +69,6 @@ coverprofile.out
 
 # ignore built binary from $ go build ./cmd/libasciidoc
 libasciidoc
+
+## ignore temporary files from MS Office
+**/~$*
