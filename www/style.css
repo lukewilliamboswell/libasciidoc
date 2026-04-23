@@ -1,42 +1,50 @@
 /* ============================================
-   libasciidoc static site theme
+   libasciidoc — static site theme
    ============================================ */
 
 :root {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Typography */
+  --font-heading: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --font-body: "Lexend", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   --font-size: 16px;
-  --line-height: 1.7;
+  --line-height: 1.75;
 
-  --color-text: #1a1a2e;
-  --color-text-muted: #555;
-  --color-heading: #0f0f23;
+  /* Colors */
+  --color-text: #2d2d3a;
+  --color-text-muted: #64647a;
+  --color-heading: #1a1a2e;
   --color-link: #2563eb;
   --color-link-hover: #1d4ed8;
-  --color-bg: #fff;
-  --color-bg-subtle: #f8f9fa;
-  --color-border: #e2e8f0;
+  --color-bg: #fafaf9;
+  --color-bg-subtle: #f2f1ef;
+  --color-border: #dddcd8;
 
-  --color-nav-bg: #1a1a2e;
-  --color-nav-text: #c5c6d0;
-  --color-nav-link: #e2e3ed;
+  /* Sidebar */
+  --color-nav-bg: #16162a;
+  --color-nav-text: #8b8da0;
+  --color-nav-link: #c1c3d4;
   --color-nav-link-hover: #fff;
   --color-nav-active: #818cf8;
+  --color-nav-section-active: #e2e3ed;
 
-  --color-code-bg: #f1f5f9;
-  --color-code-border: #e2e8f0;
-  --color-code-text: #1e293b;
-  --color-inline-code-bg: #f1f5f9;
-  --color-inline-code-text: #c7254e;
+  /* Code */
+  --color-code-bg: #f0efeb;
+  --color-code-border: #dddcd8;
+  --color-code-text: #2d2d3a;
+  --color-inline-code-bg: #edecea;
+  --color-inline-code-text: #7c3aed;
 
-  --color-note: #2563eb;
-  --color-tip: #059669;
-  --color-warning: #d97706;
-  --color-caution: #dc2626;
-  --color-important: #7c3aed;
+  /* Admonitions */
+  --color-note: #3b82f6;
+  --color-tip: #10b981;
+  --color-warning: #f59e0b;
+  --color-caution: #ef4444;
+  --color-important: #8b5cf6;
 
+  /* Layout */
   --nav-width: 260px;
-  --content-max-width: 800px;
+  --content-max-width: 780px;
 }
 
 /* ---- Reset & Base ---- */
@@ -47,16 +55,22 @@
 
 html {
   font-size: var(--font-size);
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   line-height: var(--line-height);
   color: var(--color-text);
   background: var(--color-bg);
+}
+
+::selection {
+  background: rgba(129, 140, 248, 0.18);
+  color: var(--color-heading);
 }
 
 /* ---- Layout ---- */
@@ -76,7 +90,16 @@ nav {
   color: var(--color-nav-text);
   overflow-y: auto;
   padding: 1.5rem 0;
-  z-index: 10;
+  z-index: 100;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+nav::-webkit-scrollbar { width: 5px; }
+nav::-webkit-scrollbar-track { background: transparent; }
+nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
 }
 
 main {
@@ -86,14 +109,50 @@ main {
   max-width: calc(var(--content-max-width) + 6rem);
 }
 
+/* ---- Mobile Nav Toggle ---- */
+
+.nav-toggle-input {
+  display: none;
+}
+
+.nav-toggle-label {
+  display: none;
+  position: fixed;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 200;
+  width: 2.25rem;
+  height: 2.25rem;
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-nav-bg);
+  border-radius: 6px;
+  padding: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-toggle-label span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
 /* ---- Navigation ---- */
 
 .site-title {
-  font-size: 1.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: #fff;
   padding: 0 1.25rem 1.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   margin-bottom: 1rem;
 }
 
@@ -118,10 +177,10 @@ nav li {
 
 nav a {
   display: block;
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.75rem;
   color: var(--color-nav-link);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
@@ -129,41 +188,83 @@ nav a {
 nav a:hover {
   color: var(--color-nav-link-hover);
   background: rgba(255,255,255,0.06);
+  text-decoration: none;
 }
 
-nav li.active > a {
+/* Top-level section headers */
+nav > ul > li > a {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-nav-text);
+  padding: 0.5rem 0.75rem 0.25rem;
+  margin-top: 0.75rem;
+  border-radius: 0;
+}
+
+nav > ul > li:first-child > a {
+  margin-top: 0;
+}
+
+/* Active section header (parent of active child) */
+nav > ul > li.active > a {
+  color: var(--color-nav-section-active);
+}
+
+/* Active leaf page */
+nav ul ul li.active > a {
   color: var(--color-nav-active);
   font-weight: 600;
+  background: rgba(129, 140, 248, 0.08);
 }
 
 /* Nested nav indentation */
 nav ul ul {
-  padding-left: 0.75rem;
-  margin: 0.15rem 0 0.15rem 0.5rem;
-  border-left: 1px solid rgba(255,255,255,0.1);
-}
-
-/* Section labels (directory nodes with children) */
-nav li > a:only-child {
-  /* leaf node — no change */
+  padding-left: 0.5rem;
+  margin: 0.15rem 0 0.5rem 0.75rem;
+  border-left: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ---- Typography ---- */
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
   color: var(--color-heading);
   font-weight: 700;
   line-height: 1.3;
-  margin-top: 2rem;
+  margin-top: 2.25rem;
   margin-bottom: 0.75rem;
 }
 
-h1 { font-size: 2rem; margin-top: 0; }
-h2 { font-size: 1.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.4rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.1rem; }
-h5 { font-size: 1rem; }
-h6 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+h1 {
+  font-size: 2rem;
+  margin-top: 0;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+h3 {
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+h4 { font-size: 1.05rem; }
+h5 { font-size: 0.95rem; }
+
+h6 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
 
 p {
   margin: 0 0 1rem;
@@ -172,11 +273,20 @@ p {
 a {
   color: var(--color-link);
   text-decoration: none;
+  transition: color 0.15s;
 }
 
 a:hover {
   color: var(--color-link-hover);
   text-decoration: underline;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 strong { font-weight: 700; }
@@ -199,17 +309,19 @@ strong { font-weight: 700; }
 
 code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.84em;
   background: var(--color-inline-code-bg);
   color: var(--color-inline-code-text);
-  padding: 0.15em 0.35em;
-  border-radius: 3px;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 pre code {
   background: none;
   color: inherit;
   padding: 0;
+  font-weight: 400;
 }
 
 /* ---- Code Blocks ---- */
@@ -221,31 +333,48 @@ pre code {
 
 .listingblock > .title,
 .literalblock > .title {
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   color: var(--color-text-muted);
-  margin-bottom: 0.35rem;
-  font-style: italic;
+  margin-bottom: 0.4rem;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .listingblock .content pre,
 .literalblock .content pre {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.82rem;
+  line-height: 1.6;
   background: var(--color-code-bg);
   border: 1px solid var(--color-code-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 1rem 1.25rem;
   overflow-x: auto;
   color: var(--color-code-text);
   margin: 0;
 }
 
+/* Links inside code blocks should look like code, not links */
+pre a,
+.listingblock a,
+.literalblock a {
+  color: inherit;
+  text-decoration: none;
+}
+
+pre a:hover,
+.listingblock a:hover,
+.literalblock a:hover {
+  text-decoration: underline;
+}
+
 /* ---- Admonitions ---- */
 
 .admonitionblock {
   margin-bottom: 1.25rem;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
   overflow: hidden;
 }
@@ -255,15 +384,20 @@ pre code {
   border-collapse: collapse;
 }
 
+.admonitionblock > table td {
+  border: none;
+}
+
 .admonitionblock td.icon {
   width: 4rem;
   text-align: center;
   vertical-align: top;
   padding: 1rem 0.5rem 1rem 1rem;
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .admonitionblock td.content {
@@ -301,16 +435,19 @@ pre code {
 
 .tableblock caption.title {
   text-align: left;
-  font-size: 0.85rem;
-  font-style: italic;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--color-text-muted);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
   caption-side: top;
 }
 
 .tableblock th.tableblock,
 .tableblock td.tableblock {
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.85rem;
   border: 1px solid var(--color-border);
   vertical-align: top;
 }
@@ -319,7 +456,16 @@ pre code {
   background: var(--color-bg-subtle);
   font-weight: 600;
   text-align: left;
+  font-size: 0.85rem;
 }
+
+/* Table alignment classes */
+.halign-left { text-align: left; }
+.halign-center { text-align: center; }
+.halign-right { text-align: right; }
+.valign-top { vertical-align: top; }
+.valign-middle { vertical-align: middle; }
+.valign-bottom { vertical-align: bottom; }
 
 .tableblock.frame-none,
 .tableblock.frame-none th,
@@ -359,10 +505,12 @@ pre code {
 
 .quoteblock blockquote {
   margin: 0;
-  padding: 0.75rem 1.25rem;
-  border-left: 4px solid var(--color-border);
+  padding: 0.85rem 1.25rem;
+  border-left: 3px solid var(--color-link);
   color: var(--color-text-muted);
   font-style: italic;
+  background: var(--color-bg-subtle);
+  border-radius: 0 8px 8px 0;
 }
 
 .quoteblock blockquote p {
@@ -381,12 +529,13 @@ pre code {
 .sidebarblock {
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
 }
 
 .sidebarblock > .content > .title {
+  font-family: var(--font-heading);
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
@@ -395,14 +544,17 @@ pre code {
 
 .exampleblock {
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
 }
 
 .exampleblock > .title {
-  font-size: 0.85rem;
-  font-style: italic;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--color-text-muted);
   margin-bottom: 0.5rem;
 }
@@ -432,8 +584,11 @@ pre code {
 }
 
 .dlist dt.hdlist1 {
+  font-family: var(--font-mono);
   font-weight: 600;
-  margin-top: 0.75rem;
+  font-size: 0.9em;
+  margin-top: 0.85rem;
+  color: var(--color-heading);
 }
 
 .dlist dd {
@@ -457,15 +612,19 @@ ul.checklist {
 #toc {
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
   margin-bottom: 2rem;
 }
 
 #toctitle {
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.75rem;
+  color: var(--color-heading);
 }
 
 #toc ul {
@@ -479,16 +638,18 @@ ul.checklist {
 }
 
 #toc li {
-  margin: 0.2rem 0;
+  margin: 0.25rem 0;
 }
 
 #toc a {
   color: var(--color-text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  transition: color 0.15s;
 }
 
 #toc a:hover {
   color: var(--color-link);
+  text-decoration: none;
 }
 
 /* ---- Preamble ---- */
@@ -496,30 +657,57 @@ ul.checklist {
 #preamble .sectionbody {
   font-size: 1.05rem;
   color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 /* ---- Footer ---- */
 
 .site-footer {
-  margin-top: 3rem;
+  margin-top: 4rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--color-border);
   font-size: 0.8rem;
   color: var(--color-text-muted);
+  font-family: var(--font-mono);
 }
 
 /* ---- Responsive ---- */
 
 @media (max-width: 768px) {
+  .nav-toggle-label {
+    display: flex;
+  }
+
   nav {
-    position: static;
-    width: 100%;
-    padding: 1rem;
+    left: -100%;
+    width: 80%;
+    max-width: 300px;
+    transition: left 0.25s ease;
+    padding-top: 3.5rem;
+  }
+
+  .nav-toggle-input:checked ~ nav {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+  }
+
+  /* Hamburger -> X animation */
+  .nav-toggle-input:checked ~ .nav-toggle-label span:nth-child(1) {
+    transform: rotate(45deg) translate(4px, 4px);
+  }
+  .nav-toggle-input:checked ~ .nav-toggle-label span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle-input:checked ~ .nav-toggle-label span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
   }
 
   main {
     margin-left: 0;
     padding: 1.5rem;
+    padding-top: 4rem;
   }
 
   .site-layout {
@@ -531,4 +719,7 @@ ul.checklist {
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
   }
+
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.25rem; }
 }

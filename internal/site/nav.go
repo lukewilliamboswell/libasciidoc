@@ -31,7 +31,7 @@ func buildNav(pages []*page, basePath string) *NavNode {
 		}
 		parts := strings.Split(dirPath, string(filepath.Separator))
 		current := ""
-		var parent *NavNode = root
+		var parent = root
 		for _, part := range parts {
 			if current == "" {
 				current = part
@@ -111,6 +111,9 @@ func setActive(node *NavNode, currentPath string) bool {
 		if setActive(child, currentPath) {
 			active = true
 		}
+	}
+	if active {
+		node.Active = true
 	}
 	return active
 }
