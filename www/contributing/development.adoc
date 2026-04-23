@@ -3,7 +3,7 @@
 
 == Prerequisites
 
-* https://go.dev/dl/[Go] 1.24 or later
+* https://go.dev/dl/[Go] 1.26 or later
 * Git
 
 == Clone and Build
