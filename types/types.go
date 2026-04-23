@@ -425,11 +425,13 @@ func (h *DocumentHeader) SetAttributes(attributes Attributes) {
 	h.Attributes = attributes
 }
 
+// DocumentAuthorsAndRevision holds the optional author and revision info parsed from a document header.
 type DocumentAuthorsAndRevision struct {
 	Authors  DocumentAuthors
 	Revision *DocumentRevision
 }
 
+// NewDocumentAuthorsAndRevision creates a DocumentAuthorsAndRevision from author and revision data.
 func NewDocumentAuthorsAndRevision(authors DocumentAuthors, revision interface{}) (*DocumentAuthorsAndRevision, error) {
 	ar := &DocumentAuthorsAndRevision{
 		Authors: authors,
@@ -444,6 +446,7 @@ func NewDocumentAuthorsAndRevision(authors DocumentAuthors, revision interface{}
 // Document Author
 // ------------------------------------------
 
+// DocumentAuthors is a slice of document authors declared in the document header.
 type DocumentAuthors []*DocumentAuthor
 
 // NewDocumentAuthors converts the given authors into an array of `DocumentAuthor`
@@ -518,12 +521,14 @@ func NewDocumentAuthor(fullName, email interface{}) (*DocumentAuthor, error) {
 	return author, nil
 }
 
+// DocumentAuthorFullName holds the parsed first, middle, and last name of a document author.
 type DocumentAuthorFullName struct {
 	FirstName  string
 	MiddleName string
 	LastName   string
 }
 
+// NewDocumentAuthorFullName parses up to three name parts into a DocumentAuthorFullName.
 func NewDocumentAuthorFullName(part1 string, part2, part3 interface{}) (*DocumentAuthorFullName, error) {
 	result := &DocumentAuthorFullName{
 		FirstName: strings.ReplaceAll(part1, "_", " "),
@@ -807,6 +812,7 @@ func addToListElement(e ListElement, element interface{}) error {
 	}
 }
 
+// List represents an ordered, unordered, labeled, or callout list.
 type List struct {
 	Kind       ListKind
 	Attributes Attributes
@@ -904,10 +910,12 @@ func (l *List) LastElement() ListElement {
 	return l.Elements[len(l.Elements)-1]
 }
 
+// ListElements is a container for the child elements of a list item, handling attribute attachment.
 type ListElements struct {
 	Elements []interface{}
 }
 
+// NewListElements creates a ListElements, attaching attributes to their following elements.
 func NewListElements(elements []interface{}) (*ListElements, error) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("initializing new ListElements with \n%s", spew.Sdump(elements...))
@@ -1001,6 +1009,7 @@ func (l *ListElements) SubstituteFootnotes(notes *Footnotes) {
 	}
 }
 
+// ListKind identifies the kind of list (ordered, unordered, labeled, or callout).
 type ListKind string
 
 const (
@@ -1010,6 +1019,7 @@ const (
 	CalloutListKind   ListKind = "callout_list"
 )
 
+// NewList creates a new List from its first element, inheriting kind and attributes.
 func NewList(element ListElement) (*List, error) {
 	// also, move the element attributes to the List
 	attrs := element.GetAttributes()
@@ -1030,11 +1040,13 @@ func NewList(element ListElement) (*List, error) {
 	return list, nil
 }
 
+// ListContinuation represents a `+` list continuation that attaches a block to a list item.
 type ListContinuation struct {
 	Offset  int
 	Element interface{}
 }
 
+// NewListContinuation creates a ListContinuation with the given offset and attached element.
 func NewListContinuation(offset int, Element interface{}) (*ListContinuation, error) {
 	return &ListContinuation{
 		Offset:  offset,
@@ -1538,6 +1550,7 @@ const (
 	FiveAsterisks UnorderedListElementBulletStyle = "5asterisks"
 )
 
+// NewUnorderedListElementBulletStyle returns the bullet style for the given raw marker string.
 func NewUnorderedListElementBulletStyle(style string) (UnorderedListElementBulletStyle, error) {
 	switch style {
 	case "-":
@@ -1577,6 +1590,7 @@ func NewUnorderedListElementPrefix(style string) (UnorderedListElementPrefix, er
 // Labeled List
 // ------------------------------------------
 
+// LabeledListElementStyle represents the delimiter style of a labeled list item (::, :::, or ::::).
 type LabeledListElementStyle string
 
 const (
@@ -2282,13 +2296,15 @@ const (
 
 // LiteralParagraph custom type to retain the number of spaces on the first line (needed during rendering)
 
-type BlockDelimiter struct { // TODO: use string directly?
+// BlockDelimiter represents the opening or closing delimiter of a delimited block.
+type BlockDelimiter struct {
 	Kind       string
 	Length     int
 	Attributes Attributes
 	rawText    string
 }
 
+// NewBlockDelimiter creates a BlockDelimiter of the given kind and length.
 func NewBlockDelimiter(kind string, length int, rawText string) (*BlockDelimiter, error) {
 	return &BlockDelimiter{
 		Kind:    kind,
@@ -2297,6 +2313,7 @@ func NewBlockDelimiter(kind string, length int, rawText string) (*BlockDelimiter
 	}, nil
 }
 
+// NewMarkdownCodeBlockDelimiter creates a BlockDelimiter for a Markdown-style fenced code block.
 func NewMarkdownCodeBlockDelimiter(language, rawText string) (*BlockDelimiter, error) {
 	return &BlockDelimiter{
 		Kind:   Fenced,
@@ -2320,6 +2337,7 @@ type DelimitedBlock struct {
 	Elements   []interface{}
 }
 
+// NewDelimitedBlock creates a DelimitedBlock of the given kind with the given elements.
 func NewDelimitedBlock(kind string, elements []interface{}) (*DelimitedBlock, error) {
 	for i, l := range elements {
 		// append `\n` unless the we're on the last element
@@ -2438,6 +2456,7 @@ type RawSection struct {
 	RawText string
 }
 
+// NewRawSection creates a RawSection used during preprocessing to support level offsets.
 func NewRawSection(level int, rawText string) (*RawSection, error) {
 	return &RawSection{
 		Level:   level,
@@ -3004,11 +3023,13 @@ func (c *IfdefCondition) SingleLineContent() (string, bool) {
 	return c.Substitution, c.Substitution != ""
 }
 
+// IfndefCondition represents an `ifndef::attr[]` conditional inclusion directive.
 type IfndefCondition struct {
 	Name         string
 	Substitution string
 }
 
+// NewIfndefCondition creates a new IfndefCondition for the given attribute name.
 func NewIfndefCondition(name string, attr interface{}) (*IfndefCondition, error) {
 	log.Debugf("new Ifndef::%s conditional inclusion", name)
 	c := &IfndefCondition{
@@ -3031,12 +3052,14 @@ func (c *IfndefCondition) SingleLineContent() (string, bool) {
 	return c.Substitution, c.Substitution != ""
 }
 
+// IfevalCondition represents an `ifeval::[]` conditional inclusion directive that evaluates an expression.
 type IfevalCondition struct {
 	Left    interface{}
 	Right   interface{}
 	Operand IfevalOperand
 }
 
+// NewIfevalCondition creates a new IfevalCondition with a left value, right value, and comparison operand.
 func NewIfevalCondition(left, right interface{}, operand IfevalOperand) (*IfevalCondition, error) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("new Ifeval conditional inclusion")
@@ -3076,8 +3099,10 @@ func (c *IfevalCondition) SingleLineContent() (string, bool) {
 	return "", false
 }
 
+// IfevalOperand is a comparison function used in ifeval conditional directives.
 type IfevalOperand func(left, right interface{}) bool
 
+// EqualOperand returns true when left == right (supports string, float64, and int).
 var EqualOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v==%v", left, right)
@@ -3103,10 +3128,12 @@ var EqualOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewEqualOperand returns the == comparison operand.
 func NewEqualOperand() (IfevalOperand, error) {
 	return EqualOperand, nil
 }
 
+// NotEqualOperand returns true when left != right (supports string, float64, and int).
 var NotEqualOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v!=%v", left, right)
@@ -3132,10 +3159,12 @@ var NotEqualOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewNotEqualOperand returns the != comparison operand.
 func NewNotEqualOperand() (IfevalOperand, error) {
 	return NotEqualOperand, nil
 }
 
+// LessThanOperand returns true when left < right (supports string, float64, and int).
 var LessThanOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v<%v", left, right)
@@ -3161,10 +3190,12 @@ var LessThanOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewLessThanOperand returns the < comparison operand.
 func NewLessThanOperand() (IfevalOperand, error) {
 	return LessThanOperand, nil
 }
 
+// LessOrEqualOperand returns true when left <= right (supports string, float64, and int).
 var LessOrEqualOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v<=%v", left, right)
@@ -3190,10 +3221,12 @@ var LessOrEqualOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewLessOrEqualOperand returns the <= comparison operand.
 func NewLessOrEqualOperand() (IfevalOperand, error) {
 	return LessOrEqualOperand, nil
 }
 
+// GreaterThanOperand returns true when left > right (supports string, float64, and int).
 var GreaterThanOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v>%v", left, right)
@@ -3219,10 +3252,12 @@ var GreaterThanOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewGreaterThanOperand returns the > comparison operand.
 func NewGreaterThanOperand() (IfevalOperand, error) {
 	return GreaterThanOperand, nil
 }
 
+// GreaterOrEqualOperand returns true when left >= right (supports string, float64, and int).
 var GreaterOrEqualOperand = func(left, right interface{}) bool {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("comparing %v>=%v", left, right)
@@ -3248,12 +3283,15 @@ var GreaterOrEqualOperand = func(left, right interface{}) bool {
 	return false
 }
 
+// NewGreaterOrEqualOperand returns the >= comparison operand.
 func NewGreaterOrEqualOperand() (IfevalOperand, error) {
 	return GreaterOrEqualOperand, nil
 }
 
+// EndOfCondition represents the `endif::[]` directive that closes a conditional block.
 type EndOfCondition struct{}
 
+// NewEndOfCondition creates a new EndOfCondition.
 func NewEndOfCondition() (*EndOfCondition, error) {
 	log.Debug("new end of conditional inclusion")
 	return &EndOfCondition{}, nil
@@ -3750,6 +3788,7 @@ type Table struct {
 	Rows       []*TableRow
 }
 
+// NewTable creates a Table from the parsed row data, detecting an optional header row.
 func NewTable(lines []interface{}) (*Table, error) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("new table from %s", spew.Sdump(lines))
@@ -3794,7 +3833,7 @@ func organizeTableCells(elements []interface{}, rowLength int) []*TableRow {
 		}
 	}
 	log.Debugf("dispatching %d cells in rows of %d cells", len(cells), rowLength)
-	rows := make([]*TableRow, 0, int(len(cells)/rowLength)+1)
+	rows := make([]*TableRow, 0, len(cells)/rowLength+1)
 	for len(cells) > 0 {
 		r := &TableRow{}
 		rows = append(rows, r)
@@ -3944,6 +3983,7 @@ func (t *Table) Reference(refs ElementReferences) {
 	}
 }
 
+// HAlign is the horizontal alignment of a table column or cell.
 type HAlign string
 
 const (
@@ -3953,6 +3993,7 @@ const (
 	HAlignCenter  HAlign = "^"
 )
 
+// VAlign is the vertical alignment of a table column or cell.
 type VAlign string
 
 const (
@@ -3962,6 +4003,7 @@ const (
 	VAlignMiddle  VAlign = "^"
 )
 
+// ContentStyle is the content rendering style for a table column (e.g. asciidoc, emphasis, monospace).
 type ContentStyle string
 
 const (
@@ -3974,6 +4016,7 @@ const (
 	StrongStyle    ContentStyle = "s"
 )
 
+// TableColumn defines the properties of a single table column (alignment, width, style).
 type TableColumn struct {
 	Multiplier int
 	HAlign     HAlign
@@ -3984,6 +4027,7 @@ type TableColumn struct {
 	Autowidth  bool
 }
 
+// NewTableColumn creates a TableColumn from the parsed column specifier parts.
 func NewTableColumn(multiplier, halign, valign, weight, style interface{}) (*TableColumn, error) {
 	col := newDefaultTableColumn()
 	if multiplier, ok := multiplier.(int); ok {
@@ -4092,6 +4136,7 @@ type TableRow struct {
 	Cells []*TableCell
 }
 
+// NewTableRow creates a TableRow from a slice of TableCell elements.
 func NewTableRow(elements []interface{}) (*TableRow, error) {
 	cells := make([]*TableCell, len(elements))
 	for i, e := range elements {
@@ -4142,11 +4187,13 @@ func (r *TableRow) SetElements(elements []interface{}) error {
 	return nil
 }
 
+// TableCell represents a single cell within a table row.
 type TableCell struct {
 	Format   string
 	Elements []interface{}
 }
 
+// NewInlineTableCell creates a TableCell from a single inline content line.
 func NewInlineTableCell(content *RawLine) (*TableCell, error) {
 	return &TableCell{
 		Elements: []interface{}{
@@ -4155,6 +4202,7 @@ func NewInlineTableCell(content *RawLine) (*TableCell, error) {
 	}, nil
 }
 
+// NewMultilineTableCell creates a TableCell from multiple content lines with an optional format specifier.
 func NewMultilineTableCell(elements []interface{}, format interface{}) (*TableCell, error) {
 	for i, l := range elements {
 		// append `\n` unless the we're on the last element

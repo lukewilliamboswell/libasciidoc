@@ -219,6 +219,8 @@ func (a Attributes) Clone() Attributes {
 	}
 	return result
 }
+
+// MergeAttributes merges multiple Attribute or Attributes values into a single Attributes map.
 func MergeAttributes(attributes ...interface{}) (Attributes, error) {
 	if len(attributes) == 0 {
 		return nil, nil
@@ -347,7 +349,8 @@ func (a *PositionalAttribute) Key() string {
 	return AttrPositionalIndex + strconv.Itoa(a.Index)
 }
 
-type Options []interface{} // more explicit than `[]interface{}`, and to bypass the `Reduce` func that would merge all roles into a single string :/
+// Options is a typed slice for element options, preventing reduction into a single string during processing.
+type Options []interface{}
 
 // NewOptionAttribute sets a boolean option.
 func NewOptionAttribute(option interface{}) (*Attribute, error) {
@@ -384,7 +387,8 @@ func NewRoleAttribute(value interface{}) (*Attribute, error) {
 	return NewNamedAttribute(AttrRole, value)
 }
 
-type Roles []interface{} // more explicit than `[]interface{}`, and to bypass the `Reduce` func that would merge all roles into a single string :/
+// Roles is a typed slice for element roles, preventing reduction into a single string during processing.
+type Roles []interface{}
 
 // NewIDAttribute initializes a new attribute map with a single entry for the ID using the given value
 func NewIDAttribute(value interface{}) (*Attribute, error) {
@@ -416,7 +420,7 @@ func (a Attributes) Set(key string, value interface{}) Attributes {
 			if roles, ok := a[AttrRoles].(Roles); ok {
 				a[AttrRoles] = append(roles, r...)
 			} else {
-				a[AttrRoles] = Roles(r)
+				a[AttrRoles] = r
 			}
 		}
 	case AttrOption: // move into `options`
