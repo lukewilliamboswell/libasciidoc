@@ -39,7 +39,7 @@ func (r *sgmlRenderer) renderSection(ctx *context, s *types.Section) (string, er
 		Elements: s.Elements,
 		ID:       r.renderElementID(s.Attributes),
 		Roles:    roles,
-		Content:  string(content),
+		Content:  content,
 	})
 }
 

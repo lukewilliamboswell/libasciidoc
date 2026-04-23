@@ -162,6 +162,8 @@ func (r *docxRenderer) renderChecklistItem(ule *types.UnorderedListElement) erro
 	switch ule.CheckStyle {
 	case types.Checked, types.CheckedInteractive:
 		prefix = "☑ "
+	case types.Unchecked, types.UncheckedInteractive, types.NoCheck:
+		// keep default unchecked prefix
 	}
 	return r.renderListItemWithPrefix(prefix, ule.Elements)
 }

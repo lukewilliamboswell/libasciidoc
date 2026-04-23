@@ -9,9 +9,10 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderSourceBlock(ctx *context, b *types.DelimitedBlock) (string, error) {

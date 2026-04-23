@@ -6,8 +6,9 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderInlineIcon(ctx *context, icon *types.Icon) (string, error) {
@@ -113,7 +114,7 @@ func (r *sgmlRenderer) renderIcon(ctx *context, icon types.Icon, admonition bool
 	}); err != nil {
 		return "", errors.Wrap(err, "unable to render icon")
 	}
-	return string(s.String()), nil
+	return s.String(), nil
 }
 
 func renderIconPath(ctx *context, name string) string {

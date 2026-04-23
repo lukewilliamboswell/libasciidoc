@@ -5,10 +5,11 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	gomegatypes "github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // MatchDocumentFragments a custom matcher to verify that a document matches the given expectation

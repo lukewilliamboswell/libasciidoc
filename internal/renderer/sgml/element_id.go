@@ -8,7 +8,7 @@ import (
 
 func (r *sgmlRenderer) renderElementID(attrs types.Attributes) string {
 	if id, ok := attrs[types.AttrID].(string); ok {
-		return string(texttemplate.HTMLEscapeString(id))
+		return texttemplate.HTMLEscapeString(id)
 	}
 	return ""
 }

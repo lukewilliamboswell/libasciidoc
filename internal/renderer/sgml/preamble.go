@@ -1,8 +1,9 @@
 package sgml
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderPreamble(ctx *context, p *types.Preamble) (string, error) {
@@ -26,7 +27,7 @@ func (r *sgmlRenderer) renderPreamble(ctx *context, p *types.Preamble) (string, 
 	}{
 		Context: ctx,
 		Wrapper: ctx.hasHeader,
-		Content: string(content),
-		ToC:     string(toc),
+		Content: content,
+		ToC:     toc,
 	})
 }

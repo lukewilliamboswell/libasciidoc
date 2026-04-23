@@ -11,6 +11,8 @@ linters:
     - nolintlint
     - errcheck
     - ineffassign
+    - exhaustive
+    - unconvert
   exclusions:
     paths:
       - test/includes
@@ -33,10 +35,10 @@ linters:
 
 formatters:
   enable:
-    - gofmt
+    - goimports
   settings:
-    gofmt:
-      simplify: true
+    goimports:
+      local-prefixes: github.com/lukewilliamboswell/libasciidoc
 
 run:
   timeout: 10m

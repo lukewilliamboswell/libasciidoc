@@ -4,8 +4,9 @@ import (
 	htmltemplate "html/template"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderPassthroughParagraph(ctx *context, p *types.Paragraph) (string, error) {

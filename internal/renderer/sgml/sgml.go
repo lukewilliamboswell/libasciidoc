@@ -44,7 +44,7 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 	if err != nil {
 		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
-	metadata.Title = string(renderedTitle) // retain an empty value if no title was defined in the document
+	metadata.Title = renderedTitle // retain an empty value if no title was defined in the document
 	if !exists {
 		renderedTitle = DefaultTitle
 	}
@@ -88,7 +88,7 @@ elements:
 	metadata.Description = ctx.attributes.GetAsStringWithDefault(types.AttrDescription, "")
 	if header, _ := doc.Header(); header != nil {
 		if authors := header.Authors(); authors != nil {
-			metadata.Authors = types.DocumentAuthors(authors)
+			metadata.Authors = authors
 		}
 		if rev := header.Revision(); rev != nil {
 			metadata.Revision = *rev
@@ -135,7 +135,7 @@ elements:
 			Header:                renderedHeader,
 			Roles:                 roles,
 			ID:                    r.renderDocumentID(doc),
-			Content:               string(renderedContent),
+			Content:               renderedContent,
 			RevNumber:             ctx.attributes.GetAsStringWithDefault("revnumber", ""),
 			LastUpdated:           ctx.config.LastUpdated.Format(configuration.LastUpdatedFormat),
 			CSS:                   ctx.config.CSS,
@@ -374,7 +374,7 @@ func (r *sgmlRenderer) renderDocumentTitle(_ *context, doc *types.Document) (str
 		if err != nil {
 			return "", true, fmt.Errorf("unable to render document title: %w", err)
 		}
-		return string(title), true, nil
+		return title, true, nil
 	}
 	return "", false, nil
 }
@@ -445,7 +445,7 @@ func (r *sgmlRenderer) renderManpageHeader(ctx *context, header *types.DocumentH
 	}{
 		Header:    renderedHeader,
 		Name:      renderedName,
-		Content:   string(renderedContent),
+		Content:   renderedContent,
 		IncludeH1: len(renderedHeader) > 0,
 	}); err != nil {
 		return "", fmt.Errorf("unable to render manpage header: %w", err)

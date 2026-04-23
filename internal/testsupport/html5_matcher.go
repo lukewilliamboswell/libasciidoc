@@ -117,7 +117,7 @@ func (m *htmlTemplateMatcher) Match(actual interface{}) (success bool, err error
 	if _, ok := actual.(string); !ok {
 		return false, errors.Errorf("MatchHTMLTemplate matcher expects a string (actual: %T)", actual)
 	}
-	expectedTmpl, err := texttemplate.New("test").Parse(string(m.expectedTmpl))
+	expectedTmpl, err := texttemplate.New("test").Parse(m.expectedTmpl)
 	if err != nil {
 		return false, err
 	}

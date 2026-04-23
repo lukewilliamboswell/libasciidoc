@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
-	"github.com/lukewilliamboswell/libasciidoc/configuration"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	"testing"
 

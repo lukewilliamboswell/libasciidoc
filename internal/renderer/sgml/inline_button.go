@@ -3,8 +3,9 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderInlineButton(b *types.InlineButton) (string, error) {

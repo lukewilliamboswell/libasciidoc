@@ -10,10 +10,11 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/configuration"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // Preprocess reads line by line to look-up and process file inclusions and conditionals (`ifdef`, `ifndef` and `ifeval`)
@@ -131,7 +132,7 @@ func includeFile(ctx *ParseContext, incl *types.FileInclusion) (string, error) {
 		return "", err
 	}
 	if !adoc {
-		return string(content), nil
+		return content, nil
 	}
 	ctx.opts = append(ctx.opts, sectionEnabled())
 	return preprocess(ctx, strings.NewReader(content))

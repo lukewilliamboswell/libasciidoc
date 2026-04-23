@@ -6,8 +6,9 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderList(ctx *context, l *types.List) (string, error) {
@@ -115,7 +116,7 @@ func (r *sgmlRenderer) renderOrderedListElement(ctx *context, w io.Writer, eleme
 		Content string
 	}{
 		Context: ctx,
-		Content: string(content),
+		Content: content,
 	}); err != nil {
 		return errors.Wrap(err, "unable to render ordered list element")
 	}
@@ -186,7 +187,7 @@ func (r *sgmlRenderer) renderUnorderedListElement(ctx *context, w io.Writer, ele
 		Content string
 	}{
 		Context: ctx,
-		Content: string(content),
+		Content: content,
 	}); err != nil {
 		return errors.Wrap(err, "unable to render unordered list element")
 	}
@@ -297,9 +298,9 @@ func (r *sgmlRenderer) renderLabeledListItem(ctx *context, tmpl *texttemplate.Te
 		Continuation bool
 	}{
 		Context:      ctx,
-		Term:         string(term),
+		Term:         term,
 		Continuation: continuation,
-		Content:      string(content),
+		Content:      content,
 	})
 	return content == "", err
 }
@@ -357,6 +358,6 @@ func (r *sgmlRenderer) renderCalloutListElement(ctx *context, element *types.Cal
 	}{
 		Context: ctx,
 		Ref:     element.Ref,
-		Content: string(content),
+		Content: content,
 	})
 }

@@ -16,7 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
+	"github.com/lukewilliamboswell/libasciidoc/pkg/types"
 
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"

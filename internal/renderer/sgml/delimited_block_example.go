@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderExampleBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
@@ -85,7 +86,7 @@ func (r *sgmlRenderer) renderExampleParagraph(ctx *context, p *types.Paragraph) 
 		Roles:   roles,
 		ID:      r.renderElementID(p.Attributes),
 		Title:   title,
-		Content: string(content) + "\n",
+		Content: content + "\n",
 	})
 }
 

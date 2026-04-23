@@ -5,10 +5,11 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // RenderHTML renders the HTML body using the given source

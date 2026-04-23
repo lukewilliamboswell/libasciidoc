@@ -3,8 +3,9 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderFootnoteReference(note *types.FootnoteReference) (string, error) {
@@ -97,6 +98,6 @@ func (r *sgmlRenderer) renderFootnoteElement(ctx *context, note *types.Footnote)
 		Context: ctx,
 		ID:      note.ID,
 		Ref:     note.Ref,
-		Content: string(content),
+		Content: content,
 	})
 }

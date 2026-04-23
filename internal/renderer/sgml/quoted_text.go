@@ -4,8 +4,9 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // TODO: The bold, italic, and monospace items should be refactored to support semantic tags instead.
@@ -56,7 +57,7 @@ func (r *sgmlRenderer) renderQuotedText(ctx *context, t *types.QuotedText) (stri
 		Attributes: t.Attributes,
 		ID:         r.renderElementID(t.Attributes),
 		Roles:      roles,
-		Content:    string(elementsBuffer.String()),
+		Content:    elementsBuffer.String(),
 	}); err != nil {
 		return "", errors.Wrap(err, "unable to render quoted text")
 	}

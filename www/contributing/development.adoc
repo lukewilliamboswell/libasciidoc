@@ -21,9 +21,17 @@ Build the CLI tools:
 
  go test ./...
 
+== Local CI
+
+Before committing, run the full set of checks that mirror CI:
+
+ ./minici.sh
+
+This runs `go mod tidy`, build, tests with the race detector, `golangci-lint`, `go generate` freshness, `govulncheck`, example validation, and then builds and serves the static site locally at http://localhost:8000.
+
 == Run the Site Locally
 
-To preview documentation changes, build the site and serve it locally:
+To just preview documentation changes without running the full check suite:
 
  go build -o ascii2html ./cmd/ascii2html
  ./ascii2html --static-site --css style.css -o _site www/

@@ -1,8 +1,9 @@
 package parser
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func CollectFootnotes(n *types.Footnotes, done <-chan interface{}, fragmentStream <-chan types.DocumentFragment) chan types.DocumentFragment {

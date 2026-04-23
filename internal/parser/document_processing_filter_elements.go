@@ -1,8 +1,9 @@
 package parser
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // Filter removes all blocks that should not appear in the final document:

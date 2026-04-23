@@ -4,9 +4,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // Parses the content of the conplex elements in the incoming fragments

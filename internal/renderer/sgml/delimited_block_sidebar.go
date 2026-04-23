@@ -1,8 +1,9 @@
 package sgml
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderSidebarBlock(ctx *context, b *types.DelimitedBlock) (string, error) {

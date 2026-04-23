@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderTable(ctx *context, t *types.Table) (string, error) {
@@ -305,7 +306,7 @@ func (r *sgmlRenderer) renderTableCellBlock(ctx *context, element interface{}) (
 			Title:      title,
 			Class:      "tableblock",
 			CheckStyle: renderCheckStyle(e.Attributes[types.AttrCheckStyle]),
-			Content:    string(content),
+			Content:    content,
 		})
 		if err != nil {
 			return "", errors.Wrap(err, "unable to render table cell paragraph content")

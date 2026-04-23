@@ -1,9 +1,10 @@
 package sgml
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderQuoteBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
@@ -59,6 +60,6 @@ func (r *sgmlRenderer) renderQuoteParagraph(ctx *context, p *types.Paragraph) (s
 		ID:          r.renderElementID(p.Attributes),
 		Title:       title,
 		Attribution: attribution,
-		Content:     string(content),
+		Content:     content,
 	})
 }

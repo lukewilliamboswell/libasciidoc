@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 	"github.com/lukewilliamboswell/libasciidoc/types"
 

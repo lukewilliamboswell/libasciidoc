@@ -1,10 +1,11 @@
 package parser_test
 
 import (
-	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 var _ = Describe("icons", func() {

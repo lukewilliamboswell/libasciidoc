@@ -3,9 +3,10 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderParagraph(ctx *context, p *types.Paragraph) (string, error) {
@@ -63,7 +64,7 @@ func (r *sgmlRenderer) renderRegularParagraph(ctx *context, p *types.Paragraph) 
 		ID:      r.renderElementID(p.Attributes),
 		Title:   title,
 		Roles:   roles,
-		Content: strings.Trim(string(content), "\n"),
+		Content: strings.Trim(content, "\n"),
 	})
 }
 
@@ -78,7 +79,7 @@ func (r *sgmlRenderer) renderManpageNameParagraph(ctx *context, p *types.Paragra
 		Content string
 	}{
 		Context: ctx,
-		Content: string(content),
+		Content: content,
 	})
 }
 

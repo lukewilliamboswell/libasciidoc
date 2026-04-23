@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // RenderDOCX renders the DOCX output using the given source

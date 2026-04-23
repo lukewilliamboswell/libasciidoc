@@ -3,8 +3,9 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderPassthroughBlock(ctx *context, b *types.DelimitedBlock) (string, error) {

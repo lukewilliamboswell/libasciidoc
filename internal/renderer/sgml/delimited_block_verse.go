@@ -3,9 +3,10 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderVerseBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
@@ -40,7 +41,7 @@ func (r *sgmlRenderer) renderVerseBlock(ctx *context, b *types.DelimitedBlock) (
 		Title:       title,
 		Roles:       roles,
 		Attribution: attribution,
-		Content:     strings.Trim(string(content), "\n"),
+		Content:     strings.Trim(content, "\n"),
 	})
 }
 
@@ -66,6 +67,6 @@ func (r *sgmlRenderer) renderVerseParagraph(ctx *context, p *types.Paragraph) (s
 		ID:          r.renderElementID(p.Attributes),
 		Title:       title,
 		Attribution: attribution,
-		Content:     string(content),
+		Content:     content,
 	})
 }

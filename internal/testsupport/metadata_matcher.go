@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/lukewilliamboswell/libasciidoc/types"
-
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomegatypes "github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func MatchMetadata(expected types.Metadata) gomegatypes.GomegaMatcher {

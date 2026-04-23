@@ -3,11 +3,11 @@ package testsupport
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/configuration"
-	"github.com/lukewilliamboswell/libasciidoc/internal/parser"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/pkg/errors"
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/internal/parser"
 )
 
 func PreparseDocument(source string, options ...interface{}) (string, error) {
