@@ -31,7 +31,7 @@ jobs:
       run: go build ./...
 
     - name: Test
-      run: go test ${{ runner.os == 'Linux' && '-coverprofile=coverage.txt' || '' }} ./...
+      run: go test ${{ runner.os == 'Linux' && '-coverprofile=coverage.txt -covermode=atomic' || '' }} ./...
 
     - name: Validate examples
       shell: bash
@@ -47,6 +47,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.txt
 
   golangci:
     name: Lint
