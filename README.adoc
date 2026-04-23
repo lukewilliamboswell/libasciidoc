@@ -1,10 +1,16 @@
 = libasciidoc
 
+image:https://github.com/lukewilliamboswell/libasciidoc/workflows/ci-build/badge.svg["CI Build Status", link="https://github.com/lukewilliamboswell/libasciidoc/actions?query=workflow%3Aci-build"]
+image:https://pkg.go.dev/badge/github.com/lukewilliamboswell/libasciidoc.svg["Go Reference", link="https://pkg.go.dev/github.com/lukewilliamboswell/libasciidoc"]
+image:https://goreportcard.com/badge/github.com/lukewilliamboswell/libasciidoc["Go Report Card", link="https://goreportcard.com/report/github.com/lukewilliamboswell/libasciidoc"]
+image:https://codecov.io/gh/lukewilliamboswell/libasciidoc/branch/master/graph/badge.svg["Codecov", link="https://codecov.io/gh/lukewilliamboswell/libasciidoc"]
 image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://opensource.org/licenses/Apache-2.0"]
 
 A Go library and CLI for converting AsciiDoc to HTML5 and DOCX.
 
 This is a fork of https://github.com/bytesparadise/libasciidoc[bytesparadise/libasciidoc] with DOCX output support, static site generation, and modernised build tooling.
+
+**https://lukewilliamboswell.github.io/libasciidoc/[Read the full documentation →]**
 
 == Quick Start
 
@@ -22,10 +28,6 @@ Convert a file to DOCX:
 Build a static site:
 
  ascii2html --static-site -o _site/ www/
-
-== Documentation
-
-See the full documentation and guides on the https://lukewilliamboswell.github.io/libasciidoc/[project website].
 
 == Contributing
 
