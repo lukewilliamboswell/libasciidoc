@@ -1,14 +1,26 @@
 = Software Licence Agreement
 :doctype: article
 :toc:
+// -- Parties --
+:licensor-name: Acme Software Pty Ltd
+:licensor-acn: 000 000 000
+:licensor-address: 123 Collins Street, Melbourne VIC 3000
+:licensee-name: The party identified in the Order Form
+:licensee-acn: 111 222 333
+:licensee-address: 456 George Street, Sydney NSW 2000
+// -- Agreement details --
+:agreement-date: 1 January 2025
+:payment-days: 30
+:interest-rate: 2%
+:liability-period: 12 months
 
 [discrete]
 == Parties
 
-This Agreement is entered into as of 1 January 2025 between:
+This Agreement is entered into as of {agreement-date} between:
 
-. *Licensor:* Acme Software Pty Ltd (ACN 000 000 000), of 123 Collins Street, Melbourne VIC 3000
-. *Licensee:* The party identified in the Order Form
+. *Licensor:* {licensor-name} (ACN {licensor-acn}), of {licensor-address}
+. *Licensee:* {licensee-name} (ACN {licensee-acn}), of {licensee-address}
 
 (each a "Party" and together the "Parties").
 
@@ -67,11 +79,11 @@ The Licensee must not:
 
 === Licence Fee
 
-The Licensee must pay the licence fee specified in the Order Form within 30 days of the date of this Agreement.
+The Licensee must pay the licence fee specified in the Order Form within {payment-days} days of the date of this Agreement.
 
 === Late Payment
 
-If the Licensee fails to pay any amount by the due date, interest accrues on the outstanding amount at the rate of 2% per annum above the Reserve Bank of Australia cash rate.
+If the Licensee fails to pay any amount by the due date, interest accrues on the outstanding amount at the rate of {interest-rate} per annum above the Reserve Bank of Australia cash rate.
 
 == Confidentiality
 
@@ -97,7 +109,7 @@ The obligations in <<_obligations>> do not apply to information that:
 
 === Maximum Liability
 
-To the maximum extent permitted by law, the Licensor's total liability under this Agreement is limited to the total licence fees paid by the Licensee in the 12 months preceding the claim.
+To the maximum extent permitted by law, the Licensor's total liability under this Agreement is limited to the total licence fees paid by the Licensee in the {liability-period} preceding the claim.
 
 === Exclusions
 
@@ -115,8 +127,8 @@ Executed as an agreement.
 |===
 | Licensor | Licensee
 
-| Acme Software Pty Ltd
-| [Company Name]
+| {licensor-name}
+| {licensee-name}
 
 | Signature: +++______________________+++
 | Signature: +++______________________+++

@@ -1,13 +1,21 @@
-= Widget Service API Reference
+= {service-name} API Reference
 :toc:
 :icons: font
 :source-highlighter: chroma
+// -- Service configuration --
+:service-name: Widget Service
+:api-version: v1
+:base-url: https://api.example.com/{api-version}
+:sdk-package: github.com/example/widget-sdk-go
+:token-expiry: 24 hours
+:max-page-size: 100
+:default-page-size: 20
 
 == Overview
 
-The Widget Service provides a RESTful API for managing widgets. All endpoints accept and return JSON. Authentication is via Bearer token in the `Authorization` header.
+The {service-name} provides a RESTful API for managing widgets. All endpoints accept and return JSON. Authentication is via Bearer token in the `Authorization` header.
 
-Base URL: `https://api.example.com/v1`
+Base URL: `{base-url}`
 
 == Authentication
 
@@ -16,10 +24,10 @@ All requests must include an `Authorization` header:
 [source,bash]
 ----
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://api.example.com/v1/widgets
+     {base-url}/widgets
 ----
 
-TIP: Tokens expire after 24 hours. Use the `/auth/refresh` endpoint to obtain a new token without re-authenticating.
+TIP: Tokens expire after {token-expiry}. Use the `/auth/refresh` endpoint to obtain a new token without re-authenticating.
 
 == Endpoints
 
@@ -34,7 +42,7 @@ Returns a paginated list of widgets.
 |===
 | Parameter | Type   | Description                    | Default
 | `page`    | int    | Page number (1-based)          | 1
-| `limit`   | int    | Items per page (max 100)       | 20
+| `limit`   | int    | Items per page (max {max-page-size})       | {default-page-size}
 | `status`  | string | Filter by status               | (all)
 | `sort`    | string | Sort field (`name`, `created`) | `created`
 |===
@@ -53,7 +61,7 @@ Returns a paginated list of widgets.
   ],
   "pagination": {
     "page": 1,
-    "limit": 20,
+    "limit": {default-page-size},
     "total": 142
   }
 }
@@ -136,7 +144,7 @@ import (
 	"fmt"
 	"log"
 
-	widget "github.com/example/widget-sdk-go"
+	widget "{sdk-package}"
 )
 
 func main() {

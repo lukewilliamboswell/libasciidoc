@@ -1,7 +1,11 @@
-= My Project
+= {project-name}
 :weight: 1
+:project-name: My Project
+:project-repo: https://github.com/example/my-project
+:go-version: 1.21
+:licence: MIT
 
-Welcome to the My Project documentation site.
+Welcome to the {project-name} documentation site.
 
 This is a minimal example showing how to use libasciidoc's static site generator to build a multi-page documentation site from AsciiDoc files.
 

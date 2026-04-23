@@ -21,7 +21,6 @@ linters:
         - name: dot-imports
           disabled: true
     exhaustive:
-      check-generated: false
       default-signifies-exhaustive: true
     nolintlint:
       allow-unused: false

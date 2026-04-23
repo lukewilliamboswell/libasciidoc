@@ -1,16 +1,19 @@
 = Installation
 :weight: 1
+:project-name: My Project
+:project-repo: https://github.com/example/my-project
+:go-version: 1.21
 
 == Requirements
 
-* Go 1.21 or later
+* Go {go-version} or later
 * Git
 
 == Steps
 
 . Clone the repository:
 +
- git clone https://github.com/example/my-project.git
+ git clone {project-repo}.git
 
 . Build the project:
 +

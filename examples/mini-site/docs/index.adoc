@@ -1,6 +1,7 @@
 = Documentation
 :weight: 2
+:project-name: My Project
 
-This section contains the technical documentation for My Project.
+This section contains the technical documentation for {project-name}.
 
 Browse the pages below to learn how to install, configure, and use the project.

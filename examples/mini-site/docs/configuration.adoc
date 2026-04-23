@@ -1,7 +1,9 @@
 = Configuration
 :weight: 2
+:project-name: My Project
+:config-file: config.yml
 
-My Project is configured via a YAML file at `config.yml` in the project root.
+{project-name} is configured via a YAML file at `{config-file}` in the project root.
 
 == Minimal Configuration
 
