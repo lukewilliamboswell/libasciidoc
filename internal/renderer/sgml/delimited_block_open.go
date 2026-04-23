@@ -1,7 +1,7 @@
 package sgml
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
@@ -10,15 +10,15 @@ func (r *sgmlRenderer) renderOpenBlock(ctx *context, b *types.DelimitedBlock) (s
 	blocks := discardBlankLines(b.Elements)
 	content, err := r.renderElements(ctx, blocks)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render open block content")
+		return "", fmt.Errorf("unable to render open block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render open block roles")
+		return "", fmt.Errorf("unable to render open block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render open block title")
+		return "", fmt.Errorf("unable to render open block title: %w", err)
 	}
 	return r.execute(r.openBlock, struct {
 		Context *context

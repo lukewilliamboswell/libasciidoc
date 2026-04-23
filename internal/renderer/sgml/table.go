@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
@@ -62,27 +61,27 @@ func (r *sgmlRenderer) renderTable(ctx *context, t *types.Table) (string, error)
 	}
 	columns, err := t.Columns()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render table")
+		return "", fmt.Errorf("failed to render table: %w", err)
 	}
 	header, err := r.renderTableHeader(ctx, t.Header, columns)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render table")
+		return "", fmt.Errorf("failed to render table: %w", err)
 	}
 	footer, err := r.renderTableFooter(ctx, t.Footer, columns)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render table")
+		return "", fmt.Errorf("failed to render table: %w", err)
 	}
 	body, err := r.renderTableBody(ctx, t.Rows, columns)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to render table")
+		return "", fmt.Errorf("failed to render table: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, t.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render table roles")
+		return "", fmt.Errorf("unable to render table roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, t.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render table title")
+		return "", fmt.Errorf("unable to render table title: %w", err)
 	}
 	return r.execute(r.table, struct {
 		Context     *context
@@ -131,7 +130,7 @@ func (r *sgmlRenderer) renderTableHeader(ctx *context, h *types.TableRow, cols [
 		c, err := r.renderTableHeaderCell(ctx, cell, cols[col%len(cols)])
 		col++
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render header")
+			return "", fmt.Errorf("unable to render header: %w", err)
 		}
 		content.WriteString(c)
 	}
@@ -148,7 +147,7 @@ func (r *sgmlRenderer) renderTableHeaderCell(ctx *context, c *types.TableCell, c
 		if p, ok := c.Elements[0].(*types.Paragraph); ok {
 			content, err := r.renderInlineElements(ctx, p.Elements)
 			if err != nil {
-				return "", errors.Wrap(err, "unable to render header cell")
+				return "", fmt.Errorf("unable to render header cell: %w", err)
 			}
 			return r.execute(r.tableHeaderCell, struct {
 				HAlign  types.HAlign
@@ -174,7 +173,7 @@ func (r *sgmlRenderer) renderTableFooter(ctx *context, f *types.TableRow, cols [
 		c, err := r.renderTableFooterCell(ctx, cell, cols[col%len(cols)])
 		col++
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render footer")
+			return "", fmt.Errorf("unable to render footer: %w", err)
 		}
 		content.WriteString(c)
 	}
@@ -195,7 +194,7 @@ func (r *sgmlRenderer) renderTableFooterCell(ctx *context, c *types.TableCell, c
 		if p, ok := c.Elements[0].(*types.Paragraph); ok {
 			content, err := r.renderInlineElements(ctx, p.Elements)
 			if err != nil {
-				return "", errors.Wrap(err, "unable to render footer cell")
+				return "", fmt.Errorf("unable to render footer cell: %w", err)
 			}
 			return r.execute(r.tableFooterCell, struct {
 				HAlign  types.HAlign
@@ -216,7 +215,7 @@ func (r *sgmlRenderer) renderTableBody(ctx *context, rows []*types.TableRow, col
 	for _, row := range rows {
 		c, err := r.renderTableRow(ctx, row, columns)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render body")
+			return "", fmt.Errorf("unable to render body: %w", err)
 		}
 		content.WriteString(c)
 	}
@@ -238,7 +237,7 @@ func (r *sgmlRenderer) renderTableRow(ctx *context, l *types.TableRow, cols []*t
 	for i, cell := range l.Cells {
 		c, err := r.renderTableCell(ctx, cell, cols[i])
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render row")
+			return "", fmt.Errorf("unable to render row: %w", err)
 		}
 		content.WriteString(c)
 	}
@@ -287,11 +286,11 @@ func (r *sgmlRenderer) renderTableCellBlock(ctx *context, element interface{}) (
 		log.Debug("rendering paragraph within table cell")
 		content, err := r.renderElements(ctx, e.Elements)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render table cell paragraph content")
+			return "", fmt.Errorf("unable to render table cell paragraph content: %w", err)
 		}
 		title, err := r.renderElementTitle(ctx, e.Attributes)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render table cell paragraph content")
+			return "", fmt.Errorf("unable to render table cell paragraph content: %w", err)
 		}
 		result, err := r.execute(r.embeddedParagraph, struct {
 			Context    *context
@@ -309,14 +308,14 @@ func (r *sgmlRenderer) renderTableCellBlock(ctx *context, element interface{}) (
 			Content:    content,
 		})
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render table cell paragraph content")
+			return "", fmt.Errorf("unable to render table cell paragraph content: %w", err)
 		}
 		return strings.TrimSuffix(result, "\n"), nil
 	default:
 		// Note: Asciidoctor wraps the `<div class=imageblock>` elements within a `<div class="content">`, which we also do here for the sake of compatibility
 		renderedElement, err := r.renderElement(ctx, e)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render table cell")
+			return "", fmt.Errorf("unable to render table cell: %w", err)
 		}
 		return r.execute(r.tableCellBlock, struct {
 			Content string

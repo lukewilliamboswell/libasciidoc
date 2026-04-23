@@ -7,7 +7,6 @@ import (
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,10 +34,10 @@ func RenderParagraphElements(p *types.Paragraph) (string, error) {
 	for _, e := range p.Elements {
 		renderedElement, err := r.render(e)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render paragraph elements")
+			return "", fmt.Errorf("unable to render paragraph elements: %w", err)
 		}
 		if _, err := buf.WriteString(renderedElement); err != nil {
-			return "", errors.Wrap(err, "unable to render paragraph elements")
+			return "", fmt.Errorf("unable to render paragraph elements: %w", err)
 		}
 	}
 	result := buf.String()
@@ -77,7 +76,7 @@ func (r *plaintextRenderer) render(element interface{}) (string, error) {
 	case *types.InlinePassthrough:
 		return r.renderInlinePassthrough(e)
 	default:
-		return "", errors.Errorf("unable to render plain string for element of type '%T'", e)
+		return "", fmt.Errorf("unable to render plain string for element of type '%T'", e)
 	}
 }
 

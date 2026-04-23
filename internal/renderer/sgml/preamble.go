@@ -1,7 +1,7 @@
 package sgml
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
@@ -13,11 +13,11 @@ func (r *sgmlRenderer) renderPreamble(ctx *context, p *types.Preamble) (string, 
 
 	content, err := r.renderElements(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "error rendering preamble elements")
+		return "", fmt.Errorf("error rendering preamble elements: %w", err)
 	}
 	toc, err := r.renderTableOfContents(ctx, p.TableOfContents)
 	if err != nil {
-		return "", errors.Wrap(err, "error rendering preamble elements")
+		return "", fmt.Errorf("error rendering preamble elements: %w", err)
 	}
 	return r.execute(r.preamble, struct {
 		Context *context

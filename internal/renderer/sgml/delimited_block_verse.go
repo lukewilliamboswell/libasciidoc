@@ -1,9 +1,9 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
@@ -12,7 +12,7 @@ import (
 func (r *sgmlRenderer) renderVerseBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render verser block roles")
+		return "", fmt.Errorf("unable to render verser block roles: %w", err)
 	}
 	previousWithinDelimitedBlock := ctx.withinDelimitedBlock
 	defer func() {
@@ -21,12 +21,12 @@ func (r *sgmlRenderer) renderVerseBlock(ctx *context, b *types.DelimitedBlock) (
 	ctx.withinDelimitedBlock = true
 	content, err := r.renderElements(ctx, b.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render verse block content")
+		return "", fmt.Errorf("unable to render verse block content: %w", err)
 	}
 	attribution := newAttribution(b)
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render verse block title")
+		return "", fmt.Errorf("unable to render verse block title: %w", err)
 	}
 	return r.execute(r.verseBlock, struct {
 		Context     *context
@@ -49,12 +49,12 @@ func (r *sgmlRenderer) renderVerseParagraph(ctx *context, p *types.Paragraph) (s
 	log.Debug("rendering verse paragraph...")
 	content, err := RenderParagraphElements(p)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render verse paragraph lines")
+		return "", fmt.Errorf("unable to render verse paragraph lines: %w", err)
 	}
 	attribution := newAttribution(p)
 	title, err := r.renderElementTitle(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render callout list roles")
+		return "", fmt.Errorf("unable to render callout list roles: %w", err)
 	}
 	return r.execute(r.verseParagraph, struct {
 		Context     *context

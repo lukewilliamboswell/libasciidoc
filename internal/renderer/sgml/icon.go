@@ -6,8 +6,6 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/pkg/errors"
-
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
@@ -61,7 +59,7 @@ func (r *sgmlRenderer) renderIcon(ctx *context, icon types.Icon, admonition bool
 		return "", fmt.Errorf("unsupported icon type %s", icons)
 	}
 	if err != nil {
-		return "", errors.Wrap(err, "unable to load icon template")
+		return "", fmt.Errorf("unable to load icon template: %w", err)
 	}
 	title := ""
 	alt := icon.Class
@@ -112,7 +110,7 @@ func (r *sgmlRenderer) renderIcon(ctx *context, icon types.Icon, admonition bool
 		Src:        renderIconPath(ctx, icon.Class),
 		Admonition: admonition,
 	}); err != nil {
-		return "", errors.Wrap(err, "unable to render icon")
+		return "", fmt.Errorf("unable to render icon: %w", err)
 	}
 	return s.String(), nil
 }

@@ -1,9 +1,9 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
@@ -19,15 +19,15 @@ func (r *sgmlRenderer) renderAdmonitionBlock(ctx *context, b *types.DelimitedBlo
 	blocks := discardBlankLines(b.Elements)
 	content, err := r.renderElements(ctx, blocks)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render admonition block content")
+		return "", fmt.Errorf("unable to render admonition block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render admonition block roles")
+		return "", fmt.Errorf("unable to render admonition block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render admonition block title")
+		return "", fmt.Errorf("unable to render admonition block title: %w", err)
 	}
 	return r.execute(r.admonitionBlock, struct {
 		Context *context
@@ -52,7 +52,7 @@ func (r *sgmlRenderer) renderAdmonitionParagraph(ctx *context, p *types.Paragrap
 	log.Debug("rendering admonition paragraph...")
 	kind, found := p.Attributes.GetAsString(types.AttrStyle)
 	if !found {
-		return "", errors.Errorf("failed to render admonition paragraph with unknown kind: %T", p.Attributes[types.AttrStyle])
+		return "", fmt.Errorf("failed to render admonition paragraph with unknown kind: %T", p.Attributes[types.AttrStyle])
 	}
 	kind = strings.ToLower(kind)
 	icon, err := r.renderIcon(ctx, types.Icon{Class: kind, Attributes: p.Attributes}, true)

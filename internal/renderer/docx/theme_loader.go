@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // LoadTheme reads an Asciidoctor PDF theme YAML file and returns a DocxTheme
@@ -60,9 +60,9 @@ type yamlPageTheme struct {
 // yamlMargins handles the [25mm, 20mm, 20mm, 20mm] format.
 type yamlMargins [4]float64
 
-func (m *yamlMargins) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (m *yamlMargins) UnmarshalYAML(value *yaml.Node) error {
 	var raw []interface{}
-	if err := unmarshal(&raw); err != nil {
+	if err := value.Decode(&raw); err != nil {
 		return err
 	}
 	for i := 0; i < 4 && i < len(raw); i++ {

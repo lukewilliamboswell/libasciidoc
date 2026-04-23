@@ -1,11 +1,10 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
-
-	"github.com/pkg/errors"
 )
 
 func (r *sgmlRenderer) renderElements(ctx *context, elements []interface{}) (string, error) {
@@ -32,7 +31,7 @@ func (r *sgmlRenderer) renderListElements(ctx *context, elements []interface{}) 
 		}
 		renderedElement, err := r.renderElement(ctx, element)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render a list element")
+			return "", fmt.Errorf("unable to render a list element: %w", err)
 		}
 		if i == 0 {
 			ctx.withinList--
@@ -114,6 +113,6 @@ func (r *sgmlRenderer) renderElement(ctx *context, element interface{}) (string,
 		ctx.attributes.AddAll(e.Attributes)
 		return "", nil
 	default:
-		return "", errors.Errorf("unsupported type of element: %T", element)
+		return "", fmt.Errorf("unsupported type of element: %T", element)
 	}
 }

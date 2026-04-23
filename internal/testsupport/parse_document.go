@@ -1,13 +1,13 @@
 package testsupport
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/internal/parser"
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +24,7 @@ func ParseDocument(actual string, options ...interface{}) (*types.Document, erro
 		case parser.Option:
 			opts = append(opts, o)
 		default:
-			return nil, errors.Errorf("unexpected type of option: '%T'", o)
+			return nil, fmt.Errorf("unexpected type of option: '%T'", o)
 		}
 	}
 	c := configuration.NewConfiguration(allSettings...)

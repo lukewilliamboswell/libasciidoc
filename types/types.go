@@ -12,9 +12,8 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // ------------------------------------------
@@ -458,7 +457,7 @@ func NewDocumentAuthors(authors ...interface{}) (DocumentAuthors, error) {
 		case *DocumentAuthor:
 			result[i] = author
 		default:
-			return nil, errors.Errorf("unexpected type of author: %T", author)
+			return nil, fmt.Errorf("unexpected type of author: %T", author)
 		}
 	}
 	return result, nil
@@ -765,7 +764,7 @@ type FrontMatter struct {
 func NewYamlFrontMatter(content string) (*FrontMatter, error) {
 	attributes := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(content), &attributes); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse the yaml content in the front-matter block")
+		return nil, fmt.Errorf("failed to parse the yaml content in the front-matter block: %w", err)
 	}
 	if len(attributes) == 0 {
 		attributes = nil
@@ -884,7 +883,7 @@ func (l *List) AddElement(element interface{}) error {
 		return l.LastElement().AddElement(e.Element)
 	}
 
-	return errors.Errorf("cannot add element of type '%T' to list of kind '%s'", element, l.Kind)
+	return fmt.Errorf("cannot add element of type '%T' to list of kind '%s'", element, l.Kind)
 }
 
 var _ Referencable = &List{}
@@ -939,10 +938,10 @@ func NewListElements(elements []interface{}) (*ListElements, error) {
 				switch elmt := elmts[len(elmts)-1].(type) {
 				case WithElementAddition:
 					if err := elmt.AddElement(e); err != nil {
-						return nil, errors.Errorf("unable to attach element of type '%T' in a list", e)
+						return nil, fmt.Errorf("unable to attach element of type '%T' in a list", e)
 					}
 				default:
-					return nil, errors.Errorf("unable to attach element of type '%T' in a list", e)
+					return nil, fmt.Errorf("unable to attach element of type '%T' in a list", e)
 				}
 			}
 		case *ListContinuation:
@@ -1060,7 +1059,7 @@ func (c *ListContinuation) AddElement(element interface{}) error {
 	if e, ok := c.Element.(WithElementAddition); ok {
 		return e.AddElement(element)
 	}
-	return errors.Errorf("cannot add element of type '%T' to list element continuation", c.Element)
+	return fmt.Errorf("cannot add element of type '%T' to list element continuation", c.Element)
 }
 
 // ------------------------------------------
@@ -1927,7 +1926,7 @@ func (x *InternalCrossReference) ResolveID(attrs Attributes) error {
 	case []interface{}:
 		result, err := ReplaceNonAlphanumerics(id, prefix, separator)
 		if err != nil {
-			return errors.Wrap(err, "unable to resolve ID on Internal Cross Reference element")
+			return fmt.Errorf("unable to resolve ID on Internal Cross Reference element: %w", err)
 		}
 		x.ID = result
 	case string:
@@ -1938,7 +1937,7 @@ func (x *InternalCrossReference) ResolveID(attrs Attributes) error {
 				},
 			}, prefix, separator)
 			if err != nil {
-				return errors.Wrap(err, "unable to resolve ID on Internal Cross Reference element")
+				return fmt.Errorf("unable to resolve ID on Internal Cross Reference element: %w", err)
 			}
 			x.ID = result
 		}
@@ -3867,7 +3866,7 @@ func (t *Table) SetElements(elements []interface{}) error {
 		case *TableRow:
 			rows[i] = e
 		default:
-			return errors.Errorf("unexpected type of table row: '%T'", e)
+			return fmt.Errorf("unexpected type of table row: '%T'", e)
 		}
 	}
 	t.Rows = rows
@@ -4179,7 +4178,7 @@ func (r *TableRow) SetElements(elements []interface{}) error {
 	for i, e := range elements {
 		c, ok := e.(*TableCell)
 		if !ok {
-			return errors.Errorf("unexpected type of cell: '%T'", e)
+			return fmt.Errorf("unexpected type of cell: '%T'", e)
 		}
 		cells[i] = c
 	}

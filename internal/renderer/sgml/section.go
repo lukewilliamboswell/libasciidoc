@@ -1,11 +1,11 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,16 +13,16 @@ func (r *sgmlRenderer) renderSection(ctx *context, s *types.Section) (string, er
 	// log.Debugf("rendering section level %d", s.Level)
 	title, err := r.renderSectionTitle(ctx, s)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering section title")
+		return "", fmt.Errorf("error while rendering section title: %w", err)
 	}
 
 	content, err := r.renderElements(ctx, s.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering section content")
+		return "", fmt.Errorf("error while rendering section content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, s.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render section roles")
+		return "", fmt.Errorf("unable to render section roles: %w", err)
 	}
 	return r.execute(r.sectionContent, struct {
 		Context  *context
@@ -46,7 +46,7 @@ func (r *sgmlRenderer) renderSection(ctx *context, s *types.Section) (string, er
 func (r *sgmlRenderer) renderSectionTitle(ctx *context, s *types.Section) (string, error) {
 	renderedContent, err := r.renderInlineElements(ctx, s.Title)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering section title")
+		return "", fmt.Errorf("error while rendering section title: %w", err)
 	}
 	renderedContentStr := strings.TrimSpace(renderedContent)
 	var number string

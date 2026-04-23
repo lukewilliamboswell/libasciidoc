@@ -1,12 +1,11 @@
 package testsupport
 
 import (
-	"flag"
 	"os"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 )
 
 func init() {
@@ -24,15 +23,22 @@ func init() {
 }
 
 func parseLogLevel() log.Level {
-	var logLevel string
-	// needed to let ginkgo parse the flag, otherwise, `ginkgo -- --loglevel=...` will fail with `flag provided but not defined: -loglevel`
-	flag.StringVar(&logLevel, "loglevel", "error", "log level to set [debug|info|warn|error|fatal|panic]")
-	// parse with a custom flagset in which all other flags (ginkgo's) are ignored
-	f := pflag.NewFlagSet("passthroughs", pflag.ContinueOnError)
-	f.ParseErrorsAllowlist.UnknownFlags = true
-	f.StringVarP(&logLevel, "loglevel", "l", "error", "log level to set [debug|info|warn|error|fatal|panic]")
-	if err := f.Parse(os.Args[1:]); err != nil {
-		panic(err)
+	logLevel := "error"
+	// Scan os.Args manually so that unknown flags (e.g. ginkgo's) are silently ignored.
+	args := os.Args[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--loglevel" || arg == "-l":
+			if i+1 < len(args) {
+				logLevel = args[i+1]
+				i++
+			}
+		case strings.HasPrefix(arg, "--loglevel="):
+			logLevel = arg[len("--loglevel="):]
+		case strings.HasPrefix(arg, "-l="):
+			logLevel = arg[len("-l="):]
+		}
 	}
 	lvl, err := log.ParseLevel(logLevel)
 	if err != nil {

@@ -1,13 +1,13 @@
 package sgml
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +18,7 @@ func (r *sgmlRenderer) renderInternalCrossReference(ctx *context, xref *types.In
 	var label string
 	xrefID, ok := xref.ID.(string)
 	if !ok {
-		return "", errors.Errorf("unable to process internal cross reference: invalid ID: '%v'", xref.ID)
+		return "", fmt.Errorf("unable to process internal cross reference: invalid ID: '%v'", xref.ID)
 	}
 	if xrefLabel, ok := xref.Label.(string); ok {
 		label = xrefLabel
@@ -47,7 +47,7 @@ func (r *sgmlRenderer) renderInternalCrossReference(ctx *context, xref *types.In
 			}
 			label = buff.String()
 		default:
-			return "", errors.Errorf("unable to process internal cross reference to element of type %T", target)
+			return "", fmt.Errorf("unable to process internal cross reference to element of type %T", target)
 		}
 	} else {
 		label = "[" + xrefID + "]"

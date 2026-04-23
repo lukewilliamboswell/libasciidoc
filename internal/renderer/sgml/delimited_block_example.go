@@ -1,11 +1,11 @@
 package sgml
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
@@ -16,11 +16,11 @@ func (r *sgmlRenderer) renderExampleBlock(ctx *context, b *types.DelimitedBlock)
 	number := 0
 	content, err := r.renderElements(ctx, b.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example block content")
+		return "", fmt.Errorf("unable to render example block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example block roles")
+		return "", fmt.Errorf("unable to render example block roles: %w", err)
 	}
 	c, found := b.Attributes.GetAsString(types.AttrCaption)
 	if !found {
@@ -36,7 +36,7 @@ func (r *sgmlRenderer) renderExampleBlock(ctx *context, b *types.DelimitedBlock)
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example block title")
+		return "", fmt.Errorf("unable to render example block title: %w", err)
 	}
 	caption := &strings.Builder{}
 	caption.WriteString(c)
@@ -63,15 +63,15 @@ func (r *sgmlRenderer) renderExampleParagraph(ctx *context, p *types.Paragraph) 
 	log.Debug("rendering example paragraph...")
 	content, err := r.renderElements(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example paragraph content")
+		return "", fmt.Errorf("unable to render example paragraph content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example paragraph roles")
+		return "", fmt.Errorf("unable to render example paragraph roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render example paragraph title")
+		return "", fmt.Errorf("unable to render example paragraph title: %w", err)
 	}
 	return r.execute(r.exampleBlock, struct {
 		Context       *context
@@ -102,11 +102,11 @@ func (r *sgmlRenderer) renderLiteralParagraph(ctx *context, p *types.Paragraph) 
 	}
 	roles, err := r.renderElementRoles(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render literal block roles")
+		return "", fmt.Errorf("unable to render literal block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render literal block roles")
+		return "", fmt.Errorf("unable to render literal block roles: %w", err)
 	}
 	return r.execute(r.literalBlock, struct {
 		Context *context

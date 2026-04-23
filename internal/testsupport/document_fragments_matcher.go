@@ -6,7 +6,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
@@ -27,7 +26,7 @@ type documentFragmentsMatcher struct {
 
 func (m *documentFragmentsMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.([]types.DocumentFragment); !ok {
-		return false, errors.Errorf("MatchDocumentFragments matcher expects a '[]types.DocumentFragment' (actual: %T)", actual)
+		return false, fmt.Errorf("MatchDocumentFragments matcher expects a '[]types.DocumentFragment' (actual: %T)", actual)
 	}
 	if diff := cmp.Diff(m.expected, actual, opts...); diff != "" {
 		if log.IsLevelEnabled(log.DebugLevel) {

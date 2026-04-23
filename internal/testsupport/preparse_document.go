@@ -1,9 +1,9 @@
 package testsupport
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
@@ -23,7 +23,7 @@ func PreparseDocument(source string, options ...interface{}) (string, error) {
 		case parser.Option:
 			opts = append(opts, o)
 		default:
-			return "", errors.Errorf("unexpected type of option: '%T'", o)
+			return "", fmt.Errorf("unexpected type of option: '%T'", o)
 		}
 	}
 	result, err := parser.Preprocess(strings.NewReader(source), configuration.NewConfiguration(settings...), opts...)

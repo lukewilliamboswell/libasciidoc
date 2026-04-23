@@ -1,9 +1,8 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
@@ -16,15 +15,15 @@ func (r *sgmlRenderer) renderFencedBlock(ctx *context, b *types.DelimitedBlock) 
 	ctx.withinDelimitedBlock = true
 	content, err := r.renderElements(ctx, b.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render fenced block content")
+		return "", fmt.Errorf("unable to render fenced block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render fenced block roles")
+		return "", fmt.Errorf("unable to render fenced block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render fenced block roles")
+		return "", fmt.Errorf("unable to render fenced block roles: %w", err)
 	}
 	return r.execute(r.fencedBlock, struct {
 		Context *context

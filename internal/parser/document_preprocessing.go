@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
@@ -221,7 +220,7 @@ func contentOf(ctx *ParseContext, incl *types.FileInclusion) (string, bool, erro
 	f, absPath, closeFile, err := open(filename)
 	defer closeFile()
 	if err != nil {
-		return "", false, errors.Wrapf(err, "Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+		return "", false, fmt.Errorf("unresolved directive in %s - %s: %w", ctx.filename, incl.RawText, err)
 	}
 	result := &strings.Builder{}
 	scanner := bufio.NewScanner(bufio.NewReader(f))
@@ -229,26 +228,26 @@ func contentOf(ctx *ParseContext, incl *types.FileInclusion) (string, bool, erro
 		log.Debugf("reading %s", filename)
 	}
 	if lr, ok, err := lineRanges(incl); err != nil {
-		return "", false, errors.Wrapf(err, "Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+		return "", false, fmt.Errorf("unresolved directive in %s - %s: %w", ctx.filename, incl.RawText, err)
 	} else if ok {
 		if err := readWithinLines(scanner, result, lr); err != nil {
-			return "", false, errors.Wrapf(err, "Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+			return "", false, fmt.Errorf("unresolved directive in %s - %s: %w", ctx.filename, incl.RawText, err)
 		}
 	} else if tr, ok, err := tagRanges(incl); err != nil {
-		return "", false, errors.Wrapf(err, "Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+		return "", false, fmt.Errorf("unresolved directive in %s - %s: %w", ctx.filename, incl.RawText, err)
 	} else if ok {
 		if err := readWithinTags(path, scanner, result, tr); err != nil {
-			return "", false, errors.Wrapf(err, "Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+			return "", false, fmt.Errorf("unresolved directive in %s - %s: %w", ctx.filename, incl.RawText, err)
 		}
 	} else {
 		if err := readAll(scanner, result); err != nil {
 			log.Error(err)
-			return "", false, errors.Errorf("Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+			return "", false, fmt.Errorf("unresolved directive in %s - %s", ctx.filename, incl.RawText)
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		log.Error(err)
-		return "", false, errors.Errorf("Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+		return "", false, fmt.Errorf("unresolved directive in %s - %s", ctx.filename, incl.RawText)
 	}
 	// cloning the context to avoid altering the original as we process recursively embedded file inclusions
 	ctx.filename = absPath
@@ -260,7 +259,7 @@ func contentOf(ctx *ParseContext, incl *types.FileInclusion) (string, bool, erro
 		offset, err := strconv.Atoi(lvl)
 		if err != nil {
 			log.Error(err)
-			return "", false, errors.Errorf("Unresolved directive in %s - %s", ctx.filename, incl.RawText)
+			return "", false, fmt.Errorf("unresolved directive in %s - %s", ctx.filename, incl.RawText)
 		}
 		if strings.HasPrefix(lvl, "+") || strings.HasPrefix(lvl, "-") {
 			ctx.levelOffsets = append(ctx.levelOffsets, relativeOffset(offset))
@@ -367,7 +366,7 @@ func readWithinLines(scanner *bufio.Scanner, content *strings.Builder, lineRange
 		}
 		fl, ok := l.(types.IncludedFileLine)
 		if !ok {
-			return errors.Errorf("unexpected type of parsed line in file to include: %T", l)
+			return fmt.Errorf("unexpected type of parsed line in file to include: %T", l)
 		}
 		// skip if the line has tags
 		if fl.HasTag() {
@@ -400,7 +399,7 @@ func readWithinTags(path string, scanner *bufio.Scanner, content *strings.Builde
 		}
 		fl, ok := l.(types.IncludedFileLine)
 		if !ok {
-			return errors.Errorf("unexpected type of parsed line in file to include: %T", l)
+			return fmt.Errorf("unexpected type of parsed line in file to include: %T", l)
 		}
 		// check if a start or end tag was found in the line
 		if startTag, ok := fl.GetStartTag(); ok {
@@ -449,7 +448,7 @@ func readAll(scanner *bufio.Scanner, content *strings.Builder) error {
 		}
 		fl, ok := l.(types.IncludedFileLine)
 		if !ok {
-			return errors.Errorf("unexpected type of parsed line in file to include: %T", l)
+			return fmt.Errorf("unexpected type of parsed line in file to include: %T", l)
 		}
 		// skip if the line has tags
 		if fl.HasTag() {

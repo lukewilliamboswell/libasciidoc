@@ -1,10 +1,9 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 	texttemplate "text/template"
-
-	"github.com/pkg/errors"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
@@ -16,16 +15,16 @@ func (r *sgmlRenderer) renderQuotedText(ctx *context, t *types.QuotedText) (stri
 	for _, element := range t.Elements {
 		b, err := r.renderElement(ctx, element)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render text quote")
+			return "", fmt.Errorf("unable to render text quote: %w", err)
 		}
 		_, err = elementsBuffer.WriteString(b)
 		if err != nil {
-			return "", errors.Wrapf(err, "unable to render text quote")
+			return "", fmt.Errorf("unable to render text quote: %w", err)
 		}
 	}
 	roles, err := r.renderElementRoles(ctx, t.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render quoted text roles")
+		return "", fmt.Errorf("unable to render quoted text roles: %w", err)
 	}
 	var tmpl *texttemplate.Template
 	switch t.Kind {
@@ -42,10 +41,10 @@ func (r *sgmlRenderer) renderQuotedText(ctx *context, t *types.QuotedText) (stri
 	case types.SingleQuoteSuperscript:
 		tmpl, err = r.superscriptText()
 	default:
-		return "", errors.Errorf("unsupported quoted text kind: '%v'", t.Kind)
+		return "", fmt.Errorf("unsupported quoted text kind: '%v'", t.Kind)
 	}
 	if err != nil {
-		return "", errors.Wrap(err, "unable to load quoted text template")
+		return "", fmt.Errorf("unable to load quoted text template: %w", err)
 	}
 	result := &strings.Builder{}
 	if err := tmpl.Execute(result, struct {
@@ -59,7 +58,7 @@ func (r *sgmlRenderer) renderQuotedText(ctx *context, t *types.QuotedText) (stri
 		Roles:      roles,
 		Content:    elementsBuffer.String(),
 	}); err != nil {
-		return "", errors.Wrap(err, "unable to render quoted text")
+		return "", fmt.Errorf("unable to render quoted text: %w", err)
 	}
 	return result.String(), nil
 }
