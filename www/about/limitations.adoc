@@ -1,0 +1,83 @@
+= Known Limitations
+:weight: 2
+
+This document lists the known limitations and differences with Asciidoc/Asciidoctor. Feel free to https://github.com/lukewilliamboswell/libasciidoc/issues[open an issue] if you want to report a new one. We also accept pull requests.
+
+This list is not necessarily complete, but it should reflect the differences likely to impact real documents.
+
+== Two-line Section Titles
+
+Two-line section titles (setext headings) are not supported, and there are no plans to support them. See https://github.com/bytesparadise/libasciidoc/issues/187[Issue #187].
+
+== Empty Document Body
+
+When the body of a document is empty, Asciidoctor inserts a newline character. This whitespace is not significant, and libasciidoc does not emit one.
+
+== Empty Quote Block Content
+
+When a quote block has no body, Asciidoctor emits a newline between the opening and closing `<blockquote>` elements. This serves no purpose, and libasciidoc does not emit one.
+
+== Passthroughs
+
+The inline passthrough macro does not support line breaks within its content.
+
+== Constrained Monospace Text
+
+Constrained or imbalanced monospace text may not act fully constrained, or may be confused in the presence of imbalanced quoted strings or apostrophes. See https://github.com/bytesparadise/libasciidoc/issues/630[Issue #630].
+
+== Attribute Lists
+
+* Attributes containing inline markup are not rendered with the markup applied.
+* Attribute lists using undocumented whitespace may not parse correctly.
+* Escaping of quotes within quoted strings used as attribute values does not work.
+
+== Tables
+
+* Custom table delimiters and custom formats (TSV, CSV, DSV) are not supported. See https://github.com/bytesparadise/libasciidoc/issues/696[Issue #696].
+* Tables will not parse if the content starts with a blank line. See https://github.com/bytesparadise/libasciidoc/issues/692[Issue #692].
+* Individual cell styles, including spans and repeats, are not supported. See https://github.com/bytesparadise/libasciidoc/issues/695[Issue #695].
+* The parser will likely be confused by ragged tables. See https://github.com/bytesparadise/libasciidoc/issues/637[Issue #637].
+* Nested tables are not supported. See https://github.com/bytesparadise/libasciidoc/issues/697[Issue #697].
+
+== Lists
+
+Interactive checklists are not supported. See https://github.com/bytesparadise/libasciidoc/issues/675[Issue #675].
+
+== Images
+
+* Interactive SVG and inline SVG are not supported. See https://github.com/bytesparadise/libasciidoc/issues/674[Issue #674].
+* The global `figure-caption` attribute is not honored. Use per-image caption attributes instead.
+
+== Multimedia
+
+Video and audio elements are not supported. See https://github.com/bytesparadise/libasciidoc/issues/677[Issue #677].
+
+== Symbols and Characters
+
+* Markup for the mdash and arrow symbols is not recognized. See https://github.com/bytesparadise/libasciidoc/issues/678[Issue #678].
+* Symbols for quotes will be inlined as numeric HTML entities, even when not strictly necessary.
+* Symbolic entity names (such as `&loz;`) are not recognized. See https://github.com/bytesparadise/libasciidoc/issues/680[Issue #680].
+
+== Favicon
+
+The `favicon` document attribute is not recognized. See https://github.com/bytesparadise/libasciidoc/issues/681[Issue #681].
+
+== Syntax Highlighting
+
+libasciidoc uses https://github.com/alecthomas/chroma[Chroma] for syntax highlighting. Specify `chroma` for the `source-highlighter` attribute (`pygments` is treated as an alias). Some esoteric languages may not be supported. See https://github.com/alecthomas/chroma#supported-languages[Chroma's documentation].
+
+== Math
+
+MathML and equations (`[stem]` blocks) are not supported. See https://github.com/bytesparadise/libasciidoc/issues/608[Issue #608].
+
+== Bibliographies
+
+Bibliographies using bibtex are not supported. See https://github.com/bytesparadise/libasciidoc/issues/609[Issue #609].
+
+== Links
+
+Using the caret short-hand to indicate link targets should use the blank window is not supported. See https://github.com/bytesparadise/libasciidoc/issues/682[Issue #682].
+
+== Document Types
+
+The inline and book document types are not supported. Article and manpage documents work fine. See https://github.com/bytesparadise/libasciidoc/issues/628[Issue #628].

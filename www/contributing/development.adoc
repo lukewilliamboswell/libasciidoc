@@ -59,3 +59,26 @@ This builds `ascii2doc`, generates the site into `_site/`, and serves it on `htt
 // www/           — website source (AsciiDoc files)
 
 See the link:architecture.html[Architecture Overview] for a detailed explanation of how the packages fit together.
+
+== Modifying the Grammar
+
+The parser is generated from a PEG grammar using https://github.com/mna/pigeon[pigeon]. If you need to modify the grammar:
+
+ go generate ./...
+
+Then build as normal:
+
+ go build ./...
+
+== Benchmarking
+
+This project uses https://onsi.github.io/ginkgo/[Ginkgo] for testing but the standard Go toolchain for benchmarking. Skip normal tests when benchmarking with `-run=XXX`:
+
+ go test -run=XXX -bench=. -benchmem -count=10 ./... | tee tmp/bench-before.txt
+
+After making changes, run the same benchmarks and compare with https://pkg.go.dev/golang.org/x/perf/cmd/benchstat[benchstat]:
+
+ go test -run=XXX -bench=. -benchmem -count=10 ./... | tee tmp/bench-after.txt
+ benchstat tmp/bench-before.txt tmp/bench-after.txt
+
+Benchmark output doesn't need to be committed, but including relevant benchstat results in commit messages is helpful.

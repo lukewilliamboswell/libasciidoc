@@ -1,186 +1,36 @@
-= Libasciidoc
+= libasciidoc
 
 image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://opensource.org/licenses/Apache-2.0"]
 
-Libasciidoc is an open source Go library that converts Asciidoc content into HTML or DOCX.
+A Go library and CLI for converting AsciiDoc to HTML5 and DOCX.
 
-This is a fork of https://github.com/bytesparadise/libasciidoc[bytesparadise/libasciidoc] with DOCX output support and modernised build tooling.
+This is a fork of https://github.com/bytesparadise/libasciidoc[bytesparadise/libasciidoc] with DOCX output support, static site generation, and modernised build tooling.
 
-== Installation
+== Quick Start
 
-    $ go install github.com/lukewilliamboswell/libasciidoc/cmd/libasciidoc@latest
+ go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2html@latest
+ go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2doc@latest
 
-== Usage
+Convert a file to HTML:
 
-=== HTML output (default)
+ ascii2html myfile.adoc
 
-    $ libasciidoc -s content.adoc
-    $ libasciidoc -o - content.adoc          # output to STDOUT
-    $ libasciidoc -o output.html content.adoc # explicit output file
+Convert a file to DOCX:
 
-=== DOCX output
+ ascii2doc myfile.adoc
 
-    $ libasciidoc -b docx content.adoc          # produces content.docx
-    $ libasciidoc -b docx -o - content.adoc     # output to STDOUT
-    $ libasciidoc -b docx -o out.docx content.adoc
+Build a static site:
 
-=== DOCX Theming
+ ascii2doc --static-site -o _site/ www/
 
-Customise DOCX output with an https://docs.asciidoctor.org/pdf-converter/latest/theme/[Asciidoctor PDF theme] YAML file:
+== Documentation
 
-    $ libasciidoc -b docx --theme mytheme.yml content.adoc
+See the full documentation and guides on the https://lukewilliamboswell.github.io/libasciidoc/[project website].
 
-The theme file uses the same format as Asciidoctor PDF themes.
-See link:examples/theme.yml[examples/theme.yml] for a complete reference of supported properties.
+== Contributing
 
-==== Supported theme categories
-
-[cols="1,3"]
-|===
-| Category | What it controls
-
-| `page` | Page size (`A4`, `Letter`, `Legal`), layout, margins
-| `base` | Default font, size, color, text alignment, line height
-| `prose` | Paragraph spacing and alignment
-| `heading` | Font, color, style, text transform, spacing; per-level `h1`-`h6` overrides
-| `title_page` | Title and subtitle font properties
-| `table` | Borders, grid lines, cell padding, header/footer/stripe background colors
-| `list` | Indent, marker color
-| `code` | Code block font, color, background, border, line height
-| `codespan` | Inline monospace font, color, background shading
-| `link` | Link color, style, underline control
-| `quote` | Blockquote font, color, left border
-| `admonition` | NOTE/TIP/WARNING block background, border, label styling
-| `sidebar` | Sidebar block background, border
-| `example` | Example block background, border
-| `caption` | Figure/table caption font, color, alignment
-| `description_list` | Definition list term font, color, style
-| `header` | Running header content, font, page numbers
-| `footer` | Running footer content, font, page numbers
-|===
-
-Use `{page-number}` in header/footer content to insert the page number:
-
-[source,yaml]
-----
-footer:
-  content: "Page {page-number}"
-  font_size: 8
-  font_color: "999999"
-----
-
-=== All options
-
-    $ libasciidoc --help
-
-== Output Formats
-
-Using `-b` (or `--backend`) the following formats are supported:
-
-* `html5` (also `html`) -- this is the default
-* `xhtml5` (also `xhtml`)
-* `docx` -- Microsoft Word (.docx) output
-
-== Supported Syntax
-
-Although it does not support the full Asciidoc/Asciidoctor syntax, Libasciidoc provides the following features:
-
-* Title and Sections level 1 to 6
-* Document authors and revision
-* Attribute declaration and substitution
-* Paragraphs and admonition paragraphs
-* Delimited Blocks (fenced, listing, example, comment, quoted, sidebar, verse, open)
-* Source code highlighting via https://github.com/alecthomas/chroma[Chroma] (use `chroma` or `pygments` as the `source-highlighter`)
-* Literal blocks
-* Quoted text (bold, italic, monospace, marked, superscript, subscript) and backslash escaping
-* Typographic quotes and symbols (copyright, registered, trademark)
-* Passthrough (single plus, triple plus, `pass:[]`, `pass:q[]`)
-* External links (`https://`, `http://`, `ftp://`, `irc://`, `mailto:`)
-* Inline and block images
-* Icons (font, graphic, admonition blocks and inline)
-* Element attributes (ID, link, title, role, short-hand)
-* Ordered, unordered, labeled, and checklist lists
-* Tables (header line, multi-line cells, top-level styles)
-* Horizontal rules and page breaks
-* Table of contents
-* YAML front-matter
-
-See also link:LIMITATIONS.adoc[known limitations].
-
-=== Syntax Highlighting
-
-When enabled, syntax highlighting in `[source]` blocks uses https://github.com/alecthomas/chroma[Chroma].
-The default class prefix is `tok-`, overridable with the `chroma-class-prefix` attribute:
-
-[source]
-----
-:chroma-class-prefix: myprefix-
-----
-
-Or from the command line:
-
-    $ libasciidoc -o - -a chroma-class-prefix=myprefix- mydoc.adoc
-
-== Code Integration
-
-Libasciidoc provides two functions for programmatic use:
-
-1. Convert from an `io.Reader`:
-
-    Convert(r io.Reader, output io.Writer, config *configuration.Configuration) (types.Metadata, error)
-
-2. Convert a file by name:
-
-    ConvertFile(output io.Writer, config *configuration.Configuration) (types.Metadata, error)
-
-The returned `types.Metadata` contains the document title, table of contents, and other attributes.
-All options are passed via the `config` parameter.
-
-=== Macro Definition
-
-Define custom macros with `configuration.WithMacroTemplate()`:
-
-```go
-var tmplStr = `<span>Example: {{.Value}}{{.Attributes.GetAsString "suffix"}}</span>`
-var t = template.New("example")
-var tmpl = template.Must(t.Parse(tmplStr))
-
-output := &strings.Builder{}
-content := strings.NewReader(`example::hello world[suffix=!!!!!]`)
-libasciidoc.Convert(content, output,
-    configuration.NewConfiguration(
-        configuration.WithMacroTemplate(tmpl.Name(), tmpl)))
-```
-
-== Development
-
-=== Prerequisites
-
-* Go 1.24+
-* https://github.com/mna/pigeon[pigeon] (for parser generation, installed via `go install`)
-
-=== Building
-
-    $ go build ./cmd/libasciidoc
-
-=== Testing
-
-    $ go test ./...
-
-=== Parser Generation
-
-The parser is generated from `pkg/parser/parser.peg` using pigeon:
-
-    $ go generate ./...
-
-=== Linting
-
-    $ golangci-lint run
+See the https://lukewilliamboswell.github.io/libasciidoc/contributing/[contributing guide] for development setup, architecture overview, and how to submit changes.
 
 == License
 
-Libasciidoc is available under the https://opensource.org/licenses/Apache-2.0[Apache License 2.0].
-
-== Trademark
-
-AsciiDoc is a trademark of the Eclipse Foundation.
+Apache License 2.0. See link:LICENSE[LICENSE].

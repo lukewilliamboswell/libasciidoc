@@ -26,11 +26,13 @@ This project is a fork of https://github.com/bytesparadise/libasciidoc[bytespara
 
 libasciidoc is under active development. The HTML5 renderer is mature and covers most AsciiDoc syntax. The DOCX renderer is functional with theme support. The static site generator is new and supports basic documentation sites.
 
+== Known Limitations
+
+libasciidoc does not yet support the full Asciidoc/Asciidoctor syntax. See the link:limitations.html[Known Limitations] page for details.
+
 == License
 
-// TODO: Confirm the license and link to the LICENSE file in the repository.
-
-libasciidoc is open source software. See the https://github.com/lukewilliamboswell/libasciidoc/blob/master/LICENSE[LICENSE] file for details.
+libasciidoc is available under the https://opensource.org/licenses/Apache-2.0[Apache License 2.0]. See the https://github.com/lukewilliamboswell/libasciidoc/blob/master/LICENSE[LICENSE] file for details.
 
 == Links
 
