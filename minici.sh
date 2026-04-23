@@ -71,7 +71,7 @@ pass
 # ── build static site ───────────────────────────────────
 step "Building static site"
 go build -o ascii2html ./cmd/ascii2html/
-./ascii2html --static-site --css style.css --base-path /libasciidoc/ -o _site www/
+./ascii2html --static-site --css style.css --base-path / -o _site www/
 rm -f ascii2html
 pass
 
