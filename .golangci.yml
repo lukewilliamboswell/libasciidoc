@@ -9,6 +9,8 @@ linters:
     - revive
     - misspell
     - nolintlint
+    - errcheck
+    - ineffassign
   exclusions:
     paths:
       - test/includes
