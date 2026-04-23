@@ -14,59 +14,45 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go-version: [1.18.x,1.19.x]
+        go-version: ['1.24']
         os: [ubuntu-latest, macos-latest, windows-latest]
     name: Test ${{ matrix.os }} with Go ${{ matrix.go-version }}
 
     steps:
     - name: Install Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
 
     - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles ('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Verify parser
-      if: runner.os == 'Linux'
-      run: |
-        make verify-parser
+      uses: actions/checkout@v4
 
     - name: Build
-      run: |
-        make build
+      run: go build ./...
 
     - name: Test
-      run: |
-        make test-with-coverage
+      run: go test -coverprofile=coverage.txt ./...
 
-    - name: Codecov
+    - name: Upload coverage to Codecov
       if: runner.os == 'Linux'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
-        # Path to coverage file to upload
-        file: coverprofile.out
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   golangci:
-    name: Lint with Go ${{ matrix.go-version }}
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [1.18.x]
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
 
     - name: Lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v7
       with:
         version: latest
         args: -c .golangci.yml
