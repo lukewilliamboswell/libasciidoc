@@ -240,6 +240,65 @@ Continuation paragraph for first item.
 		})
 	})
 
+	Context("reversed ordered lists", func() {
+
+		// AsciiDoc spec: [%reversed] makes the list count down from N to 1.
+		// OOXML has no native reversed-list flag, so we assign a distinct
+		// w:num per item, each with a decreasing w:startOverride.
+
+		It("should render a reversed list with each item carrying its own numId", func() {
+			doc := renderDocx(`[%reversed]
+. Alpha
+. Beta
+. Gamma`)
+
+			pA := doc.findParagraph("Alpha")
+			Expect(pA).ToNot(BeNil())
+			Expect(pA.NumID).ToNot(BeEmpty())
+
+			pB := doc.findParagraph("Beta")
+			Expect(pB).ToNot(BeNil())
+			Expect(pB.NumID).ToNot(BeEmpty())
+
+			pG := doc.findParagraph("Gamma")
+			Expect(pG).ToNot(BeNil())
+			Expect(pG.NumID).ToNot(BeEmpty())
+
+			// Each item must have a distinct numId (one per item for per-item startOverride).
+			Expect(pA.NumID).ToNot(Equal(pB.NumID))
+			Expect(pB.NumID).ToNot(Equal(pG.NumID))
+		})
+
+		It("should set startOverride values 3, 2, 1 for a three-item reversed list", func() {
+			doc := renderDocx(`[%reversed]
+. First
+. Second
+. Third`)
+
+			// numbering.xml must contain startOverride vals 3, 2, 1 in that order.
+			numXML := doc.numberingXML()
+			Expect(numXML).To(ContainSubstring(`w:startOverride w:val="3"`))
+			Expect(numXML).To(ContainSubstring(`w:startOverride w:val="2"`))
+			Expect(numXML).To(ContainSubstring(`w:startOverride w:val="1"`))
+		})
+
+		It("should render a reversed loweralpha list", func() {
+			doc := renderDocx(`[%reversed,loweralpha]
+. One
+. Two
+. Three`)
+
+			p := doc.findParagraph("One")
+			Expect(p).ToNot(BeNil())
+			def := doc.findNumberingDef(p.NumID)
+			Expect(def).ToNot(BeNil())
+			Expect(def.Levels[0].Format).To(Equal("lowerLetter"))
+
+			numXML := doc.numberingXML()
+			Expect(numXML).To(ContainSubstring(`w:startOverride w:val="3"`))
+		})
+	})
+
 	Context("bullet format in numbering", func() {
 
 		It("should define bullet format for unordered lists", func() {

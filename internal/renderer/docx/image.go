@@ -1,6 +1,9 @@
 package docx
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -80,12 +83,29 @@ func (r *docxRenderer) resolveImagePath(location *types.Location) string {
 }
 
 func (r *docxRenderer) writeImageDrawing(para *strings.Builder, src string, attrs types.Attributes) error {
-	if src == "" || strings.Contains(src, "://") {
+	if src == "" {
 		return os.ErrNotExist
 	}
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return err
+	var data []byte
+	if strings.Contains(src, "://") {
+		resp, err := http.Get(src) //nolint:noctx
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("remote image %s: HTTP %d", src, resp.StatusCode)
+		}
+		data, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		data, err = os.ReadFile(src)
+		if err != nil {
+			return err
+		}
 	}
 	rID, name := r.doc.addImage(data, src)
 	alt := imageAlt(attrs, src)

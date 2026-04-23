@@ -113,6 +113,32 @@ table:
 		Expect(docXML).To(ContainSubstring(`w:tblW w:w="0" w:type="auto"`))
 	})
 
+	It("should render a nested table inside an asciidoc cell and emit a trailing paragraph", func() {
+		// OOXML requires every <w:tc> to end with a <w:p>.
+		// When the only cell content is a nested <w:tbl>, the renderer must
+		// append a <w:p/> so that Word accepts the document.
+		doc := renderDocx(`[cols="1,2"]
+|===
+| Label
+a|
+[cols="1,1"]
+!===
+! A ! B
+! 1 ! 2
+!===
+|===`)
+
+		// The nested table's cell content must be present.
+		Expect(doc.findTableCellRun("A")).ToNot(BeNil())
+		Expect(doc.findTableCellRun("B")).ToNot(BeNil())
+
+		// Every </w:tbl> that appears inside a <w:tc> must be followed
+		// immediately by a <w:p> (or <w:p/>) before </w:tc>.
+		docXML := doc.documentXML()
+		Expect(docXML).ToNot(ContainSubstring("</w:tbl></w:tc>"),
+			"a <w:tc> must not close immediately after </w:tbl> — Word requires a trailing <w:p>")
+	})
+
 	It("should render an unordered list inside an asciidoc cell", func() {
 		doc := renderDocx(`[cols="1,3"]
 |===

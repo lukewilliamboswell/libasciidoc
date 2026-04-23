@@ -2,6 +2,8 @@ package docx_test
 
 import (
 	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 
@@ -76,6 +78,44 @@ image::b.png[]`
 			cap2 := doc.findParagraph("Figure 2. Second image")
 			Expect(cap2).ToNot(BeNil())
 			Expect(cap2.Style).To(Equal("Caption"))
+		})
+	})
+
+	Context("remote images", func() {
+
+		It("should fetch and embed a remote image by URL", func() {
+			// Serve a 1x1 PNG from a local test server to simulate a remote URL.
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "image/png")
+				_, _ = w.Write(png1x1())
+			}))
+			defer srv.Close()
+
+			source := "image::" + srv.URL + "/logo.png[Remote logo]"
+			doc := renderDocx(source)
+
+			Expect(doc.files).To(HaveKey("word/media/image1.png"),
+				"remote image should be embedded in the DOCX media folder")
+
+			xml := doc.documentXML()
+			Expect(xml).To(ContainSubstring(`<w:drawing>`),
+				"document.xml should contain a drawing element for the remote image")
+		})
+
+		It("should render an italic placeholder when a remote image returns an error", func() {
+			// Serve a 404 to trigger the fallback path.
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.NotFound(w, r)
+			}))
+			defer srv.Close()
+
+			source := "image::" + srv.URL + "/missing.png[Alt text]"
+			doc := renderDocx(source)
+
+			run := doc.findRun("[image:")
+			Expect(run).ToNot(BeNil())
+			Expect(run.Italic).To(BeTrue())
+			Expect(doc.files).ToNot(HaveKey("word/media/image1.png"))
 		})
 	})
 

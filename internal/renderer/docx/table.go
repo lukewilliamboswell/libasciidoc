@@ -171,10 +171,16 @@ func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool,
 		}
 	}
 	r.writer = old
-	if cellWriter.Len() == 0 {
+	content := cellWriter.String()
+	if content == "" {
 		r.writer.WriteString(`<w:p/>`)
 	} else {
-		r.writer.WriteString(cellWriter.String())
+		r.writer.WriteString(content)
+		// OOXML requires every <w:tc> to end with a <w:p>.
+		// A nested table does not include one, so append it.
+		if strings.HasSuffix(content, "</w:tbl>") {
+			r.writer.WriteString(`<w:p/>`)
+		}
 	}
 	r.writer.WriteString(`</w:tc>`)
 	return nil

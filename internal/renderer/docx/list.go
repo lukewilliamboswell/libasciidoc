@@ -46,7 +46,25 @@ func (r *docxRenderer) renderOrderedList(l *types.List) error {
 
 	// Regular numbering outside legal sections.
 	indent := (r.listLevel - 1) * twipsPerLevel
-	numID := r.doc.addNumbering(orderedListFormat(l), l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
+	format := orderedListFormat(l)
+
+	// Reversed lists: assign a per-item numID with a decreasing startOverride
+	// so that each paragraph renders its correct descending number in Word.
+	// (OOXML has no native reversed-list flag, so we use one numID per item.)
+	if l.Attributes.HasOption("reversed") {
+		n := len(l.Elements)
+		for i, item := range l.Elements {
+			if ole, ok := item.(*types.OrderedListElement); ok {
+				numID := r.doc.addNumbering(format, n-i, indent)
+				if err := r.renderListItem(numID, ole.Elements, 0); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	numID := r.doc.addNumbering(format, l.Attributes.GetAsIntWithDefault(types.AttrStart, 1), indent)
 	for _, item := range l.Elements {
 		if ole, ok := item.(*types.OrderedListElement); ok {
 			if err := r.renderListItem(numID, ole.Elements, 0); err != nil {
