@@ -16,6 +16,8 @@ linters:
     presets:
       - std-error-handling
   settings:
+    gocyclo:
+      min-complexity: 30
     revive:
       rules:
         - name: dot-imports
@@ -30,6 +32,9 @@ linters:
 formatters:
   enable:
     - gofmt
+  settings:
+    gofmt:
+      simplify: true
 
 run:
   timeout: 10m
