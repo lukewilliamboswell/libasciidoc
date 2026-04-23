@@ -3,9 +3,18 @@ package docx
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
+
+var paragraphBuilderPool = sync.Pool{
+	New: func() interface{} {
+		b := &strings.Builder{}
+		b.Grow(256)
+		return b
+	},
+}
 
 // runStyle carries accumulated formatting state for nested inline elements.
 type runStyle struct {
@@ -99,7 +108,8 @@ func (r *docxRenderer) renderInlineElement(para *strings.Builder, element interf
 }
 
 func (r *docxRenderer) startParagraph(opts paragraphOptions) *strings.Builder {
-	para := &strings.Builder{}
+	para := paragraphBuilderPool.Get().(*strings.Builder)
+	para.Reset()
 	para.WriteString("<w:p>")
 	writeParagraphProperties(para, opts)
 	if opts.bookmarkName != "" {
@@ -119,6 +129,7 @@ func (r *docxRenderer) startParagraph(opts paragraphOptions) *strings.Builder {
 func (r *docxRenderer) endParagraph(para *strings.Builder) {
 	para.WriteString("</w:p>")
 	r.writer.WriteString(para.String())
+	paragraphBuilderPool.Put(para)
 }
 
 func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {

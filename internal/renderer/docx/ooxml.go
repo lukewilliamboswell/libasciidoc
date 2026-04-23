@@ -3,14 +3,40 @@ package docx
 import (
 	"archive/zip"
 	"bytes"
+	"compress/flate"
 	"fmt"
 	"io"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+// flateWriterPool reuses flate compressors across zip entries to avoid
+// allocating fresh huffman tables for every XML part in the DOCX archive.
+var flateWriterPool = sync.Pool{
+	New: func() interface{} {
+		fw, _ := flate.NewWriter(io.Discard, flate.DefaultCompression)
+		return fw
+	},
+}
+
+type pooledFlateWriter struct {
+	fw *flate.Writer
+}
+
+func (w *pooledFlateWriter) Write(p []byte) (int, error) { return w.fw.Write(p) }
+
+func (w *pooledFlateWriter) Close() error {
+	err := w.fw.Close()
+	if err == nil {
+		flateWriterPool.Put(w.fw)
+	}
+	w.fw = nil
+	return err
+}
 
 const (
 	relTypeOfficeDocument = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
@@ -215,6 +241,11 @@ func (d *docxDocument) setupHeaderFooter() {
 func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
 	buf := new(bytes.Buffer)
 	zw := zip.NewWriter(buf)
+	zw.RegisterCompressor(zip.Deflate, func(w io.Writer) (io.WriteCloser, error) {
+		fw := flateWriterPool.Get().(*flate.Writer)
+		fw.Reset(w)
+		return &pooledFlateWriter{fw: fw}, nil
+	})
 	files := map[string]string{
 		"[Content_Types].xml":          d.contentTypesXML(),
 		"_rels/.rels":                  d.packageRelsXML(),
