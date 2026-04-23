@@ -100,6 +100,8 @@ type yamlHeadingLevel struct {
 	TextTransform string  `yaml:"text_transform"`
 	FontColor     string  `yaml:"font_color"`
 	FontStyle     string  `yaml:"font_style"`
+	MarginTop     float64 `yaml:"margin_top"`
+	MarginBottom  float64 `yaml:"margin_bottom"`
 }
 
 type yamlTitleTheme struct {
@@ -321,12 +323,12 @@ func (yt *yamlTheme) applyHeadingTo(t *DocxTheme) {
 	if yt.Heading.MarginBottom > 0 {
 		t.Heading.MarginBottom = yt.Heading.MarginBottom
 	}
-	applyHeadingLevel(yt.Heading.H1, &t.Heading.H1FontSize, &t.Heading.H1TextTransform, &t.Heading.H1FontColor, &t.Heading.H1FontStyle)
-	applyHeadingLevel(yt.Heading.H2, &t.Heading.H2FontSize, &t.Heading.H2TextTransform, &t.Heading.H2FontColor, &t.Heading.H2FontStyle)
-	applyHeadingLevel(yt.Heading.H3, &t.Heading.H3FontSize, &t.Heading.H3TextTransform, &t.Heading.H3FontColor, &t.Heading.H3FontStyle)
-	applyHeadingLevel(yt.Heading.H4, &t.Heading.H4FontSize, &t.Heading.H4TextTransform, &t.Heading.H4FontColor, &t.Heading.H4FontStyle)
-	applyHeadingLevel(yt.Heading.H5, &t.Heading.H5FontSize, nil, &t.Heading.H5FontColor, &t.Heading.H5FontStyle)
-	applyHeadingLevel(yt.Heading.H6, &t.Heading.H6FontSize, nil, &t.Heading.H6FontColor, &t.Heading.H6FontStyle)
+	applyHeadingLevel(yt.Heading.H1, &t.Heading.H1FontSize, &t.Heading.H1TextTransform, &t.Heading.H1FontColor, &t.Heading.H1FontStyle, &t.Heading.H1MarginTop, &t.Heading.H1MarginBottom)
+	applyHeadingLevel(yt.Heading.H2, &t.Heading.H2FontSize, &t.Heading.H2TextTransform, &t.Heading.H2FontColor, &t.Heading.H2FontStyle, &t.Heading.H2MarginTop, &t.Heading.H2MarginBottom)
+	applyHeadingLevel(yt.Heading.H3, &t.Heading.H3FontSize, &t.Heading.H3TextTransform, &t.Heading.H3FontColor, &t.Heading.H3FontStyle, &t.Heading.H3MarginTop, &t.Heading.H3MarginBottom)
+	applyHeadingLevel(yt.Heading.H4, &t.Heading.H4FontSize, &t.Heading.H4TextTransform, &t.Heading.H4FontColor, &t.Heading.H4FontStyle, &t.Heading.H4MarginTop, &t.Heading.H4MarginBottom)
+	applyHeadingLevel(yt.Heading.H5, &t.Heading.H5FontSize, nil, &t.Heading.H5FontColor, &t.Heading.H5FontStyle, &t.Heading.H5MarginTop, &t.Heading.H5MarginBottom)
+	applyHeadingLevel(yt.Heading.H6, &t.Heading.H6FontSize, nil, &t.Heading.H6FontColor, &t.Heading.H6FontStyle, &t.Heading.H6MarginTop, &t.Heading.H6MarginBottom)
 }
 
 func (yt *yamlTheme) applyTitleTo(t *DocxTheme) {
@@ -641,7 +643,7 @@ func (yt *yamlTheme) applyDescriptionListTo(t *DocxTheme) {
 	}
 }
 
-func applyHeadingLevel(src *yamlHeadingLevel, fontSize *float64, textTransform, fontColor, fontStyle *string) {
+func applyHeadingLevel(src *yamlHeadingLevel, fontSize *float64, textTransform, fontColor, fontStyle *string, marginTop, marginBottom *float64) {
 	if src == nil {
 		return
 	}
@@ -656,6 +658,12 @@ func applyHeadingLevel(src *yamlHeadingLevel, fontSize *float64, textTransform, 
 	}
 	if src.FontStyle != "" {
 		*fontStyle = src.FontStyle
+	}
+	if src.MarginTop > 0 {
+		*marginTop = src.MarginTop
+	}
+	if src.MarginBottom > 0 {
+		*marginBottom = src.MarginBottom
 	}
 }
 

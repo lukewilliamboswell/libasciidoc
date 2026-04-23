@@ -848,12 +848,14 @@ func (d *docxDocument) stylesXML() string {
 			id: "Heading" + strconv.Itoa(i), name: "heading " + strconv.Itoa(i),
 			font: headingFont, size: t.headingSizeHalfPt(i),
 			bold: hBold, italic: hItalic, caps: caps, color: hColor,
+			outlineLevel: i - 1,
+			keepNext:     true,
 		}
-		if t.Heading.MarginTop > 0 {
-			opts.spaceBefore = ptToTwips(t.Heading.MarginTop)
+		if mt := t.headingMarginTop(i); mt > 0 {
+			opts.spaceBefore = ptToTwips(mt)
 		}
-		if t.Heading.MarginBottom > 0 {
-			opts.spaceAfter = ptToTwips(t.Heading.MarginBottom)
+		if mb := t.headingMarginBottom(i); mb > 0 {
+			opts.spaceAfter = ptToTwips(mb)
 		}
 		b.WriteString(styleParaXML(opts))
 	}
@@ -1000,6 +1002,8 @@ type styleParaOpts struct {
 	lineSpacing     int     // w:spacing w:line (240 = single)
 	align           string  // text alignment
 	indentLeft      int     // w:ind w:left (twips)
+	outlineLevel    int     // -1 = not set; 0–8 = Word outline level (w:outlineLvl)
+	keepNext        bool    // w:keepNext: keep paragraph on same page as next
 }
 
 func styleParaXML(opts styleParaOpts) string {
@@ -1009,70 +1013,86 @@ func styleParaXML(opts styleParaOpts) string {
 	b.WriteString(`"><w:name w:val="`)
 	b.WriteString(xmlAttr(opts.name))
 	b.WriteString(`"/>`)
+	writeStylePPr(b, opts)
+	writeStyleRPr(b, opts)
+	b.WriteString(`</w:style>`)
+	return b.String()
+}
 
-	// Paragraph properties (pPr)
+func writeStylePPr(b *strings.Builder, opts styleParaOpts) {
 	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
-		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0
-	if hasPPr {
-		b.WriteString(`<w:pPr>`)
-		if opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 {
-			b.WriteString(`<w:spacing`)
-			if opts.spaceBefore > 0 {
-				b.WriteString(` w:before="`)
-				b.WriteString(itoa(opts.spaceBefore))
-				b.WriteString(`"`)
-			}
-			if opts.spaceAfter > 0 {
-				b.WriteString(` w:after="`)
-				b.WriteString(itoa(opts.spaceAfter))
-				b.WriteString(`"`)
-			}
-			if opts.lineSpacing > 0 {
-				b.WriteString(` w:line="`)
-				b.WriteString(itoa(opts.lineSpacing))
-				b.WriteString(`" w:lineRule="auto"`)
-			}
-			b.WriteString(`/>`)
-		}
-		if opts.shading != "" {
-			b.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
-			b.WriteString(xmlAttr(opts.shading))
-			b.WriteString(`"/>`)
-		}
-		if opts.borderAll != "" {
-			bw := ptToEighths(opts.borderAllWidth)
-			if bw < 1 {
-				bw = 4 // default 0.5pt
-			}
-			border := `w:val="single" w:sz="` + itoa(bw) + `" w:space="4" w:color="` + xmlAttr(opts.borderAll) + `"`
-			b.WriteString(`<w:pBdr>`)
-			b.WriteString(`<w:top ` + border + `/><w:left ` + border + `/><w:bottom ` + border + `/><w:right ` + border + `/>`)
-			b.WriteString(`</w:pBdr>`)
-		} else if opts.borderLeft != "" {
-			bw := ptToEighths(opts.borderLeftWidth)
-			if bw < 1 {
-				bw = 4
-			}
-			b.WriteString(`<w:pBdr><w:left w:val="single" w:sz="`)
-			b.WriteString(itoa(bw))
-			b.WriteString(`" w:space="4" w:color="`)
-			b.WriteString(xmlAttr(opts.borderLeft))
-			b.WriteString(`"/></w:pBdr>`)
-		}
-		if opts.indentLeft > 0 {
-			b.WriteString(`<w:ind w:left="`)
-			b.WriteString(strconv.Itoa(opts.indentLeft))
-			b.WriteString(`"/>`)
-		}
-		if opts.align != "" {
-			b.WriteString(`<w:jc w:val="`)
-			b.WriteString(xmlAttr(ooxmlAlignment(opts.align)))
-			b.WriteString(`"/>`)
-		}
-		b.WriteString(`</w:pPr>`)
+		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0 ||
+		opts.keepNext || opts.outlineLevel >= 0
+	if !hasPPr {
+		return
 	}
+	b.WriteString(`<w:pPr>`)
+	if opts.keepNext {
+		b.WriteString(`<w:keepNext/>`)
+	}
+	if opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 {
+		b.WriteString(`<w:spacing`)
+		if opts.spaceBefore > 0 {
+			b.WriteString(` w:before="`)
+			b.WriteString(itoa(opts.spaceBefore))
+			b.WriteString(`"`)
+		}
+		if opts.spaceAfter > 0 {
+			b.WriteString(` w:after="`)
+			b.WriteString(itoa(opts.spaceAfter))
+			b.WriteString(`"`)
+		}
+		if opts.lineSpacing > 0 {
+			b.WriteString(` w:line="`)
+			b.WriteString(itoa(opts.lineSpacing))
+			b.WriteString(`" w:lineRule="auto"`)
+		}
+		b.WriteString(`/>`)
+	}
+	if opts.shading != "" {
+		b.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
+		b.WriteString(xmlAttr(opts.shading))
+		b.WriteString(`"/>`)
+	}
+	if opts.borderAll != "" {
+		bw := ptToEighths(opts.borderAllWidth)
+		if bw < 1 {
+			bw = 4 // default 0.5pt
+		}
+		border := `w:val="single" w:sz="` + itoa(bw) + `" w:space="4" w:color="` + xmlAttr(opts.borderAll) + `"`
+		b.WriteString(`<w:pBdr>`)
+		b.WriteString(`<w:top ` + border + `/><w:left ` + border + `/><w:bottom ` + border + `/><w:right ` + border + `/>`)
+		b.WriteString(`</w:pBdr>`)
+	} else if opts.borderLeft != "" {
+		bw := ptToEighths(opts.borderLeftWidth)
+		if bw < 1 {
+			bw = 4
+		}
+		b.WriteString(`<w:pBdr><w:left w:val="single" w:sz="`)
+		b.WriteString(itoa(bw))
+		b.WriteString(`" w:space="4" w:color="`)
+		b.WriteString(xmlAttr(opts.borderLeft))
+		b.WriteString(`"/></w:pBdr>`)
+	}
+	if opts.indentLeft > 0 {
+		b.WriteString(`<w:ind w:left="`)
+		b.WriteString(strconv.Itoa(opts.indentLeft))
+		b.WriteString(`"/>`)
+	}
+	if opts.align != "" {
+		b.WriteString(`<w:jc w:val="`)
+		b.WriteString(xmlAttr(ooxmlAlignment(opts.align)))
+		b.WriteString(`"/>`)
+	}
+	if opts.outlineLevel >= 0 {
+		b.WriteString(`<w:outlineLvl w:val="`)
+		b.WriteString(itoa(opts.outlineLevel))
+		b.WriteString(`"/>`)
+	}
+	b.WriteString(`</w:pPr>`)
+}
 
-	// Run properties (rPr)
+func writeStyleRPr(b *strings.Builder, opts styleParaOpts) {
 	b.WriteString(`<w:rPr>`)
 	if opts.font != "" {
 		b.WriteString(`<w:rFonts w:ascii="`)
@@ -1101,8 +1121,7 @@ func styleParaXML(opts styleParaOpts) string {
 	b.WriteString(strconv.Itoa(opts.size))
 	b.WriteString(`"/><w:szCs w:val="`)
 	b.WriteString(strconv.Itoa(opts.size))
-	b.WriteString(`"/></w:rPr></w:style>`)
-	return b.String()
+	b.WriteString(`"/></w:rPr>`)
 }
 
 // ooxmlAlignment maps theme alignment values to OOXML w:jc values.

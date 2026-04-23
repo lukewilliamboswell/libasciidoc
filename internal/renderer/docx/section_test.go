@@ -68,6 +68,29 @@ Content in subsection.`)
 		Expect(second.NumLevel).To(Equal("0"))
 	})
 
+	It("should set outlineLvl and keepNext on all heading styles", func() {
+		doc := renderDocx(`= Doc
+
+== H2
+
+=== H3`)
+
+		h1 := doc.findStyle("Heading1")
+		Expect(h1).ToNot(BeNil())
+		Expect(h1.OutlineLevel).To(Equal("0"))
+		Expect(h1.KeepNext).To(BeTrue())
+
+		h2 := doc.findStyle("Heading2")
+		Expect(h2).ToNot(BeNil())
+		Expect(h2.OutlineLevel).To(Equal("1"))
+		Expect(h2.KeepNext).To(BeTrue())
+
+		h3 := doc.findStyle("Heading3")
+		Expect(h3).ToNot(BeNil())
+		Expect(h3.OutlineLevel).To(Equal("2"))
+		Expect(h3.KeepNext).To(BeTrue())
+	})
+
 	It("should render a document with author metadata", func() {
 		source := `= Service Agreement
 John Doe <john@example.com>

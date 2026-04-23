@@ -824,13 +824,15 @@ type parsedStyle struct {
 	Caps   bool   // w:caps
 	Color  string // w:color val
 	// Paragraph properties
-	SpaceBefore string // w:spacing w:before
-	SpaceAfter  string // w:spacing w:after
-	LineSpacing string // w:spacing w:line
-	Shading     string // w:shd w:fill
-	BorderLeft  string // w:pBdr w:left w:color
-	BorderAll   string // w:pBdr w:top w:color (same for all sides)
-	Alignment   string // w:jc w:val
+	SpaceBefore  string // w:spacing w:before
+	SpaceAfter   string // w:spacing w:after
+	LineSpacing  string // w:spacing w:line
+	Shading      string // w:shd w:fill
+	BorderLeft   string // w:pBdr w:left w:color
+	BorderAll    string // w:pBdr w:top w:color (same for all sides)
+	Alignment    string // w:jc w:val
+	OutlineLevel string // w:outlineLvl w:val
+	KeepNext     bool   // w:keepNext present
 }
 
 func (d renderedDocx) parseStyles() []parsedStyle {
@@ -867,11 +869,16 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 		After  string `xml:"after,attr"`
 		Line   string `xml:"line,attr"`
 	}
+	type xmlOutlineLvl struct {
+		Val string `xml:"val,attr"`
+	}
 	type xmlPPr struct {
-		Spacing *xmlSpacing `xml:"spacing"`
-		Shd     *xmlShd     `xml:"shd"`
-		PBdr    *xmlPBdr    `xml:"pBdr"`
-		Jc      *xmlJc      `xml:"jc"`
+		Spacing    *xmlSpacing    `xml:"spacing"`
+		Shd        *xmlShd        `xml:"shd"`
+		PBdr       *xmlPBdr       `xml:"pBdr"`
+		Jc         *xmlJc         `xml:"jc"`
+		OutlineLvl *xmlOutlineLvl `xml:"outlineLvl"`
+		KeepNext   *struct{}      `xml:"keepNext"`
 	}
 	type xmlRPr struct {
 		RFonts *xmlRFonts `xml:"rFonts"`
@@ -929,6 +936,12 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 		}
 		if s.PPr.Jc != nil {
 			ps.Alignment = s.PPr.Jc.Val
+		}
+		if s.PPr.OutlineLvl != nil {
+			ps.OutlineLevel = s.PPr.OutlineLvl.Val
+		}
+		if s.PPr.KeepNext != nil {
+			ps.KeepNext = true
 		}
 		result = append(result, ps)
 	}
