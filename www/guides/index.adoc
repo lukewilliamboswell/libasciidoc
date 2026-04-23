@@ -1,18 +1,7 @@
 = Guides
-:weight: 3
-
-// Goal: This is the hub page for all user-facing guides. It should help users
-// find the right guide for their task. The guides section serves both end users
-// (CLI usage) and Go developers (library integration).
-
-Browse the guides below to learn how to use libasciidoc.
-
-== For Document Authors
+:weight: 2
 
 * link:getting-started.html[Getting Started] — install the tools and convert your first document
 * link:docx.html[DOCX Conversion] — generate styled Word documents with theme support
 * link:static-site.html[Static Site Mode] — build a documentation website from AsciiDoc files
-
-== For Go Developers
-
 * link:library.html[Using the Library] — integrate libasciidoc into your Go application

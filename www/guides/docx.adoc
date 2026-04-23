@@ -1,17 +1,6 @@
 = DOCX Conversion
 :weight: 2
 
-// Goal: This guide serves users who need to produce professional Word documents.
-// Many of these users may be in corporate or government environments where DOCX
-// is required. They care about:
-// - Consistent, professional styling (fonts, colors, spacing)
-// - Headers, footers, page numbering
-// - Table of contents generation
-// - Being able to hand the output to non-technical colleagues
-//
-// The theme system reuses Asciidoctor PDF's YAML theme format, which is a big
-// selling point — users familiar with Asciidoctor can bring their existing themes.
-
 == Overview
 
 The `ascii2doc` command converts AsciiDoc files to DOCX (Microsoft Word) format. You can control the styling of the output using theme files.
@@ -28,16 +17,7 @@ Themes let you control fonts, colors, spacing, headers, footers, and more. libas
 
  ascii2doc --theme my-theme.yml myfile.adoc
 
-// TODO: Add a section showing a minimal example theme YAML file so users can
-// see the structure without reading the full Asciidoctor PDF theme docs.
-// Include at least: font family, heading colors, page margins.
-
 == What Themes Control
-
-// TODO: Document which theme properties are currently supported in our DOCX
-// renderer. Not all Asciidoctor PDF theme properties may be implemented yet.
-// Be honest about what works and what doesn't — users will trust us more
-// if we're upfront about limitations.
 
 Themes can control:
 

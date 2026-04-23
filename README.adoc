@@ -21,7 +21,7 @@ Convert a file to DOCX:
 
 Build a static site:
 
- ascii2doc --static-site -o _site/ www/
+ ascii2html --static-site -o _site/ www/
 
 == Documentation
 

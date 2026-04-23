@@ -3,7 +3,7 @@
 
 == Overview
 
-The `--static-site` flag turns `ascii2doc` into a static site generator. It walks a source directory, renders each `.adoc` file to HTML, wraps it in a layout template with navigation, and copies static assets.
+The `--static-site` flag turns `ascii2html` into a static site generator. It walks a source directory, renders each `.adoc` file to HTML, wraps it in a layout template with navigation, and copies static assets.
 
 == Flags
 
@@ -22,4 +22,4 @@ Files named `index.adoc` represent their parent directory in the navigation tree
 
 == Example
 
- ascii2doc --static-site -o _site/ --base-path /libasciidoc/ --css style.css www/
+ ascii2html --static-site -o _site/ --base-path /libasciidoc/ --css style.css www/

@@ -1,14 +1,6 @@
 = Development Setup
 :weight: 1
 
-// Goal: Get a contributor from zero to running tests in under 10 minutes.
-// Assume they know Go basics but nothing about this project. Cover:
-// - Prerequisites (Go version, any other tools)
-// - Clone and build
-// - Run the test suite
-// - Run the site locally for docs changes
-// - Common development tasks (regenerating the parser, etc.)
-
 == Prerequisites
 
 * https://go.dev/dl/[Go] 1.21 or later
@@ -29,10 +21,6 @@ Build the CLI tools:
 
  go test ./...
 
-// TODO: Document any test flags or patterns that are useful during development.
-// For example, how to run tests for a specific package, how to update golden
-// files if we use them, how to run only short tests, etc.
-
 == Run the Site Locally
 
 To preview documentation changes:
@@ -42,21 +30,6 @@ To preview documentation changes:
 This builds `ascii2doc`, generates the site into `_site/`, and serves it on `http://localhost:8080`.
 
 == Project Structure
-
-// TODO: Add a brief directory listing showing where the main packages live.
-// This helps new contributors orient themselves before reading the full
-// architecture guide. Something like:
-//
-// cmd/           — CLI entry points (ascii2html, ascii2doc)
-// asciidoc/      — public library API
-// configuration/ — configuration types and options
-// types/         — shared type definitions
-// internal/
-//   parser/      — PEG-based AsciiDoc parser
-//   renderer/    — output renderers (HTML5, XHTML5, DOCX)
-//   cli/         — shared CLI infrastructure
-//   site/        — static site generator
-// www/           — website source (AsciiDoc files)
 
 See the link:architecture.html[Architecture Overview] for a detailed explanation of how the packages fit together.
 

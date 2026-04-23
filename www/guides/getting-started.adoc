@@ -1,10 +1,33 @@
 = Getting Started
 :weight: 1
 
-// Goal: This is the first guide a new user reads after installing. It should
-// demonstrate the core value proposition in under 5 minutes — take an AsciiDoc
-// file and produce HTML or DOCX output. Keep examples minimal and concrete.
-// Assume the user has already installed via the Download page.
+== Install
+
+If you have https://go.dev/dl/[Go] installed (version 1.21 or later), you can install directly:
+
+ go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2doc@latest
+ go install github.com/lukewilliamboswell/libasciidoc/cmd/ascii2html@latest
+
+This installs two commands:
+
+* `ascii2html` — converts AsciiDoc to HTML5 (default) or XHTML5
+* `ascii2doc` — converts AsciiDoc to DOCX (default), with HTML output also available
+
+=== Build from Source
+
+Clone the repository and build:
+
+ git clone https://github.com/lukewilliamboswell/libasciidoc.git
+ cd libasciidoc
+ go build -o ascii2html ./cmd/ascii2html
+ go build -o ascii2doc ./cmd/ascii2doc
+
+=== Verify Installation
+
+After installing, verify the tools are working:
+
+ ascii2html version
+ ascii2doc version
 
 == Quick Start
 
@@ -53,3 +76,4 @@ Both commands share these options:
 * link:docx.html[DOCX Conversion] — learn about themes and professional document styling
 * link:static-site.html[Static Site Mode] — build a full website from AsciiDoc files
 * link:library.html[Using the Library] — use libasciidoc in your own Go code
+* link:../examples/[Examples] — complete, runnable examples for common use cases

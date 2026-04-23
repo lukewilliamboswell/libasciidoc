@@ -3,10 +3,6 @@
 
 A Go library and CLI for converting AsciiDoc to HTML5 and DOCX.
 
-// Goal: The landing page is the first thing all users see. It should immediately
-// answer "what is this?" and "is it for me?" — then direct each persona to the
-// right next step. Keep it scannable and jargon-light.
-
 == What is libasciidoc?
 
 libasciidoc is a tool for converting https://asciidoc.org[AsciiDoc] documents into other formats. You can use it as a command-line tool to convert your documents, as a Go library to integrate into your own applications, or as a static site generator to build documentation websites.
@@ -21,16 +17,12 @@ libasciidoc is a tool for converting https://asciidoc.org[AsciiDoc] documents in
 
 == Get Started
 
-Whether you want to use the tools, integrate the library, or contribute to the project — here's where to go next:
+link:guides/getting-started.html[Getting Started] — install the tools and convert your first document.
 
-=== I want to convert documents
+== Learn More
 
-If you want to download and use the CLI tools to convert your AsciiDoc files, head to the link:download/[Download] page for pre-built binaries or installation instructions. Then follow the link:guides/getting-started.html[Getting Started] guide.
-
-=== I want to use the Go library
-
-If you are a Go developer and want to use libasciidoc as a library in your own application, see the link:guides/library.html[Using the Library] guide for API examples and integration patterns.
-
-=== I want to contribute
-
-If you want to fix a bug, add a feature, or improve the documentation, see the link:contributing/[Contributing] section for development setup and architecture overview.
+* link:guides/docx.html[DOCX Conversion] — generate styled Word documents with theme support
+* link:guides/static-site.html[Static Site Mode] — build a documentation website from AsciiDoc files
+* link:guides/library.html[Using the Library] — integrate libasciidoc into your Go application
+* link:examples/[Examples] — complete, runnable examples for common use cases
+* link:contributing/[Contributing] — development setup and architecture overview

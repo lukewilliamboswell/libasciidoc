@@ -19,16 +19,22 @@ import (
 // NewRootCmd returns a root command configured with the given default backend.
 func NewRootCmd(name, defaultBackend string) *cobra.Command {
 
-	var noHeaderFooter bool
 	var outputName string
 	var logLevel string
-	var css []string
 	var backend string
 	var attributes []string
-	var themePath string
+
+	// HTML-specific flags (ascii2html)
+	var noHeaderFooter bool
+	var css []string
 	var staticSite bool
 	var templatePath string
 	var basePath string
+
+	// DOCX-specific flags (ascii2doc)
+	var themePath string
+
+	isHTML := defaultBackend == "html5"
 
 	rootCmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s [flags] FILE", name),
@@ -96,16 +102,19 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 	}
 	rootCmd.SilenceUsage = true
 	flags := rootCmd.Flags()
-	flags.BoolVarP(&noHeaderFooter, "no-header-footer", "s", false, "do not render header/footer")
 	flags.StringVarP(&outputName, "output", "o", "", "output file (default: based on path of input file); use - to output to STDOUT")
 	flags.StringVar(&logLevel, "log-level", "warn", "log level to set [debug|info|warn|error|fatal|panic]")
-	flags.StringArrayVar(&css, "css", []string{}, "the paths to the CSS files to link to the document")
 	flags.StringArrayVarP(&attributes, "attribute", "a", []string{}, "a document attribute to set in the form of name, name!, or name=value pair")
 	flags.StringVarP(&backend, "backend", "b", defaultBackend, "backend to format the file")
-	flags.StringVar(&themePath, "theme", "", "path to Asciidoctor PDF theme YAML file for DOCX styling")
-	flags.BoolVar(&staticSite, "static-site", false, "build a static site from a directory of .adoc files")
-	flags.StringVar(&templatePath, "template", "", "path to custom HTML template for static site mode")
-	flags.StringVar(&basePath, "base-path", "/", "base path prefix for URLs (e.g., /repo/ for GitHub Pages)")
+	if isHTML {
+		flags.BoolVarP(&noHeaderFooter, "no-header-footer", "s", false, "do not render header/footer")
+		flags.StringArrayVar(&css, "css", []string{}, "the paths to the CSS files to link to the document")
+		flags.BoolVar(&staticSite, "static-site", false, "build a static site from a directory of .adoc files")
+		flags.StringVar(&templatePath, "template", "", "path to custom HTML template for static site mode")
+		flags.StringVar(&basePath, "base-path", "/", "base path prefix for URLs (e.g., /repo/ for GitHub Pages)")
+	} else {
+		flags.StringVar(&themePath, "theme", "", "path to Asciidoctor PDF theme YAML file for DOCX styling")
+	}
 	return rootCmd
 }
 

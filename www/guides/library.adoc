@@ -1,17 +1,6 @@
 = Using the Library
 :weight: 4
 
-// Goal: This guide serves Go developers who want to integrate libasciidoc into
-// their own applications. These users are comfortable reading Go code and API
-// docs, but they need to quickly understand:
-// - How to import the package
-// - The core API surface (it's small — Convert and ConvertFile)
-// - How to configure output format, attributes, CSS
-// - How to access metadata (title, TOC, authors) from the result
-// - How to register custom macro templates
-//
-// Keep examples runnable and focused. Link to GoDoc for the full API reference.
-
 == Overview
 
 libasciidoc can be used as a Go library to parse and render AsciiDoc documents programmatically. This is useful if you are building a documentation tool, a CMS, a static site generator, or any application that needs to process AsciiDoc content.
@@ -46,16 +35,6 @@ metadata, err := asciidoc.ConvertFile(writer, config)
 
 == Configuration
 
-// TODO: Show concrete examples of building a configuration.Configuration
-// with common options:
-// - Setting the backend (HTML5, XHTML5, DOCX)
-// - Setting document attributes
-// - Adding CSS files
-// - Enabling/disabling header and footer
-// - Setting the filename (required for ConvertFile)
-//
-// Reference the configuration package for the full list of options.
-
 Configuration is built using functional options from the `configuration` package. Common options include:
 
 * `configuration.WithBackEnd(backend)` — set output format
@@ -73,19 +52,10 @@ Both `Convert` and `ConvertFile` return a `types.Metadata` struct containing:
 * `Authors` — document authors
 * `Attributes` — resolved document attributes
 
-// TODO: Add a complete, runnable example that reads a file, converts it, and
-// prints the metadata. This is what Go developers will copy-paste first.
-
 == Custom Macros
-
-// TODO: Document the macro template system — how to register custom block or
-// inline macros using configuration.WithMacroTemplate(). Include a small example.
 
 libasciidoc supports registering custom macro templates that extend the AsciiDoc syntax with your own rendering logic.
 
 == Further Reading
-
-// TODO: Add link to GoDoc once the package is published, e.g.:
-// https://pkg.go.dev/github.com/lukewilliamboswell/libasciidoc
 
 See the source code in the `asciidoc`, `configuration`, and `types` packages for the full API.

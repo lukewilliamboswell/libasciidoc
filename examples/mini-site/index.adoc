@@ -1,0 +1,19 @@
+= My Project
+:weight: 1
+
+Welcome to the My Project documentation site.
+
+This is a minimal example showing how to use libasciidoc's static site generator to build a multi-page documentation site from AsciiDoc files.
+
+== Features
+
+* Automatic navigation sidebar
+* Page ordering via `:weight:` attributes
+* Nested sections with subdirectories
+* Static asset copying (CSS, images, etc.)
+
+== Quick Start
+
+Build this site with:
+
+ ascii2html --static-site -o _site/ examples/mini-site/

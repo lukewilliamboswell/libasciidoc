@@ -1,0 +1,29 @@
+= Mini Documentation Site
+:weight: 5
+
+*What it demonstrates:* The static site generator building a multi-page website with automatic navigation, page ordering via `:weight:` attributes, and nested subdirectories.
+
+*Who it's for:* Anyone who wants to build a documentation website from AsciiDoc files.
+
+== Run It
+
+ ascii2html --static-site -o _example_site/ examples/mini-site/
+ open _example_site/index.html
+
+== Source Files
+
+----
+examples/mini-site/
+├── index.adoc              (:weight: 1 — home page)
+├── about.adoc              (:weight: 3 — about page)
+└── docs/
+    ├── index.adoc          (:weight: 2 — docs section)
+    ├── installation.adoc   (:weight: 1 — first doc)
+    └── configuration.adoc  (:weight: 2 — second doc)
+----
+
+== How It Works
+
+The navigation sidebar is generated automatically from the directory structure and `:weight:` attributes. Files named `index.adoc` represent their parent directory in the navigation tree.
+
+Lower weight numbers appear first in the navigation. Pages with the same weight are sorted alphabetically by title.
