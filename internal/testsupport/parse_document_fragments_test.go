@@ -1,0 +1,50 @@
+package testsupport_test
+
+import (
+	"github.com/lukewilliamboswell/libasciidoc/types"
+	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("parse document fragment groups", func() {
+
+	expected := []types.DocumentFragment{
+		{
+			Position: types.Position{
+				Start: 0,
+				End:   13,
+			},
+			Elements: []interface{}{
+				&types.Paragraph{
+					Elements: []interface{}{
+						&types.RawLine{
+							Content: "hello, world!",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	It("should match", func() {
+		// given
+		actual := "hello, world!"
+		// when
+		result, err := testsupport.ParseDocumentFragments(actual)
+		// then
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(expected))
+	})
+
+	It("should not match", func() {
+		// given
+		actual := "foo"
+		// when
+		result, err := testsupport.ParseDocumentFragments(actual)
+		// then
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).NotTo(Equal(expected))
+	})
+})

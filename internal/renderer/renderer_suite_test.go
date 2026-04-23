@@ -1,4 +1,4 @@
-package test_test
+package renderer_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	_ "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 )
 
-func TestTest(t *testing.T) {
+func TestRenderer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
+	RunSpecs(t, "Renderer Suite")
 }

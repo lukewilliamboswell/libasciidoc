@@ -1,0 +1,61 @@
+package parser_test
+
+import (
+	"github.com/lukewilliamboswell/libasciidoc/types"
+	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("front-matters", func() {
+
+	Context("in final documents", func() {
+
+		Context("yaml front-matter", func() {
+
+			It("with simple attributes", func() {
+				source := `---
+title: a title
+author: Xavier
+---
+
+first paragraph`
+				expected := &types.Document{
+					Elements: []interface{}{
+						&types.FrontMatter{
+							Attributes: types.Attributes{
+								"title":  "a title", // TODO: convert `title` attribute from front-matter into `doctitle` here ?
+								"author": "Xavier",
+							},
+						},
+						&types.Paragraph{
+							Elements: []interface{}{
+								&types.StringElement{Content: "first paragraph"},
+							},
+						},
+					},
+				}
+				Expect(ParseDocument(source)).To(MatchDocument(expected))
+			})
+
+			It("empty front-matter", func() {
+				source := `---
+---
+
+first paragraph`
+				expected := &types.Document{
+					Elements: []interface{}{
+						&types.FrontMatter{},
+						&types.Paragraph{
+							Elements: []interface{}{
+								&types.StringElement{Content: "first paragraph"},
+							},
+						},
+					},
+				}
+				Expect(ParseDocument(source)).To(MatchDocument(expected))
+			})
+		})
+	})
+})

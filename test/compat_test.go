@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc"
-	"github.com/lukewilliamboswell/libasciidoc/pkg/configuration"
-	. "github.com/lukewilliamboswell/libasciidoc/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,7 +54,7 @@ func args(pattern string) []interface{} {
 
 func compare(filename string) {
 	actual := &strings.Builder{}
-	_, err := libasciidoc.ConvertFile(actual, configuration.NewConfiguration(
+	_, err := asciidoc.ConvertFile(actual, configuration.NewConfiguration(
 		configuration.WithFilename(filename),
 		configuration.WithBackEnd("html5"),
 		configuration.WithAttribute("libasciidoc-version", "0.7.0"),

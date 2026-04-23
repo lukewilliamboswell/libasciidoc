@@ -1,0 +1,37 @@
+package asciidoc_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+
+	// pkgprofile "github.com/pkg/profile"
+	"github.com/felixge/fgtrace"
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
+)
+
+func BenchmarkRealDocumentProcessing(b *testing.B) {
+	// defer pkgprofile.Start(pkgprofile.MemProfile).Stop()
+	defer fgtrace.Config{Dst: fgtrace.File("./tmp/fgtrace.json")}.Trace().Stop() //nolint:errcheck
+	log.SetLevel(log.ErrorLevel)
+	b.Run("demo.adoc", processDocument("../test/compat/demo.adoc"))
+	b.Run("vertx-examples.adoc", processDocument("../test/bench/vertx-examples.adoc"))
+	b.Run("mocking.adoc", processDocument("../test/bench/mocking.adoc"))
+}
+
+func processDocument(filename string) func(b *testing.B) {
+	return func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			out := &strings.Builder{}
+			_, err := asciidoc.ConvertFile(out,
+				configuration.NewConfiguration(
+					configuration.WithFilename(filename),
+					configuration.WithCSS([]string{"path/to/style.css"}),
+					configuration.WithHeaderFooter(true)))
+			require.NoError(b, err)
+		}
+	}
+}

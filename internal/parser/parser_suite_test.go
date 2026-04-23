@@ -1,15 +1,15 @@
-package test_test
+package parser_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"testing"
 
 	_ "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 )
 
-func TestTest(t *testing.T) {
+func TestParser(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
+	RunSpecs(t, "Parser Suite")
 }

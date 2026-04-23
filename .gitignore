@@ -61,15 +61,14 @@ coverage.txt
 *.html
 *.test
 !test/**/*.html
-!pkg/**/*.html
 *libasciidoc.html
 profile*.*
 !make/*.mk
 coverprofile.out
 
-# ignore built binary from $ go build ./cmd/libasciidoc
-libasciidoc
-!cmd/libasciidoc/
+# ignore built binaries
+/ascii2doc
+/ascii2html
 
 ## ignore temporary files from MS Office
 **/~$*

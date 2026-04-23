@@ -1,0 +1,45 @@
+package testsupport_test
+
+import (
+	"github.com/lukewilliamboswell/libasciidoc/types"
+	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("parse document", func() {
+
+	expected := &types.Document{
+		Elements: []interface{}{
+			&types.Paragraph{
+				Elements: []interface{}{
+					&types.StringElement{
+						Content: "hello, world!",
+					},
+				},
+			},
+		},
+	}
+
+	It("should match", func() {
+		// given
+		actual := "hello, world!"
+		// when
+		result, err := testsupport.ParseDocument(actual)
+		// then
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(expected))
+	})
+
+	It("should not match", func() {
+		// given
+		actual := "foo"
+		// when
+		result, err := testsupport.ParseDocument(actual)
+		// then
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).NotTo(Equal(expected))
+	})
+
+})
