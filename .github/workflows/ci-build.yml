@@ -31,7 +31,7 @@ jobs:
       run: go build ./...
 
     - name: Test
-      run: go test -coverprofile=coverage.txt ./...
+      run: go test ${{ runner.os == 'Linux' && '-coverprofile=coverage.txt' || '' }} ./...
 
     - name: Upload coverage to Codecov
       if: runner.os == 'Linux'
@@ -55,5 +55,4 @@ jobs:
       uses: golangci/golangci-lint-action@v7
       with:
         version: latest
-        args: -c .golangci.yml
 

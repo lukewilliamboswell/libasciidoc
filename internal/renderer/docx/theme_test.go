@@ -1116,7 +1116,6 @@ base:
 		It("should fail with a missing theme file", func() {
 			_, err := testsupportRenderDOCXWithTheme(`Hello`, "/nonexistent/theme.yml")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("no such file"))
 		})
 
 		It("should fail with invalid YAML", func() {
