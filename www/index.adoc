@@ -1,0 +1,10 @@
+= libasciidoc
+:weight: 1
+
+A Go library and CLI for converting AsciiDoc to HTML5 and DOCX.
+
+== Features
+
+* Convert AsciiDoc to HTML5 and XHTML5
+* Convert AsciiDoc to DOCX with theme support
+* Build static sites from AsciiDoc content

@@ -25,13 +25,20 @@ type metadataMatcher struct {
 }
 
 func (m *metadataMatcher) Match(actual interface{}) (success bool, err error) {
-	if _, ok := actual.(types.Metadata); !ok {
+	actualMeta, ok := actual.(types.Metadata)
+	if !ok {
 		return false, errors.Errorf("MatchMetadata matcher expects a 'types.Metadata' (actual: %T)", actual)
 	}
-	if !reflect.DeepEqual(m.expected, actual) {
-		GinkgoT().Logf("actual HTML:\n'%s'", actual)
-		GinkgoT().Logf("expected HTML:\n'%s'", m.expected)
-		m.diffs = cmp.Diff(spew.Sdump(m.expected), spew.Sdump(actual))
+	// When expected Attributes is nil, treat it as "don't care" —
+	// copy the actual value so the comparison ignores it.
+	expected := m.expected
+	if expected.Attributes == nil {
+		expected.Attributes = actualMeta.Attributes
+	}
+	if !reflect.DeepEqual(expected, actualMeta) {
+		GinkgoT().Logf("actual HTML:\n'%s'", actualMeta)
+		GinkgoT().Logf("expected HTML:\n'%s'", expected)
+		m.diffs = cmp.Diff(spew.Sdump(expected), spew.Sdump(actualMeta))
 		return false, nil
 	}
 	return true, nil

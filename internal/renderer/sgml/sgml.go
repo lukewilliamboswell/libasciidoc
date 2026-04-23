@@ -80,6 +80,11 @@ elements:
 		return metadata, fmt.Errorf("unable to render full document: %w", err)
 	}
 	metadata.TableOfContents = doc.TableOfContents
+	// expose document attributes for external consumers (e.g., static site generator)
+	metadata.Attributes = make(map[string]interface{}, len(ctx.attributes))
+	for k, v := range ctx.attributes {
+		metadata.Attributes[k] = v
+	}
 	renderedHeader, renderedContent, err := r.splitAndRender(ctx, doc)
 	if err != nil {
 		return metadata, fmt.Errorf("unable to render full document: %w", err)

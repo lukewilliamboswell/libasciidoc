@@ -10,6 +10,7 @@ import (
 
 	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/internal/site"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -25,6 +26,9 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 	var backend string
 	var attributes []string
 	var themePath string
+	var staticSite bool
+	var templatePath string
+	var basePath string
 
 	rootCmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s [flags] FILE", name),
@@ -48,6 +52,26 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
+			}
+			if staticSite {
+				if len(args) != 1 {
+					return fmt.Errorf("--static-site requires exactly one source directory argument")
+				}
+				if backend != defaultBackend && backend != "html5" && backend != "html" {
+					return fmt.Errorf("--static-site only supports html5 backend")
+				}
+				outDir := outputName
+				if outDir == "" || outDir == "-" {
+					outDir = "_site"
+				}
+				return site.Build(site.Config{
+					SourceDir:    args[0],
+					OutputDir:    outDir,
+					TemplatePath: templatePath,
+					BasePath:     basePath,
+					CSS:          css,
+					Attributes:   parseAttributes(attributes),
+				})
 			}
 			attrs := parseAttributes(attributes)
 			for _, sourcePath := range args {
@@ -79,6 +103,9 @@ func NewRootCmd(name, defaultBackend string) *cobra.Command {
 	flags.StringArrayVarP(&attributes, "attribute", "a", []string{}, "a document attribute to set in the form of name, name!, or name=value pair")
 	flags.StringVarP(&backend, "backend", "b", defaultBackend, "backend to format the file")
 	flags.StringVar(&themePath, "theme", "", "path to Asciidoctor PDF theme YAML file for DOCX styling")
+	flags.BoolVar(&staticSite, "static-site", false, "build a static site from a directory of .adoc files")
+	flags.StringVar(&templatePath, "template", "", "path to custom HTML template for static site mode")
+	flags.StringVar(&basePath, "base-path", "/", "base path prefix for URLs (e.g., /repo/ for GitHub Pages)")
 	return rootCmd
 }
 

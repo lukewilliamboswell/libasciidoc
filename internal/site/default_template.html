@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}}</title>
+  {{range .CSS}}<link rel="stylesheet" href="{{.}}">
+  {{end}}
+</head>
+<body>
+  <nav>
+    {{template "navtree" .Nav}}
+  </nav>
+  <main>
+    {{.Content}}
+  </main>
+</body>
+</html>
+
+{{define "navtree"}}<ul>
+{{range .Children}}<li{{if .Active}} class="active"{{end}}><a href="{{.Href}}">{{.Title}}</a>
+{{if .Children}}{{template "navtree" .}}{{end}}</li>
+{{end}}</ul>{{end}}

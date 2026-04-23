@@ -1,0 +1,4 @@
+= Guides
+:weight: 2
+
+Browse the guides below to get started with libasciidoc.

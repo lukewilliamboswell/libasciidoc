@@ -1,0 +1,25 @@
+= Static Site Mode
+:weight: 2
+
+== Overview
+
+The `--static-site` flag turns `ascii2doc` into a static site generator. It walks a source directory, renders each `.adoc` file to HTML, wraps it in a layout template with navigation, and copies static assets.
+
+== Flags
+
+`--static-site`:: Enable static site mode.
+`-o <dir>`:: Output directory (default: `_site/`).
+`--template <file>`:: Custom Go `html/template` layout file.
+`--base-path <path>`:: URL prefix for all links (default: `/`).
+`--css <file>`:: CSS files to link (repeatable).
+`-a key=value`:: Set document attributes.
+
+== Navigation
+
+Pages are ordered by the `:weight:` attribute (lower numbers first, default 0), then alphabetically by title.
+
+Files named `index.adoc` represent their parent directory in the navigation tree.
+
+== Example
+
+ ascii2doc --static-site -o _site/ --base-path /libasciidoc/ --css style.css www/
