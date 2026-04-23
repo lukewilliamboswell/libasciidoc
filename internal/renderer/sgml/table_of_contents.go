@@ -3,8 +3,8 @@ package sgml
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

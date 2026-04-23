@@ -93,7 +93,7 @@ type TitlePageTheme struct {
 
 // TableTheme controls table rendering.
 type TableTheme struct {
-	Width         string  // "auto" (fit content), "full" (fit page/window), or percentage like "80%"
+	Width         string // "auto" (fit content), "full" (fit page/window), or percentage like "80%"
 	FontSize      float64
 	BorderColor   string
 	BorderWidth   float64 // in pt
@@ -188,9 +188,9 @@ type ExampleTheme struct {
 
 // CaptionTheme controls figure/table caption styling.
 type CaptionTheme struct {
-	FontSize  float64
-	FontStyle string // "bold", "italic", "bold_italic"
-	FontColor string
+	FontSize   float64
+	FontStyle  string // "bold", "italic", "bold_italic"
+	FontColor  string
 	FontFamily string
 	TextAlign  string
 }
@@ -209,7 +209,7 @@ type RunningHFTheme struct {
 	FontSize   float64 // in pt
 	FontColor  string
 	FontFamily string
-	FontStyle  string // "bold", "italic", "bold_italic"
+	FontStyle  string  // "bold", "italic", "bold_italic"
 	Height     float64 // in mm (defaults from page margin header/footer distance)
 }
 
@@ -230,8 +230,8 @@ func DefaultTheme() *DocxTheme {
 			FontStyle: "bold",
 		},
 		Title: TitlePageTheme{
-			TitleFontSize:  20, // 40 half-points
-			TitleFontStyle: "bold",
+			TitleFontSize:    20, // 40 half-points
+			TitleFontStyle:   "bold",
 			SubtitleFontSize: 12, // 24 half-points
 		},
 		Table: TableTheme{

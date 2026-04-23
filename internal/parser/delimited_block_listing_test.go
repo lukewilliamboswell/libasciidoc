@@ -3,8 +3,8 @@ package parser_test
 import (
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo/v2"

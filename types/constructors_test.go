@@ -662,7 +662,7 @@ var _ = Describe("DocumentHeader", func() {
 			authors := types.DocumentAuthors{
 				&types.DocumentAuthor{
 					DocumentAuthorFullName: &types.DocumentAuthorFullName{FirstName: "Jane"},
-					Email:                 "jane@example.com",
+					Email:                  "jane@example.com",
 				},
 			}
 			header := &types.DocumentHeader{

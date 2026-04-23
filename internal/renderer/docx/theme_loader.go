@@ -184,11 +184,11 @@ type yamlQuoteTheme struct {
 }
 
 type yamlAdmonitionTheme struct {
-	FontColor       string              `yaml:"font_color"`
-	FontSize        float64             `yaml:"font_size"`
-	BackgroundColor string              `yaml:"background_color"`
-	BorderColor     string              `yaml:"border_color"`
-	BorderWidth     float64             `yaml:"border_width"`
+	FontColor       string               `yaml:"font_color"`
+	FontSize        float64              `yaml:"font_size"`
+	BackgroundColor string               `yaml:"background_color"`
+	BorderColor     string               `yaml:"border_color"`
+	BorderWidth     float64              `yaml:"border_width"`
 	Label           *yamlAdmonitionLabel `yaml:"label"`
 }
 
@@ -240,325 +240,405 @@ type yamlRunningHFTheme struct {
 // applyTo merges parsed YAML values onto the default theme.
 // Only non-zero/non-empty values are applied.
 func (yt *yamlTheme) applyTo(t *DocxTheme) {
-	if yt.Page != nil {
-		if yt.Page.Layout != "" {
-			t.Page.Layout = yt.Page.Layout
-		}
-		if yt.Page.Size != "" {
-			t.Page.Size = yt.Page.Size
-		}
-		if yt.Page.Margin != [4]float64{} {
-			t.Page.Margin = yt.Page.Margin
-		}
-	}
-	if yt.Base != nil {
-		if yt.Base.FontFamily != "" {
-			t.Base.FontFamily = yt.Base.FontFamily
-		}
-		if yt.Base.FontColor != "" {
-			t.Base.FontColor = yt.Base.FontColor
-		}
-		if yt.Base.FontSize > 0 {
-			t.Base.FontSize = yt.Base.FontSize
-		}
-		if yt.Base.FontStyle != "" {
-			t.Base.FontStyle = yt.Base.FontStyle
-		}
-		if yt.Base.TextAlign != "" {
-			t.Base.TextAlign = yt.Base.TextAlign
-		}
-		if yt.Base.LineHeight > 0 {
-			t.Base.LineHeight = yt.Base.LineHeight
-		}
-	}
-	if yt.Heading != nil {
-		if yt.Heading.FontFamily != "" {
-			t.Heading.FontFamily = yt.Heading.FontFamily
-		}
-		if yt.Heading.FontColor != "" {
-			t.Heading.FontColor = yt.Heading.FontColor
-		}
-		if yt.Heading.FontStyle != "" {
-			t.Heading.FontStyle = yt.Heading.FontStyle
-		}
-		if yt.Heading.TextTransform != "" {
-			t.Heading.TextTransform = yt.Heading.TextTransform
-		}
-		if yt.Heading.MarginTop > 0 {
-			t.Heading.MarginTop = yt.Heading.MarginTop
-		}
-		if yt.Heading.MarginBottom > 0 {
-			t.Heading.MarginBottom = yt.Heading.MarginBottom
-		}
-		applyHeadingLevel(yt.Heading.H1, &t.Heading.H1FontSize, &t.Heading.H1TextTransform, &t.Heading.H1FontColor, &t.Heading.H1FontStyle)
-		applyHeadingLevel(yt.Heading.H2, &t.Heading.H2FontSize, &t.Heading.H2TextTransform, &t.Heading.H2FontColor, &t.Heading.H2FontStyle)
-		applyHeadingLevel(yt.Heading.H3, &t.Heading.H3FontSize, &t.Heading.H3TextTransform, &t.Heading.H3FontColor, &t.Heading.H3FontStyle)
-		applyHeadingLevel(yt.Heading.H4, &t.Heading.H4FontSize, &t.Heading.H4TextTransform, &t.Heading.H4FontColor, &t.Heading.H4FontStyle)
-		applyHeadingLevel(yt.Heading.H5, &t.Heading.H5FontSize, nil, &t.Heading.H5FontColor, &t.Heading.H5FontStyle)
-		applyHeadingLevel(yt.Heading.H6, &t.Heading.H6FontSize, nil, &t.Heading.H6FontColor, &t.Heading.H6FontStyle)
-	}
-	if yt.Title != nil {
-		if yt.Title.Title != nil {
-			if yt.Title.Title.FontSize > 0 {
-				t.Title.TitleFontSize = yt.Title.Title.FontSize
-			}
-			if yt.Title.Title.FontStyle != "" {
-				t.Title.TitleFontStyle = yt.Title.Title.FontStyle
-			}
-			if yt.Title.Title.FontColor != "" {
-				t.Title.TitleFontColor = yt.Title.Title.FontColor
-			}
-			if yt.Title.Title.FontFamily != "" {
-				t.Title.TitleFontFamily = yt.Title.Title.FontFamily
-			}
-			if yt.Title.Title.TextTransform != "" {
-				t.Title.TitleTextTransform = yt.Title.Title.TextTransform
-			}
-			if yt.Title.Title.TextAlign != "" {
-				t.Title.TitleTextAlign = yt.Title.Title.TextAlign
-			}
-		}
-		if yt.Title.Subtitle != nil {
-			if yt.Title.Subtitle.FontSize > 0 {
-				t.Title.SubtitleFontSize = yt.Title.Subtitle.FontSize
-			}
-			if yt.Title.Subtitle.FontColor != "" {
-				t.Title.SubtitleFontColor = yt.Title.Subtitle.FontColor
-			}
-			if yt.Title.Subtitle.FontFamily != "" {
-				t.Title.SubtitleFontFamily = yt.Title.Subtitle.FontFamily
-			}
-			if yt.Title.Subtitle.FontStyle != "" {
-				t.Title.SubtitleFontStyle = yt.Title.Subtitle.FontStyle
-			}
-		}
-	}
-	if yt.Table != nil {
-		if yt.Table.Width != "" {
-			t.Table.Width = yt.Table.Width
-		}
-		if yt.Table.FontSize > 0 {
-			t.Table.FontSize = yt.Table.FontSize
-		}
-		if yt.Table.BorderColor != "" {
-			t.Table.BorderColor = yt.Table.BorderColor
-		}
-		if yt.Table.BorderWidth > 0 {
-			t.Table.BorderWidth = yt.Table.BorderWidth
-		}
-		if yt.Table.CellPadding > 0 {
-			t.Table.CellPadding = yt.Table.CellPadding
-		}
-		if yt.Table.GridColor != "" {
-			t.Table.GridColor = yt.Table.GridColor
-		}
-		if yt.Table.GridWidth > 0 {
-			t.Table.GridWidth = yt.Table.GridWidth
-		}
-		if yt.Table.StripeBgColor != "" {
-			t.Table.StripeBgColor = yt.Table.StripeBgColor
-		}
-		if yt.Table.Head != nil {
-			if yt.Table.Head.BackgroundColor != "" {
-				t.Table.HeadBgColor = yt.Table.Head.BackgroundColor
-			}
-			if yt.Table.Head.FontStyle != "" {
-				t.Table.HeadFontStyle = yt.Table.Head.FontStyle
-			}
-		}
-		if yt.Table.Foot != nil {
-			if yt.Table.Foot.BackgroundColor != "" {
-				t.Table.FootBgColor = yt.Table.Foot.BackgroundColor
-			}
-			if yt.Table.Foot.FontStyle != "" {
-				t.Table.FootFontStyle = yt.Table.Foot.FontStyle
-			}
-		}
-	}
-	if yt.List != nil {
-		if yt.List.Indent != nil {
-			if v := parseLengthPt(yt.List.Indent); v > 0 {
-				t.List.Indent = v
-			}
-		}
-		if yt.List.ItemSpacing > 0 {
-			t.List.ItemSpacing = yt.List.ItemSpacing
-		}
-		if yt.List.MarkerFontColor != "" {
-			t.List.MarkerFontColor = yt.List.MarkerFontColor
-		}
-	}
-	if yt.Code != nil {
-		if yt.Code.FontFamily != "" {
-			t.Code.FontFamily = yt.Code.FontFamily
-		}
-		if yt.Code.FontSize > 0 {
-			t.Code.FontSize = yt.Code.FontSize
-		}
-		if yt.Code.FontColor != "" {
-			t.Code.FontColor = yt.Code.FontColor
-		}
-		if yt.Code.BackgroundColor != "" {
-			t.Code.BackgroundColor = yt.Code.BackgroundColor
-		}
-		if yt.Code.BorderColor != "" {
-			t.Code.BorderColor = yt.Code.BorderColor
-		}
-		if yt.Code.BorderWidth > 0 {
-			t.Code.BorderWidth = yt.Code.BorderWidth
-		}
-		if yt.Code.LineHeight > 0 {
-			t.Code.LineHeight = yt.Code.LineHeight
-		}
-	}
-	if yt.Codespan != nil {
-		if yt.Codespan.FontFamily != "" {
-			t.Codespan.FontFamily = yt.Codespan.FontFamily
-		}
-		if yt.Codespan.FontSize > 0 {
-			t.Codespan.FontSize = yt.Codespan.FontSize
-		}
-		if yt.Codespan.FontColor != "" {
-			t.Codespan.FontColor = yt.Codespan.FontColor
-		}
-		if yt.Codespan.BackgroundColor != "" {
-			t.Codespan.BackgroundColor = yt.Codespan.BackgroundColor
-		}
-	}
-	if yt.Link != nil {
-		if yt.Link.FontColor != "" {
-			t.Link.FontColor = yt.Link.FontColor
-		}
-		if yt.Link.FontStyle != "" {
-			t.Link.FontStyle = yt.Link.FontStyle
-		}
-		if yt.Link.TextDecoration != "" {
-			t.Link.TextDecoration = yt.Link.TextDecoration
-		}
-	}
-	if yt.Prose != nil {
-		if yt.Prose.MarginBottom > 0 {
-			t.Prose.MarginBottom = yt.Prose.MarginBottom
-		}
-		if yt.Prose.TextAlign != "" {
-			t.Prose.TextAlign = yt.Prose.TextAlign
-		}
-		if yt.Prose.TextIndent > 0 {
-			t.Prose.TextIndent = yt.Prose.TextIndent
-		}
-	}
-	if yt.Quote != nil {
-		if yt.Quote.FontSize > 0 {
-			t.Quote.FontSize = yt.Quote.FontSize
-		}
-		if yt.Quote.FontColor != "" {
-			t.Quote.FontColor = yt.Quote.FontColor
-		}
-		if yt.Quote.FontStyle != "" {
-			t.Quote.FontStyle = yt.Quote.FontStyle
-		}
-		if yt.Quote.FontFamily != "" {
-			t.Quote.FontFamily = yt.Quote.FontFamily
-		}
-		if yt.Quote.BorderColor != "" {
-			t.Quote.BorderColor = yt.Quote.BorderColor
-		}
-		if yt.Quote.BorderWidth > 0 {
-			t.Quote.BorderWidth = yt.Quote.BorderWidth
-		}
-	}
-	if yt.Admonition != nil {
-		if yt.Admonition.FontColor != "" {
-			t.Admonition.FontColor = yt.Admonition.FontColor
-		}
-		if yt.Admonition.FontSize > 0 {
-			t.Admonition.FontSize = yt.Admonition.FontSize
-		}
-		if yt.Admonition.BackgroundColor != "" {
-			t.Admonition.BackgroundColor = yt.Admonition.BackgroundColor
-		}
-		if yt.Admonition.BorderColor != "" {
-			t.Admonition.BorderColor = yt.Admonition.BorderColor
-		}
-		if yt.Admonition.BorderWidth > 0 {
-			t.Admonition.BorderWidth = yt.Admonition.BorderWidth
-		}
-		if yt.Admonition.Label != nil {
-			if yt.Admonition.Label.FontStyle != "" {
-				t.Admonition.LabelFontStyle = yt.Admonition.Label.FontStyle
-			}
-			if yt.Admonition.Label.FontColor != "" {
-				t.Admonition.LabelFontColor = yt.Admonition.Label.FontColor
-			}
-		}
-	}
-	if yt.Sidebar != nil {
-		if yt.Sidebar.BackgroundColor != "" {
-			t.Sidebar.BackgroundColor = yt.Sidebar.BackgroundColor
-		}
-		if yt.Sidebar.BorderColor != "" {
-			t.Sidebar.BorderColor = yt.Sidebar.BorderColor
-		}
-		if yt.Sidebar.BorderWidth > 0 {
-			t.Sidebar.BorderWidth = yt.Sidebar.BorderWidth
-		}
-		if yt.Sidebar.FontColor != "" {
-			t.Sidebar.FontColor = yt.Sidebar.FontColor
-		}
-		if yt.Sidebar.FontSize > 0 {
-			t.Sidebar.FontSize = yt.Sidebar.FontSize
-		}
-	}
-	if yt.Example != nil {
-		if yt.Example.BackgroundColor != "" {
-			t.Example.BackgroundColor = yt.Example.BackgroundColor
-		}
-		if yt.Example.BorderColor != "" {
-			t.Example.BorderColor = yt.Example.BorderColor
-		}
-		if yt.Example.BorderWidth > 0 {
-			t.Example.BorderWidth = yt.Example.BorderWidth
-		}
-		if yt.Example.FontColor != "" {
-			t.Example.FontColor = yt.Example.FontColor
-		}
-		if yt.Example.FontSize > 0 {
-			t.Example.FontSize = yt.Example.FontSize
-		}
-	}
-	if yt.Caption != nil {
-		if yt.Caption.FontSize > 0 {
-			t.Caption.FontSize = yt.Caption.FontSize
-		}
-		if yt.Caption.FontStyle != "" {
-			t.Caption.FontStyle = yt.Caption.FontStyle
-		}
-		if yt.Caption.FontColor != "" {
-			t.Caption.FontColor = yt.Caption.FontColor
-		}
-		if yt.Caption.FontFamily != "" {
-			t.Caption.FontFamily = yt.Caption.FontFamily
-		}
-		if yt.Caption.TextAlign != "" {
-			t.Caption.TextAlign = yt.Caption.TextAlign
-		}
-	}
-	if yt.DescriptionList != nil {
-		if yt.DescriptionList.TermFontStyle != "" {
-			t.DescriptionList.TermFontStyle = yt.DescriptionList.TermFontStyle
-		}
-		if yt.DescriptionList.TermFontColor != "" {
-			t.DescriptionList.TermFontColor = yt.DescriptionList.TermFontColor
-		}
-		if yt.DescriptionList.TermFontFamily != "" {
-			t.DescriptionList.TermFontFamily = yt.DescriptionList.TermFontFamily
-		}
-		if yt.DescriptionList.TermFontSize > 0 {
-			t.DescriptionList.TermFontSize = yt.DescriptionList.TermFontSize
-		}
-	}
+	yt.applyPageTo(t)
+	yt.applyBaseTo(t)
+	yt.applyHeadingTo(t)
+	yt.applyTitleTo(t)
+	yt.applyTableTo(t)
+	yt.applyListTo(t)
+	yt.applyCodeTo(t)
+	yt.applyCodespanTo(t)
+	yt.applyLinkTo(t)
+	yt.applyProseTo(t)
+	yt.applyQuoteTo(t)
+	yt.applyAdmonitionTo(t)
+	yt.applySidebarTo(t)
+	yt.applyExampleTo(t)
+	yt.applyCaptionTo(t)
+	yt.applyDescriptionListTo(t)
 	applyRunningHF(yt.Header, &t.RunningHeader)
 	applyRunningHF(yt.Footer, &t.RunningFooter)
+}
+
+func (yt *yamlTheme) applyPageTo(t *DocxTheme) {
+	if yt.Page == nil {
+		return
+	}
+	if yt.Page.Layout != "" {
+		t.Page.Layout = yt.Page.Layout
+	}
+	if yt.Page.Size != "" {
+		t.Page.Size = yt.Page.Size
+	}
+	if yt.Page.Margin != [4]float64{} {
+		t.Page.Margin = yt.Page.Margin
+	}
+}
+
+func (yt *yamlTheme) applyBaseTo(t *DocxTheme) {
+	if yt.Base == nil {
+		return
+	}
+	if yt.Base.FontFamily != "" {
+		t.Base.FontFamily = yt.Base.FontFamily
+	}
+	if yt.Base.FontColor != "" {
+		t.Base.FontColor = yt.Base.FontColor
+	}
+	if yt.Base.FontSize > 0 {
+		t.Base.FontSize = yt.Base.FontSize
+	}
+	if yt.Base.FontStyle != "" {
+		t.Base.FontStyle = yt.Base.FontStyle
+	}
+	if yt.Base.TextAlign != "" {
+		t.Base.TextAlign = yt.Base.TextAlign
+	}
+	if yt.Base.LineHeight > 0 {
+		t.Base.LineHeight = yt.Base.LineHeight
+	}
+}
+
+func (yt *yamlTheme) applyHeadingTo(t *DocxTheme) {
+	if yt.Heading == nil {
+		return
+	}
+	if yt.Heading.FontFamily != "" {
+		t.Heading.FontFamily = yt.Heading.FontFamily
+	}
+	if yt.Heading.FontColor != "" {
+		t.Heading.FontColor = yt.Heading.FontColor
+	}
+	if yt.Heading.FontStyle != "" {
+		t.Heading.FontStyle = yt.Heading.FontStyle
+	}
+	if yt.Heading.TextTransform != "" {
+		t.Heading.TextTransform = yt.Heading.TextTransform
+	}
+	if yt.Heading.MarginTop > 0 {
+		t.Heading.MarginTop = yt.Heading.MarginTop
+	}
+	if yt.Heading.MarginBottom > 0 {
+		t.Heading.MarginBottom = yt.Heading.MarginBottom
+	}
+	applyHeadingLevel(yt.Heading.H1, &t.Heading.H1FontSize, &t.Heading.H1TextTransform, &t.Heading.H1FontColor, &t.Heading.H1FontStyle)
+	applyHeadingLevel(yt.Heading.H2, &t.Heading.H2FontSize, &t.Heading.H2TextTransform, &t.Heading.H2FontColor, &t.Heading.H2FontStyle)
+	applyHeadingLevel(yt.Heading.H3, &t.Heading.H3FontSize, &t.Heading.H3TextTransform, &t.Heading.H3FontColor, &t.Heading.H3FontStyle)
+	applyHeadingLevel(yt.Heading.H4, &t.Heading.H4FontSize, &t.Heading.H4TextTransform, &t.Heading.H4FontColor, &t.Heading.H4FontStyle)
+	applyHeadingLevel(yt.Heading.H5, &t.Heading.H5FontSize, nil, &t.Heading.H5FontColor, &t.Heading.H5FontStyle)
+	applyHeadingLevel(yt.Heading.H6, &t.Heading.H6FontSize, nil, &t.Heading.H6FontColor, &t.Heading.H6FontStyle)
+}
+
+func (yt *yamlTheme) applyTitleTo(t *DocxTheme) {
+	if yt.Title == nil {
+		return
+	}
+	if yt.Title.Title != nil {
+		if yt.Title.Title.FontSize > 0 {
+			t.Title.TitleFontSize = yt.Title.Title.FontSize
+		}
+		if yt.Title.Title.FontStyle != "" {
+			t.Title.TitleFontStyle = yt.Title.Title.FontStyle
+		}
+		if yt.Title.Title.FontColor != "" {
+			t.Title.TitleFontColor = yt.Title.Title.FontColor
+		}
+		if yt.Title.Title.FontFamily != "" {
+			t.Title.TitleFontFamily = yt.Title.Title.FontFamily
+		}
+		if yt.Title.Title.TextTransform != "" {
+			t.Title.TitleTextTransform = yt.Title.Title.TextTransform
+		}
+		if yt.Title.Title.TextAlign != "" {
+			t.Title.TitleTextAlign = yt.Title.Title.TextAlign
+		}
+	}
+	if yt.Title.Subtitle != nil {
+		if yt.Title.Subtitle.FontSize > 0 {
+			t.Title.SubtitleFontSize = yt.Title.Subtitle.FontSize
+		}
+		if yt.Title.Subtitle.FontColor != "" {
+			t.Title.SubtitleFontColor = yt.Title.Subtitle.FontColor
+		}
+		if yt.Title.Subtitle.FontFamily != "" {
+			t.Title.SubtitleFontFamily = yt.Title.Subtitle.FontFamily
+		}
+		if yt.Title.Subtitle.FontStyle != "" {
+			t.Title.SubtitleFontStyle = yt.Title.Subtitle.FontStyle
+		}
+	}
+}
+
+func (yt *yamlTheme) applyTableTo(t *DocxTheme) {
+	if yt.Table == nil {
+		return
+	}
+	if yt.Table.Width != "" {
+		t.Table.Width = yt.Table.Width
+	}
+	if yt.Table.FontSize > 0 {
+		t.Table.FontSize = yt.Table.FontSize
+	}
+	if yt.Table.BorderColor != "" {
+		t.Table.BorderColor = yt.Table.BorderColor
+	}
+	if yt.Table.BorderWidth > 0 {
+		t.Table.BorderWidth = yt.Table.BorderWidth
+	}
+	if yt.Table.CellPadding > 0 {
+		t.Table.CellPadding = yt.Table.CellPadding
+	}
+	if yt.Table.GridColor != "" {
+		t.Table.GridColor = yt.Table.GridColor
+	}
+	if yt.Table.GridWidth > 0 {
+		t.Table.GridWidth = yt.Table.GridWidth
+	}
+	if yt.Table.StripeBgColor != "" {
+		t.Table.StripeBgColor = yt.Table.StripeBgColor
+	}
+	if yt.Table.Head != nil {
+		if yt.Table.Head.BackgroundColor != "" {
+			t.Table.HeadBgColor = yt.Table.Head.BackgroundColor
+		}
+		if yt.Table.Head.FontStyle != "" {
+			t.Table.HeadFontStyle = yt.Table.Head.FontStyle
+		}
+	}
+	if yt.Table.Foot != nil {
+		if yt.Table.Foot.BackgroundColor != "" {
+			t.Table.FootBgColor = yt.Table.Foot.BackgroundColor
+		}
+		if yt.Table.Foot.FontStyle != "" {
+			t.Table.FootFontStyle = yt.Table.Foot.FontStyle
+		}
+	}
+}
+
+func (yt *yamlTheme) applyListTo(t *DocxTheme) {
+	if yt.List == nil {
+		return
+	}
+	if yt.List.Indent != nil {
+		if v := parseLengthPt(yt.List.Indent); v > 0 {
+			t.List.Indent = v
+		}
+	}
+	if yt.List.ItemSpacing > 0 {
+		t.List.ItemSpacing = yt.List.ItemSpacing
+	}
+	if yt.List.MarkerFontColor != "" {
+		t.List.MarkerFontColor = yt.List.MarkerFontColor
+	}
+}
+
+func (yt *yamlTheme) applyCodeTo(t *DocxTheme) {
+	if yt.Code == nil {
+		return
+	}
+	if yt.Code.FontFamily != "" {
+		t.Code.FontFamily = yt.Code.FontFamily
+	}
+	if yt.Code.FontSize > 0 {
+		t.Code.FontSize = yt.Code.FontSize
+	}
+	if yt.Code.FontColor != "" {
+		t.Code.FontColor = yt.Code.FontColor
+	}
+	if yt.Code.BackgroundColor != "" {
+		t.Code.BackgroundColor = yt.Code.BackgroundColor
+	}
+	if yt.Code.BorderColor != "" {
+		t.Code.BorderColor = yt.Code.BorderColor
+	}
+	if yt.Code.BorderWidth > 0 {
+		t.Code.BorderWidth = yt.Code.BorderWidth
+	}
+	if yt.Code.LineHeight > 0 {
+		t.Code.LineHeight = yt.Code.LineHeight
+	}
+}
+
+func (yt *yamlTheme) applyCodespanTo(t *DocxTheme) {
+	if yt.Codespan == nil {
+		return
+	}
+	if yt.Codespan.FontFamily != "" {
+		t.Codespan.FontFamily = yt.Codespan.FontFamily
+	}
+	if yt.Codespan.FontSize > 0 {
+		t.Codespan.FontSize = yt.Codespan.FontSize
+	}
+	if yt.Codespan.FontColor != "" {
+		t.Codespan.FontColor = yt.Codespan.FontColor
+	}
+	if yt.Codespan.BackgroundColor != "" {
+		t.Codespan.BackgroundColor = yt.Codespan.BackgroundColor
+	}
+}
+
+func (yt *yamlTheme) applyLinkTo(t *DocxTheme) {
+	if yt.Link == nil {
+		return
+	}
+	if yt.Link.FontColor != "" {
+		t.Link.FontColor = yt.Link.FontColor
+	}
+	if yt.Link.FontStyle != "" {
+		t.Link.FontStyle = yt.Link.FontStyle
+	}
+	if yt.Link.TextDecoration != "" {
+		t.Link.TextDecoration = yt.Link.TextDecoration
+	}
+}
+
+func (yt *yamlTheme) applyProseTo(t *DocxTheme) {
+	if yt.Prose == nil {
+		return
+	}
+	if yt.Prose.MarginBottom > 0 {
+		t.Prose.MarginBottom = yt.Prose.MarginBottom
+	}
+	if yt.Prose.TextAlign != "" {
+		t.Prose.TextAlign = yt.Prose.TextAlign
+	}
+	if yt.Prose.TextIndent > 0 {
+		t.Prose.TextIndent = yt.Prose.TextIndent
+	}
+}
+
+func (yt *yamlTheme) applyQuoteTo(t *DocxTheme) {
+	if yt.Quote == nil {
+		return
+	}
+	if yt.Quote.FontSize > 0 {
+		t.Quote.FontSize = yt.Quote.FontSize
+	}
+	if yt.Quote.FontColor != "" {
+		t.Quote.FontColor = yt.Quote.FontColor
+	}
+	if yt.Quote.FontStyle != "" {
+		t.Quote.FontStyle = yt.Quote.FontStyle
+	}
+	if yt.Quote.FontFamily != "" {
+		t.Quote.FontFamily = yt.Quote.FontFamily
+	}
+	if yt.Quote.BorderColor != "" {
+		t.Quote.BorderColor = yt.Quote.BorderColor
+	}
+	if yt.Quote.BorderWidth > 0 {
+		t.Quote.BorderWidth = yt.Quote.BorderWidth
+	}
+}
+
+func (yt *yamlTheme) applyAdmonitionTo(t *DocxTheme) {
+	if yt.Admonition == nil {
+		return
+	}
+	if yt.Admonition.FontColor != "" {
+		t.Admonition.FontColor = yt.Admonition.FontColor
+	}
+	if yt.Admonition.FontSize > 0 {
+		t.Admonition.FontSize = yt.Admonition.FontSize
+	}
+	if yt.Admonition.BackgroundColor != "" {
+		t.Admonition.BackgroundColor = yt.Admonition.BackgroundColor
+	}
+	if yt.Admonition.BorderColor != "" {
+		t.Admonition.BorderColor = yt.Admonition.BorderColor
+	}
+	if yt.Admonition.BorderWidth > 0 {
+		t.Admonition.BorderWidth = yt.Admonition.BorderWidth
+	}
+	if yt.Admonition.Label != nil {
+		if yt.Admonition.Label.FontStyle != "" {
+			t.Admonition.LabelFontStyle = yt.Admonition.Label.FontStyle
+		}
+		if yt.Admonition.Label.FontColor != "" {
+			t.Admonition.LabelFontColor = yt.Admonition.Label.FontColor
+		}
+	}
+}
+
+func (yt *yamlTheme) applySidebarTo(t *DocxTheme) {
+	if yt.Sidebar == nil {
+		return
+	}
+	if yt.Sidebar.BackgroundColor != "" {
+		t.Sidebar.BackgroundColor = yt.Sidebar.BackgroundColor
+	}
+	if yt.Sidebar.BorderColor != "" {
+		t.Sidebar.BorderColor = yt.Sidebar.BorderColor
+	}
+	if yt.Sidebar.BorderWidth > 0 {
+		t.Sidebar.BorderWidth = yt.Sidebar.BorderWidth
+	}
+	if yt.Sidebar.FontColor != "" {
+		t.Sidebar.FontColor = yt.Sidebar.FontColor
+	}
+	if yt.Sidebar.FontSize > 0 {
+		t.Sidebar.FontSize = yt.Sidebar.FontSize
+	}
+}
+
+func (yt *yamlTheme) applyExampleTo(t *DocxTheme) {
+	if yt.Example == nil {
+		return
+	}
+	if yt.Example.BackgroundColor != "" {
+		t.Example.BackgroundColor = yt.Example.BackgroundColor
+	}
+	if yt.Example.BorderColor != "" {
+		t.Example.BorderColor = yt.Example.BorderColor
+	}
+	if yt.Example.BorderWidth > 0 {
+		t.Example.BorderWidth = yt.Example.BorderWidth
+	}
+	if yt.Example.FontColor != "" {
+		t.Example.FontColor = yt.Example.FontColor
+	}
+	if yt.Example.FontSize > 0 {
+		t.Example.FontSize = yt.Example.FontSize
+	}
+}
+
+func (yt *yamlTheme) applyCaptionTo(t *DocxTheme) {
+	if yt.Caption == nil {
+		return
+	}
+	if yt.Caption.FontSize > 0 {
+		t.Caption.FontSize = yt.Caption.FontSize
+	}
+	if yt.Caption.FontStyle != "" {
+		t.Caption.FontStyle = yt.Caption.FontStyle
+	}
+	if yt.Caption.FontColor != "" {
+		t.Caption.FontColor = yt.Caption.FontColor
+	}
+	if yt.Caption.FontFamily != "" {
+		t.Caption.FontFamily = yt.Caption.FontFamily
+	}
+	if yt.Caption.TextAlign != "" {
+		t.Caption.TextAlign = yt.Caption.TextAlign
+	}
+}
+
+func (yt *yamlTheme) applyDescriptionListTo(t *DocxTheme) {
+	if yt.DescriptionList == nil {
+		return
+	}
+	if yt.DescriptionList.TermFontStyle != "" {
+		t.DescriptionList.TermFontStyle = yt.DescriptionList.TermFontStyle
+	}
+	if yt.DescriptionList.TermFontColor != "" {
+		t.DescriptionList.TermFontColor = yt.DescriptionList.TermFontColor
+	}
+	if yt.DescriptionList.TermFontFamily != "" {
+		t.DescriptionList.TermFontFamily = yt.DescriptionList.TermFontFamily
+	}
+	if yt.DescriptionList.TermFontSize > 0 {
+		t.DescriptionList.TermFontSize = yt.DescriptionList.TermFontSize
+	}
 }
 
 func applyHeadingLevel(src *yamlHeadingLevel, fontSize *float64, textTransform, fontColor, fontStyle *string) {

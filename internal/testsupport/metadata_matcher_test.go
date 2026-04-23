@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lukewilliamboswell/libasciidoc/configuration"
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/lukewilliamboswell/libasciidoc/configuration"
+	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

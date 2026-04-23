@@ -69,7 +69,7 @@ func compare(filename string) {
 	// then we need to remove the `\r` characters that were added in the 'expected'
 	// source at the time of the checkout
 	if runtime.GOOS == "windows" && autocrlf == "true" {
-		expected = strings.Replace(expected, "\r", "", -1)
+		expected = strings.ReplaceAll(expected, "\r", "")
 	}
 	// compare actual vs reference
 	Expect(actual.String()).To(MatchHTML(expected))

@@ -4,8 +4,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
 )
 

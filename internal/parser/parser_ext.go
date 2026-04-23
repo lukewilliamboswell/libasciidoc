@@ -7,9 +7,9 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -63,57 +63,59 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	r.writer.WriteString(`</w:tblPr><w:tblGrid>`)
 	for i := 0; i < colCount; i++ {
 		r.writer.WriteString(`<w:gridCol w:w="`)
-		r.writer.WriteString(fmt.Sprint(tableGridWidthTwips / colCount))
+		fmt.Fprint(r.writer, tableGridWidthTwips/colCount)
 		r.writer.WriteString(`"/>`)
 	}
 	r.writer.WriteString(`</w:tblGrid>`)
 	for i, row := range rows {
-		isHeader := t.Header != nil && i == 0
-		isFooter := t.Footer != nil && i == len(rows)-1
-
-		// Determine bold from theme or structure
-		bold := isHeader || isFooter
-		if isHeader && theme.HeadFontStyle != "" {
-			hBold, _ := fontStyleBoldItalic(theme.HeadFontStyle)
-			bold = hBold
-		}
-		if isFooter && theme.FootFontStyle != "" {
-			fBold, _ := fontStyleBoldItalic(theme.FootFontStyle)
-			bold = fBold
-		}
-
-		// Determine italic
-		italic := false
-		if isHeader && theme.HeadFontStyle != "" {
-			_, italic = fontStyleBoldItalic(theme.HeadFontStyle)
-		}
-		if isFooter && theme.FootFontStyle != "" {
-			_, italic = fontStyleBoldItalic(theme.FootFontStyle)
-		}
-
-		// Determine background color
-		bgColor := ""
-		if isHeader && theme.HeadBgColor != "" {
-			bgColor = theme.HeadBgColor
-		} else if isFooter && theme.FootBgColor != "" {
-			bgColor = theme.FootBgColor
-		} else if !isHeader && !isFooter && theme.StripeBgColor != "" {
-			// Stripe: apply to even data rows (0-indexed after header)
-			dataIdx := i
-			if t.Header != nil {
-				dataIdx = i - 1
-			}
-			if dataIdx%2 == 1 {
-				bgColor = theme.StripeBgColor
-			}
-		}
-
+		bold, italic, bgColor := r.tableRowStyle(t, theme, i, len(rows))
 		if err := r.renderTableRow(row, colCount, bold, italic, bgColor); err != nil {
 			return err
 		}
 	}
 	r.writer.WriteString(`</w:tbl>`)
 	return nil
+}
+
+func (r *docxRenderer) tableRowStyle(t *types.Table, theme TableTheme, i int, totalRows int) (bold, italic bool, bgColor string) {
+	isHeader := t.Header != nil && i == 0
+	isFooter := t.Footer != nil && i == totalRows-1
+
+	// Determine bold from theme or structure
+	bold = isHeader || isFooter
+	if isHeader && theme.HeadFontStyle != "" {
+		hBold, _ := fontStyleBoldItalic(theme.HeadFontStyle)
+		bold = hBold
+	}
+	if isFooter && theme.FootFontStyle != "" {
+		fBold, _ := fontStyleBoldItalic(theme.FootFontStyle)
+		bold = fBold
+	}
+
+	// Determine italic
+	if isHeader && theme.HeadFontStyle != "" {
+		_, italic = fontStyleBoldItalic(theme.HeadFontStyle)
+	}
+	if isFooter && theme.FootFontStyle != "" {
+		_, italic = fontStyleBoldItalic(theme.FootFontStyle)
+	}
+
+	// Determine background color
+	if isHeader && theme.HeadBgColor != "" {
+		bgColor = theme.HeadBgColor
+	} else if isFooter && theme.FootBgColor != "" {
+		bgColor = theme.FootBgColor
+	} else if !isHeader && !isFooter && theme.StripeBgColor != "" {
+		// Stripe: apply to even data rows (0-indexed after header)
+		dataIdx := i
+		if t.Header != nil {
+			dataIdx = i - 1
+		}
+		if dataIdx%2 == 1 {
+			bgColor = theme.StripeBgColor
+		}
+	}
+	return
 }
 
 func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string) error {

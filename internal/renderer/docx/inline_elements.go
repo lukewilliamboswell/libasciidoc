@@ -9,18 +9,18 @@ import (
 
 // runStyle carries accumulated formatting state for nested inline elements.
 type runStyle struct {
-	bold          bool
-	italic        bool
-	monospace     bool
-	monoFont      string // font name for monospace (from theme); empty means "Courier New"
-	font          string // explicit font override (non-monospace)
-	highlight     bool
-	subscript     bool
-	superscript   bool
-	underline     bool
-	color         string
-	charStyle     string
-	shading       string // background color for inline shading (w:shd)
+	bold        bool
+	italic      bool
+	monospace   bool
+	monoFont    string // font name for monospace (from theme); empty means "Courier New"
+	font        string // explicit font override (non-monospace)
+	highlight   bool
+	subscript   bool
+	superscript bool
+	underline   bool
+	color       string
+	charStyle   string
+	shading     string // background color for inline shading (w:shd)
 }
 
 type paragraphOptions struct {
@@ -105,12 +105,12 @@ func (r *docxRenderer) startParagraph(opts paragraphOptions) *strings.Builder {
 	if opts.bookmarkName != "" {
 		id := r.doc.nextBookmarkID()
 		para.WriteString(`<w:bookmarkStart w:id="`)
-		para.WriteString(fmt.Sprint(id))
+		fmt.Fprint(para, id)
 		para.WriteString(`" w:name="`)
 		para.WriteString(xmlAttr(sanitizeBookmarkName(opts.bookmarkName)))
 		para.WriteString(`"/>`)
 		para.WriteString(`<w:bookmarkEnd w:id="`)
-		para.WriteString(fmt.Sprint(id))
+		fmt.Fprint(para, id)
 		para.WriteString(`"/>`)
 	}
 	return para
@@ -133,14 +133,14 @@ func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {
 	}
 	if opts.numID > 0 {
 		para.WriteString(`<w:numPr><w:ilvl w:val="`)
-		para.WriteString(fmt.Sprint(opts.level))
+		fmt.Fprint(para, opts.level)
 		para.WriteString(`"/><w:numId w:val="`)
-		para.WriteString(fmt.Sprint(opts.numID))
+		fmt.Fprint(para, opts.numID)
 		para.WriteString(`"/></w:numPr>`)
 	}
 	if opts.indentLeft > 0 {
 		para.WriteString(`<w:ind w:left="`)
-		para.WriteString(fmt.Sprint(opts.indentLeft))
+		fmt.Fprint(para, opts.indentLeft)
 		para.WriteString(`"/>`)
 	}
 	para.WriteString("</w:pPr>")

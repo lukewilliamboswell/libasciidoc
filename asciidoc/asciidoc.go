@@ -10,8 +10,8 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/internal/parser"
 	"github.com/lukewilliamboswell/libasciidoc/internal/renderer"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/lukewilliamboswell/libasciidoc/internal/validator"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

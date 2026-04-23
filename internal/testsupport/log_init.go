@@ -29,7 +29,7 @@ func parseLogLevel() log.Level {
 	flag.StringVar(&logLevel, "loglevel", "error", "log level to set [debug|info|warn|error|fatal|panic]")
 	// parse with a custom flagset in which all other flags (ginkgo's) are ignored
 	f := pflag.NewFlagSet("passthroughs", pflag.ContinueOnError)
-	f.ParseErrorsWhitelist.UnknownFlags = true
+	f.ParseErrorsAllowlist.UnknownFlags = true
 	f.StringVarP(&logLevel, "loglevel", "l", "error", "log level to set [debug|info|warn|error|fatal|panic]")
 	if err := f.Parse(os.Args[1:]); err != nil {
 		panic(err)

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	"github.com/davecgh/go-spew/spew"
-	. "github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	gomegatypes "github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 )
@@ -29,8 +29,8 @@ func (m *metadataMatcher) Match(actual interface{}) (success bool, err error) {
 		return false, errors.Errorf("MatchMetadata matcher expects a 'types.Metadata' (actual: %T)", actual)
 	}
 	if !reflect.DeepEqual(m.expected, actual) {
-		GinkgoT().Logf("actual HTML:\n'%s'", actual)
-		GinkgoT().Logf("expected HTML:\n'%s'", m.expected)
+		ginkgo.GinkgoT().Logf("actual HTML:\n'%s'", actual)
+		ginkgo.GinkgoT().Logf("expected HTML:\n'%s'", m.expected)
 		m.diffs = cmp.Diff(spew.Sdump(m.expected), spew.Sdump(actual))
 		return false, nil
 	}

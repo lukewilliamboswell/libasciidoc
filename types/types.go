@@ -259,13 +259,9 @@ func (t *TableOfContents) Add(s *Section) {
 	}
 	// look-up parent for the ts, starting with the last section at root level
 	parent := t.Sections[len(t.Sections)-1]
-	for {
-		if len(parent.Children) == 0 ||
-			parent.Children[0].Level == s.Level {
-			// (first) child level matches section level
-			// or no child beneath current parent
-			break
-		}
+	for len(parent.Children) != 0 &&
+		parent.Children[0].Level != s.Level {
+
 		// move to last child of current parent
 		parent = parent.Children[len(parent.Children)-1]
 	}
@@ -350,7 +346,7 @@ elements:
 							},
 						}
 					}
-					result[0].DocumentAuthorFullName.FirstName = author
+					result[0].FirstName = author
 				}
 			}
 		}

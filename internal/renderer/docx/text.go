@@ -44,35 +44,13 @@ func (r *docxRenderer) renderPlainText(element interface{}) (string, error) {
 		}
 		return e.Name, nil
 	case *types.InlineLink:
-		if label, ok := e.Attributes[types.AttrInlineLinkText]; ok {
-			return r.renderPlainText(label)
-		}
-		if e.Location == nil {
-			return "", nil
-		}
-		return e.Location.ToDisplayString(), nil
+		return r.renderInlineLinkPlainText(e)
 	case *types.InternalCrossReference:
-		if e.Label != nil {
-			return r.renderPlainText(e.Label)
-		}
-		if id, ok := e.ID.(string); ok {
-			if target, found := r.ctx.elementReferences[id]; found {
-				return r.renderPlainText(target)
-			}
-			return "[" + id + "]", nil
-		}
-		return r.renderPlainText(e.ID)
+		return r.renderInternalCrossRefPlainText(e)
 	case *types.ExternalCrossReference:
-		if label, ok := e.Attributes[types.AttrXRefLabel]; ok {
-			return r.renderPlainText(label)
-		}
-		return defaultCrossReferenceLabel(e), nil
+		return r.renderExternalCrossRefPlainText(e)
 	case *types.InlineImage:
-		src := ""
-		if e.Location != nil {
-			src = e.Location.ToString()
-		}
-		return imageAlt(e.Attributes, src), nil
+		return r.renderInlineImagePlainText(e), nil
 	case *types.Icon:
 		return e.Attributes.GetAsStringWithDefault(types.AttrImageAlt, e.Class), nil
 	case *types.InlineButton:
@@ -99,6 +77,44 @@ func (r *docxRenderer) renderPlainText(element interface{}) (string, error) {
 	default:
 		return "", fmt.Errorf("docx: unable to render plain text for %T", element)
 	}
+}
+
+func (r *docxRenderer) renderInlineLinkPlainText(e *types.InlineLink) (string, error) {
+	if label, ok := e.Attributes[types.AttrInlineLinkText]; ok {
+		return r.renderPlainText(label)
+	}
+	if e.Location == nil {
+		return "", nil
+	}
+	return e.Location.ToDisplayString(), nil
+}
+
+func (r *docxRenderer) renderInternalCrossRefPlainText(e *types.InternalCrossReference) (string, error) {
+	if e.Label != nil {
+		return r.renderPlainText(e.Label)
+	}
+	if id, ok := e.ID.(string); ok {
+		if target, found := r.ctx.elementReferences[id]; found {
+			return r.renderPlainText(target)
+		}
+		return "[" + id + "]", nil
+	}
+	return r.renderPlainText(e.ID)
+}
+
+func (r *docxRenderer) renderExternalCrossRefPlainText(e *types.ExternalCrossReference) (string, error) {
+	if label, ok := e.Attributes[types.AttrXRefLabel]; ok {
+		return r.renderPlainText(label)
+	}
+	return defaultCrossReferenceLabel(e), nil
+}
+
+func (r *docxRenderer) renderInlineImagePlainText(e *types.InlineImage) string {
+	src := ""
+	if e.Location != nil {
+		src = e.Location.ToString()
+	}
+	return imageAlt(e.Attributes, src)
 }
 
 func (r *docxRenderer) renderUserMacroInline(para *strings.Builder, m *types.UserMacro, style runStyle) error {

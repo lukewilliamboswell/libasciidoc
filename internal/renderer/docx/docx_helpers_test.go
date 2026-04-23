@@ -155,10 +155,10 @@ type parsedRun struct {
 	Monospace   bool   // w:rFonts present (monospace font)
 	MonoFont    string // w:rFonts ascii value (deprecated: use Font)
 	Font        string // w:rFonts ascii value
-	Highlight   bool // w:highlight
-	Subscript   bool // w:vertAlign val="subscript"
-	Superscript bool // w:vertAlign val="superscript"
-	Underline   bool // w:u
+	Highlight   bool   // w:highlight
+	Subscript   bool   // w:vertAlign val="subscript"
+	Superscript bool   // w:vertAlign val="superscript"
+	Underline   bool   // w:u
 	Color       string
 	CharStyle   string // w:rStyle val
 	Shading     string // w:shd fill (inline background)
@@ -281,7 +281,7 @@ func (d renderedDocx) parseRelationships() []parsedRelationship {
 	Expect(xml.Unmarshal(d.files["word/_rels/document.xml.rels"], &rels)).To(Succeed())
 	result := make([]parsedRelationship, len(rels.Rels))
 	for i, r := range rels.Rels {
-		result[i] = parsedRelationship{ID: r.ID, Type: r.Type, Target: r.Target, TargetMode: r.TargetMode}
+		result[i] = parsedRelationship(r)
 	}
 	return result
 }
@@ -556,10 +556,10 @@ func parseRunProperties(decoder *xml.Decoder, r *parsedRun) {
 func parseHyperlinkElement(decoder *xml.Decoder, start xml.StartElement) parsedHyperlink {
 	var h parsedHyperlink
 	for _, a := range start.Attr {
-		switch {
-		case a.Name.Local == "id":
+		switch a.Name.Local {
+		case "id":
 			h.RelID = a.Value
-		case a.Name.Local == "anchor":
+		case "anchor":
 			h.Anchor = a.Value
 		}
 	}
@@ -737,16 +737,16 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 		Val string `xml:"val,attr"`
 	}
 	type xmlAbstractNum struct {
-		AbstractNumID  string              `xml:"abstractNumId,attr"`
-		MultiLevelType *xmlMultiLevelType  `xml:"multiLevelType"`
-		Levels         []xmlLvl            `xml:"lvl"`
+		AbstractNumID  string             `xml:"abstractNumId,attr"`
+		MultiLevelType *xmlMultiLevelType `xml:"multiLevelType"`
+		Levels         []xmlLvl           `xml:"lvl"`
 	}
 	type xmlAbstractNumIDRef struct {
 		Val string `xml:"val,attr"`
 	}
 	type xmlNum struct {
-		NumID        string              `xml:"numId,attr"`
-		AbstractRef  xmlAbstractNumIDRef `xml:"abstractNumId"`
+		NumID       string              `xml:"numId,attr"`
+		AbstractRef xmlAbstractNumIDRef `xml:"abstractNumId"`
 	}
 	type xmlNumbering struct {
 		AbstractNums []xmlAbstractNum `xml:"abstractNum"`
@@ -815,14 +815,14 @@ func (d renderedDocx) findNumberingDef(numID string) *parsedNumberingDef {
 // ---------- styles.xml structured parser ----------
 
 type parsedStyle struct {
-	ID          string // w:styleId
-	Name        string // w:name val
-	Font        string // w:rFonts ascii
-	Size        string // w:sz val (half-points)
-	Bold        bool
-	Italic      bool
-	Caps        bool   // w:caps
-	Color       string // w:color val
+	ID     string // w:styleId
+	Name   string // w:name val
+	Font   string // w:rFonts ascii
+	Size   string // w:sz val (half-points)
+	Bold   bool
+	Italic bool
+	Caps   bool   // w:caps
+	Color  string // w:color val
 	// Paragraph properties
 	SpaceBefore string // w:spacing w:before
 	SpaceAfter  string // w:spacing w:after

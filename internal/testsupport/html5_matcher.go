@@ -7,7 +7,7 @@ import (
 	texttemplate "text/template"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	gomegatypes "github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 )
@@ -34,8 +34,8 @@ func (m *htmlMatcher) Match(actual interface{}) (success bool, err error) {
 		return false, errors.Errorf("MatchHTML matcher expects a string (actual: %T)", actual)
 	}
 	if m.expected != actual {
-		GinkgoT().Logf("actual HTML:\n'%s'", actual)
-		GinkgoT().Logf("expected HTML:\n'%s'", m.expected)
+		ginkgo.GinkgoT().Logf("actual HTML:\n'%s'", actual)
+		ginkgo.GinkgoT().Logf("expected HTML:\n'%s'", m.expected)
 		m.diffs = cmp.Diff(m.expected, actual.(string))
 		return false, nil
 	}
@@ -77,8 +77,8 @@ func (m *htmlFileMatcher) Match(actual interface{}) (success bool, err error) {
 	}
 	expected = bytes.ReplaceAll(expected, []byte{'\r'}, []byte{})
 	if string(expected) != actual {
-		GinkgoT().Logf("actual HTML:\n'%s'", actual)
-		GinkgoT().Logf("expected HTML:\n'%s'", string(expected))
+		ginkgo.GinkgoT().Logf("actual HTML:\n'%s'", actual)
+		ginkgo.GinkgoT().Logf("expected HTML:\n'%s'", string(expected))
 		m.diffs = cmp.Diff(string(expected), actual)
 		return false, nil
 	}

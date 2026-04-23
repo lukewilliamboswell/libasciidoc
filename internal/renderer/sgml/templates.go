@@ -1,7 +1,6 @@
 package sgml
 
 // Templates represents all the templates we use.
-// go:generate
 type Templates struct {
 	AdmonitionBlock              string
 	AdmonitionParagraph          string

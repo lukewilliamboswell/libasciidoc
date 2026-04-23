@@ -12,10 +12,10 @@ import (
 
 // EMU (English Metric Unit) conversion factors for OOXML drawing dimensions.
 const (
-	emuPerInch  = 914400
-	emuPerCm    = 360000
-	emuPerMm    = 36000
-	emuPerPx    = 9525  // at 96 DPI
+	emuPerInch           = 914400
+	emuPerCm             = 360000
+	emuPerMm             = 36000
+	emuPerPx             = 9525    // at 96 DPI
 	defaultImageWidthEMU = 3657600 // 4 inches
 )
 

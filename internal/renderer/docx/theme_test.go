@@ -72,7 +72,7 @@ var _ = Describe("themes", func() {
 			doc := renderDocx(`Hello`)
 			dd := doc.parseDocDefaults()
 			Expect(dd.AfterTwips).To(Equal("160")) // ~8pt
-			Expect(dd.LineVal).To(Equal("259"))     // ~1.08
+			Expect(dd.LineVal).To(Equal("259"))    // ~1.08
 		})
 	})
 
@@ -215,7 +215,7 @@ heading:
 			h1 := doc.findStyle("Heading1")
 			Expect(h1).ToNot(BeNil())
 			Expect(h1.SpaceBefore).To(Equal("240")) // 12pt * 20 = 240 twips
-			Expect(h1.SpaceAfter).To(Equal("120"))   // 6pt * 20 = 120 twips
+			Expect(h1.SpaceAfter).To(Equal("120"))  // 6pt * 20 = 120 twips
 		})
 
 		It("should apply per-level heading font color", func() {
@@ -279,7 +279,7 @@ title_page:
 `)
 			sub := doc.findStyle("Subtitle")
 			Expect(sub).ToNot(BeNil())
-			Expect(sub.Size).To(Equal("26"))    // 13pt
+			Expect(sub.Size).To(Equal("26")) // 13pt
 			Expect(sub.Color).To(Equal("333333"))
 		})
 
@@ -340,7 +340,7 @@ page:
 `)
 			sp := doc.parseSectionProps()
 			Expect(sp).ToNot(BeNil())
-			Expect(sp.Top).To(Equal("1440"))    // 25.4mm = 1in = 1440 twips
+			Expect(sp.Top).To(Equal("1440")) // 25.4mm = 1in = 1440 twips
 			Expect(sp.Right).To(Equal("1440"))
 		})
 
@@ -351,7 +351,7 @@ page:
 `)
 			sp := doc.parseSectionProps()
 			Expect(sp).ToNot(BeNil())
-			Expect(sp.Top).To(Equal("1417"))  // 25mm
+			Expect(sp.Top).To(Equal("1417"))   // 25mm
 			Expect(sp.Right).To(Equal("1134")) // 20mm
 		})
 
@@ -410,7 +410,7 @@ table:
   border_width: 1.0
 `)
 			docXML := doc.documentXML()
-			Expect(docXML).To(ContainSubstring(`w:sz="8"`))        // 1.0pt = 8 eighths
+			Expect(docXML).To(ContainSubstring(`w:sz="8"`)) // 1.0pt = 8 eighths
 			Expect(docXML).To(ContainSubstring(`w:color="000000"`))
 		})
 
@@ -1011,7 +1011,7 @@ header:
 `)
 			header := string(doc.files["word/header1.xml"])
 			Expect(header).To(ContainSubstring(`Georgia`))
-			Expect(header).To(ContainSubstring(`w:val="16"`))  // 8pt = 16 half-pts
+			Expect(header).To(ContainSubstring(`w:val="16"`)) // 8pt = 16 half-pts
 			Expect(header).To(ContainSubstring(`w:val="999999"`))
 			Expect(header).To(ContainSubstring(`<w:i/>`))
 		})

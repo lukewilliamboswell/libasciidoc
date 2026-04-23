@@ -7,8 +7,8 @@ import (
 
 	"github.com/lukewilliamboswell/libasciidoc/asciidoc"
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -118,12 +118,12 @@ var _ = Describe("documents", func() {
 					},
 					Attributes: types.Attributes{
 						"libasciidoc-version": "0.7.0",
-						"library":            "Libasciidoc",
-						"idprefix":           nil,
-						"numbered":           nil,
-						"imagesdir":          "images",
-						"experimental":       nil,
-						"toc":                "preamble",
+						"library":             "Libasciidoc",
+						"idprefix":            nil,
+						"numbered":            nil,
+						"imagesdir":           "images",
+						"experimental":        nil,
+						"toc":                 "preamble",
 						"toc-title": []interface{}{
 							&types.InlinePassthrough{
 								Kind: types.PassthroughMacro,

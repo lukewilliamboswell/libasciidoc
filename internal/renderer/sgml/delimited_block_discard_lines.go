@@ -10,10 +10,8 @@ func discardBlankLines(lines []interface{}) []interface{} {
 	filteredLines := make([]interface{}, len(lines))
 	copy(filteredLines, lines)
 	// leading empty lines
-	for {
-		if len(filteredLines) == 0 {
-			break
-		}
+	for len(filteredLines) != 0 {
+
 		if _, ok := filteredLines[0].(types.BlankLine); ok {
 			// remove last element of the slice since it's a blank line
 			filteredLines = filteredLines[:len(filteredLines)-1]
@@ -22,10 +20,8 @@ func discardBlankLines(lines []interface{}) []interface{} {
 		}
 	}
 	// trailing empty lines
-	for {
-		if len(filteredLines) == 0 {
-			break
-		}
+	for len(filteredLines) != 0 {
+
 		if _, ok := filteredLines[len(filteredLines)-1].(types.BlankLine); ok {
 			// remove last element of the slice since it's a blank line
 			filteredLines = filteredLines[:len(filteredLines)-1]

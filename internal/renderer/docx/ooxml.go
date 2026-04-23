@@ -38,9 +38,9 @@ type docxDocument struct {
 	rels             []relationship
 	media            []mediaItem
 	numbering        []numberingDefinition
-	abstractNumByFmt map[string]int // format -> abstractNumId (shared)
-	legalAbsNumID    int              // abstractNum for multi-level legal numbering
-	legalNumID       int              // num instance for heading numbering
+	abstractNumByFmt map[string]int    // format -> abstractNumId (shared)
+	legalAbsNumID    int               // abstractNum for multi-level legal numbering
+	legalNumID       int               // num instance for heading numbering
 	legalListNums    []legalListNumDef // per-list num instances for legal lists
 	nextRelID        int
 	nextMediaID      int
@@ -546,7 +546,7 @@ func (d *docxDocument) numberingXML() string {
 		b.WriteString(strconv.Itoa(def.AbstractID))
 		b.WriteString(`">`)
 		b.WriteString(`<w:nsid w:val="`)
-		b.WriteString(fmt.Sprintf("%08X", 0x10000000+def.AbstractID))
+		fmt.Fprintf(b, "%08X", 0x10000000+def.AbstractID)
 		b.WriteString(`"/>`)
 		b.WriteString(`<w:multiLevelType w:val="singleLevel"/>`)
 		for level := 0; level < 9; level++ {
@@ -610,7 +610,7 @@ func (d *docxDocument) writeLegalAbstractNum(b *strings.Builder) {
 	b.WriteString(strconv.Itoa(d.legalAbsNumID))
 	b.WriteString(`">`)
 	b.WriteString(`<w:nsid w:val="`)
-	b.WriteString(fmt.Sprintf("%08X", 0x20000000+d.legalAbsNumID))
+	fmt.Fprintf(b, "%08X", 0x20000000+d.legalAbsNumID)
 	b.WriteString(`"/>`)
 	b.WriteString(`<w:multiLevelType w:val="multilevel"/>`)
 
@@ -851,7 +851,7 @@ func (d *docxDocument) stylesXML() string {
 	b.WriteString(styleParaXML(styleParaOpts{
 		id: "Admonition", name: "Admonition",
 		size: admSize, color: t.Admonition.FontColor,
-		shading: t.Admonition.BackgroundColor,
+		shading:   t.Admonition.BackgroundColor,
 		borderAll: t.Admonition.BorderColor, borderAllWidth: t.Admonition.BorderWidth,
 	}))
 
@@ -892,7 +892,7 @@ func (d *docxDocument) stylesXML() string {
 	b.WriteString(styleParaXML(styleParaOpts{
 		id: "Sidebar", name: "Sidebar",
 		size: sidebarSize, color: t.Sidebar.FontColor,
-		shading: t.Sidebar.BackgroundColor,
+		shading:   t.Sidebar.BackgroundColor,
 		borderAll: t.Sidebar.BorderColor, borderAllWidth: t.Sidebar.BorderWidth,
 	}))
 
@@ -904,7 +904,7 @@ func (d *docxDocument) stylesXML() string {
 	b.WriteString(styleParaXML(styleParaOpts{
 		id: "Example", name: "Example",
 		size: exampleSize, color: t.Example.FontColor,
-		shading: t.Example.BackgroundColor,
+		shading:   t.Example.BackgroundColor,
 		borderAll: t.Example.BorderColor, borderAllWidth: t.Example.BorderWidth,
 	}))
 

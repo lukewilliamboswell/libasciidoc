@@ -3,9 +3,9 @@ package testsupport
 import (
 	"fmt"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 	gomegatypes "github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

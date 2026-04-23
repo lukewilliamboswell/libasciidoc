@@ -14,12 +14,12 @@ func PrettyPrintStats(stats *Stats) string {
 	sort.Strings(rules)
 	buf := &strings.Builder{}
 	for _, r := range rules {
-		buf.WriteString(fmt.Sprintf("%s ", r))
+		fmt.Fprintf(buf, "%s ", r)
 		for choice, count := range stats.ChoiceAltCnt[r] {
-			buf.WriteString(fmt.Sprintf("| %s->%dx ", choice, count))
+			fmt.Fprintf(buf, "| %s->%dx ", choice, count)
 		}
 		buf.WriteString("\n")
 	}
-	buf.WriteString(fmt.Sprintf("---------------\nTotal: %d\n\n", stats.ExprCnt))
+	fmt.Fprintf(buf, "---------------\nTotal: %d\n\n", stats.ExprCnt)
 	return buf.String()
 }

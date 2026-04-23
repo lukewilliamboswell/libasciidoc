@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -161,9 +161,7 @@ func defaultSubstitutions(b types.WithElements) *substitutions {
 // checks if all the given subs are incremental (ie, prefixed with `+|-` or suffixed with `-`)
 func allIncremental(subs []string) bool {
 	for _, sub := range subs {
-		if !(strings.HasPrefix(sub, "+") ||
-			strings.HasPrefix(sub, "-") ||
-			strings.HasSuffix(sub, "+")) {
+		if !strings.HasPrefix(sub, "+") && !strings.HasPrefix(sub, "-") && !strings.HasSuffix(sub, "+") {
 			return false
 		}
 	}
