@@ -36,7 +36,11 @@ To just preview documentation changes without running the full check suite:
  go build -o ascii2html ./cmd/ascii2html
  ./ascii2html --static-site --css style.css -o _site www/
 
-Then open `_site/index.html` in your browser, or serve the directory with any static file server.
+Then serve the directory locally:
+
+ python3 -m http.server 8000 --directory _site
+
+Open http://localhost:8000 in your browser to preview the site.
 
 == Project Structure
 
