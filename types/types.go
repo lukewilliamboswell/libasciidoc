@@ -1,3 +1,6 @@
+// Package types defines the document model produced by the AsciiDoc parser.
+// It contains the element types, attributes, and interfaces that represent
+// the structure of a parsed AsciiDoc document.
 package types
 
 import (
@@ -25,31 +28,37 @@ type WithAttributes interface {
 	SetAttributes(Attributes)
 }
 
+// WithElementAddition is implemented by elements that can have children appended to them.
 type WithElementAddition interface {
 	AddElement(interface{}) error
 }
 
+// WithElements is implemented by elements that contain a mutable list of child elements.
 type WithElements interface {
 	WithAttributes
 	GetElements() []interface{}
 	SetElements([]interface{}) error
 }
 
+// Filterable is implemented by elements that may be empty and can be filtered out during rendering.
 type Filterable interface {
 	IsEmpty() bool
 }
 
+// WithTitle is implemented by elements that have a title (e.g. sections, blocks).
 type WithTitle interface {
 	WithAttributes
 	GetTitle() []interface{}
 	SetTitle([]interface{})
 }
 
+// WithLocation is implemented by elements that reference an external location (e.g. images, includes).
 type WithLocation interface {
 	WithAttributes
 	GetLocation() *Location
 }
 
+// Referencable is implemented by elements that can register themselves in the document's element references.
 type Referencable interface {
 	Reference(refs ElementReferences)
 }
@@ -65,11 +74,13 @@ type DocumentFragment struct {
 	Error    error
 }
 
+// Position represents the start and end byte offsets of a parsed fragment in the source document.
 type Position struct {
 	Start int
 	End   int
 }
 
+// NewDocumentFragment creates a DocumentFragment with the given position and elements.
 func NewDocumentFragment(p Position, elements ...interface{}) DocumentFragment {
 	return DocumentFragment{
 		Position: p,
@@ -77,6 +88,7 @@ func NewDocumentFragment(p Position, elements ...interface{}) DocumentFragment {
 	}
 }
 
+// NewErrorFragment creates a DocumentFragment that carries a parse error.
 func NewErrorFragment(p Position, err error) DocumentFragment {
 	return DocumentFragment{
 		Position: p,
@@ -148,7 +160,8 @@ func (d *Document) AddElement(element interface{}) error {
 	return nil
 }
 
-type SectionNumbers map[string]string // assigned number by section id
+// SectionNumbers maps section IDs to their assigned numbering strings (e.g. "1", "1.2").
+type SectionNumbers map[string]string
 
 func (d *Document) SectionNumbers() (SectionNumbers, error) {
 	enabled := false
@@ -215,6 +228,7 @@ type Metadata struct {
 	Attributes map[string]interface{}
 }
 
+// NewTableOfContents creates a TableOfContents that includes sections up to the given depth.
 func NewTableOfContents(maxDepth int) *TableOfContents {
 	log.Debugf("new TableOfContents with depth=%d", maxDepth)
 	return &TableOfContents{
@@ -281,12 +295,15 @@ type DocumentElement interface {
 // Document Header
 // ------------------------------------------
 
+// DocumentHeader represents the header of an AsciiDoc document, containing
+// the document title, author/revision info, and header-level attribute declarations.
 type DocumentHeader struct {
 	Title      []interface{}
 	Attributes Attributes
 	Elements   []interface{}
 }
 
+// NewDocumentHeader creates a DocumentHeader from a title, optional author/revision info, and extra attributes.
 func NewDocumentHeader(title []interface{}, ar interface{}, extraAttrs []interface{}) (*DocumentHeader, error) {
 	header := &DocumentHeader{}
 	elements := make([]interface{}, 0, 2+len(extraAttrs)) // estimated max capacity
@@ -2950,11 +2967,13 @@ func (l *InlineLink) GetLocation() *Location {
 // Conditionals
 // ------------------------------------------
 
+// ConditionalInclusion is implemented by preprocessor conditional directives (ifdef, ifndef, ifeval).
 type ConditionalInclusion interface {
 	Eval(attributes map[string]interface{}) bool
 	SingleLineContent() (string, bool)
 }
 
+// IfdefCondition represents an `ifdef::attr[]` conditional inclusion directive.
 type IfdefCondition struct {
 	Name         string
 	Substitution string

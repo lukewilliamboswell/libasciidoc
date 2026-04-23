@@ -1,3 +1,7 @@
+// Package configuration provides options for controlling AsciiDoc parsing and rendering.
+// Use [NewConfiguration] with functional [Setting] options to build a configuration,
+// then pass it to [github.com/lukewilliamboswell/libasciidoc/asciidoc.Convert] or
+// [github.com/lukewilliamboswell/libasciidoc/asciidoc.ConvertFile].
 package configuration
 
 import (
