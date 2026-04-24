@@ -7,7 +7,7 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
-func (r *docxRenderer) renderLink(para *strings.Builder, l *types.InlineLink) error {
+func (r *docxRenderer) renderLink(para *paragraphBuilder, l *types.InlineLink) error {
 	if l.Location == nil {
 		if id := l.Attributes.GetAsStringWithDefault(types.AttrID, ""); id != "" {
 			r.writeBookmark(para, id)
@@ -22,7 +22,7 @@ func (r *docxRenderer) renderLink(para *strings.Builder, l *types.InlineLink) er
 	return r.renderExternalHyperlink(para, url, label, runStyle{charStyle: "Hyperlink"})
 }
 
-func (r *docxRenderer) renderExternalCrossReference(para *strings.Builder, xref *types.ExternalCrossReference, style runStyle) error {
+func (r *docxRenderer) renderExternalCrossReference(para *paragraphBuilder, xref *types.ExternalCrossReference, style runStyle) error {
 	label := xref.Attributes[types.AttrXRefLabel]
 	if label == nil {
 		label = defaultCrossReferenceLabel(xref)
@@ -34,7 +34,7 @@ func (r *docxRenderer) renderExternalCrossReference(para *strings.Builder, xref 
 	return r.renderExternalHyperlink(para, target, label, style)
 }
 
-func (r *docxRenderer) renderExternalHyperlink(para *strings.Builder, url string, label interface{}, style runStyle) error {
+func (r *docxRenderer) renderExternalHyperlink(para *paragraphBuilder, url string, label interface{}, style runStyle) error {
 	id := r.doc.addExternalRelationship(relTypeHyperlink, url)
 	para.WriteString(`<w:hyperlink r:id="`)
 	para.WriteString(xmlAttr(id))
@@ -47,7 +47,7 @@ func (r *docxRenderer) renderExternalHyperlink(para *strings.Builder, url string
 	return nil
 }
 
-func (r *docxRenderer) renderInternalHyperlink(para *strings.Builder, id string, label interface{}, style runStyle) error {
+func (r *docxRenderer) renderInternalHyperlink(para *paragraphBuilder, id string, label interface{}, style runStyle) error {
 	para.WriteString(`<w:hyperlink w:anchor="`)
 	para.WriteString(xmlAttr(sanitizeBookmarkName(id)))
 	para.WriteString(`" w:history="1">`)
@@ -59,7 +59,7 @@ func (r *docxRenderer) renderInternalHyperlink(para *strings.Builder, id string,
 	return nil
 }
 
-func (r *docxRenderer) renderLabelInline(para *strings.Builder, label interface{}, style runStyle) error {
+func (r *docxRenderer) renderLabelInline(para *paragraphBuilder, label interface{}, style runStyle) error {
 	switch label := label.(type) {
 	case string:
 		r.writeTextRun(para, label, style)

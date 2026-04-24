@@ -117,7 +117,7 @@ func (r *docxRenderer) renderInlineImagePlainText(e *types.InlineImage) string {
 	return imageAlt(e.Attributes, src)
 }
 
-func (r *docxRenderer) renderUserMacroInline(para *strings.Builder, m *types.UserMacro, style runStyle) error {
+func (r *docxRenderer) renderUserMacroInline(para *paragraphBuilder, m *types.UserMacro, style runStyle) error {
 	tmpl, ok := r.ctx.config.Macros[m.Name]
 	if !ok {
 		r.writeTextRun(para, m.RawText, style)
@@ -246,7 +246,7 @@ func (r *docxRenderer) renderTableOfContentsEntry(entry *types.ToCSection) error
 	return r.renderTableOfContentsSections(entry.Children)
 }
 
-func (r *docxRenderer) writeBookmark(para *strings.Builder, id string) {
+func (r *docxRenderer) writeBookmark(para *paragraphBuilder, id string) {
 	if id == "" {
 		return
 	}

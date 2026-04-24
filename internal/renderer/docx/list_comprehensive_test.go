@@ -215,7 +215,7 @@ os.Exit(0)           // <2>
 
 	Context("list continuation", func() {
 
-		It("should render continuation paragraphs as ListParagraph without numbering", func() {
+		It("should render continuation paragraphs indented but unnumbered", func() {
 			doc := renderDocx(`* First item
 +
 Continuation paragraph for first item.
@@ -227,16 +227,47 @@ Continuation paragraph for first item.
 			Expect(p1).ToNot(BeNil())
 			Expect(p1.NumID).ToNot(BeEmpty())
 
-			// Continuation paragraph should be styled but unnumbered
+			// Continuation paragraph must not be numbered
 			pCont := doc.findParagraph("Continuation paragraph")
 			Expect(pCont).ToNot(BeNil())
-			Expect(pCont.Style).To(Equal("ListParagraph"))
 			Expect(pCont.NumID).To(BeEmpty(), "continuation paragraph should not have numId")
+			// Continuation must carry a left indent matching the list text position
+			Expect(pCont.IndentLeft).To(BeNumerically(">", 0), "continuation paragraph should have a positive left indent")
 
 			// Second item has numbering
 			p2 := doc.findParagraph("Second item")
 			Expect(p2).ToNot(BeNil())
 			Expect(p2.NumID).ToNot(BeEmpty())
+		})
+
+		It("should indent continuation paragraphs to match the list text column", func() {
+			// Default theme: List.Indent=36pt=720twips, listLevel=1, ilvl=0
+			// contIndent = (1-1)*360 + 720 + 0*360 = 720
+			doc := renderDocx(`. Step one
++
+More detail about step one.
+
+. Step two`)
+
+			pCont := doc.findParagraph("More detail")
+			Expect(pCont).ToNot(BeNil())
+			Expect(pCont.NumID).To(BeEmpty())
+			// The indent should be 720 twips (36pt base indent, level 1, ilvl 0)
+			Expect(pCont.IndentLeft).To(Equal(720), "continuation indent should be 720 twips (36pt base, level 1)")
+		})
+
+		It("should render an admonition inside a list continuation with correct indent", func() {
+			doc := renderDocx(`. Important step
++
+NOTE: This is a note inside the list.
+
+. Next step`)
+
+			pNote := doc.findParagraph("This is a note")
+			Expect(pNote).ToNot(BeNil())
+			Expect(pNote.Style).To(Equal("Admonition"), "admonition inside list continuation should keep Admonition style")
+			Expect(pNote.IndentLeft).To(BeNumerically(">", 0), "admonition continuation should have a left indent")
+			Expect(pNote.NumID).To(BeEmpty(), "admonition continuation should not be numbered")
 		})
 	})
 
@@ -312,6 +343,28 @@ Continuation paragraph for first item.
 			def := doc.findNumberingDef(p.NumID)
 			Expect(def).ToNot(BeNil())
 			Expect(def.Levels[0].Format).To(Equal("bullet"))
+		})
+	})
+
+	Context("keepNext on list item first paragraph", func() {
+
+		It("should set keepNext on the first paragraph of a multi-element list item", func() {
+			doc := renderDocx(`. First item
++
+Continuation paragraph
+
+. Second item`)
+
+			// The first paragraph "First item" has a continuation, so it must have keepNext
+			p := doc.findParagraph("First item")
+			Expect(p).ToNot(BeNil())
+			Expect(p.NumID).ToNot(BeEmpty())
+			Expect(p.KeepNext).To(BeTrue(), "first paragraph of multi-element list item should have w:keepNext")
+
+			// A single-element list item must NOT have keepNext
+			p2 := doc.findParagraph("Second item")
+			Expect(p2).ToNot(BeNil())
+			Expect(p2.KeepNext).To(BeFalse(), "single-element list item should not have w:keepNext")
 		})
 	})
 })

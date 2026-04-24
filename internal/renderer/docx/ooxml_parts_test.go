@@ -181,6 +181,17 @@ var _ = Describe("OOXML optional parts", func() {
 		})
 	})
 
+	Context("styles", func() {
+
+		It("should define ListParagraph style with base indent and contextual spacing", func() {
+			doc := renderDocx(`. item one`)
+			s := doc.findStyle("ListParagraph")
+			Expect(s).ToNot(BeNil())
+			Expect(s.ContextualSpacing).To(BeTrue(), "ListParagraph should have w:contextualSpacing")
+			Expect(s.IndentLeft).ToNot(BeEmpty(), "ListParagraph should have a base w:ind w:left value")
+		})
+	})
+
 	Context("page break", func() {
 
 		It("should render <<< as a DOCX page break", func() {

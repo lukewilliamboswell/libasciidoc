@@ -1,8 +1,6 @@
 package docx
 
 import (
-	"strings"
-
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
@@ -63,7 +61,7 @@ var symbols = map[string]string{
 	"`\"":  "\u201d",             // right double quotation mark
 }
 
-func (r *docxRenderer) renderSpecialCharacter(para *strings.Builder, e *types.SpecialCharacter, style runStyle) error {
+func (r *docxRenderer) renderSpecialCharacter(para *paragraphBuilder, e *types.SpecialCharacter, style runStyle) error {
 	text := e.Name
 	if mapped, ok := specialCharacters[text]; ok {
 		text = mapped
@@ -72,7 +70,7 @@ func (r *docxRenderer) renderSpecialCharacter(para *strings.Builder, e *types.Sp
 	return nil
 }
 
-func (r *docxRenderer) renderSymbol(para *strings.Builder, e *types.Symbol, style runStyle) error {
+func (r *docxRenderer) renderSymbol(para *paragraphBuilder, e *types.Symbol, style runStyle) error {
 	text := e.Name
 	if mapped, ok := symbols[text]; ok {
 		text = mapped
@@ -81,7 +79,7 @@ func (r *docxRenderer) renderSymbol(para *strings.Builder, e *types.Symbol, styl
 	return nil
 }
 
-func (r *docxRenderer) renderPredefinedAttribute(para *strings.Builder, e *types.PredefinedAttribute, style runStyle) error {
+func (r *docxRenderer) renderPredefinedAttribute(para *paragraphBuilder, e *types.PredefinedAttribute, style runStyle) error {
 	text := e.Name
 	if mapped, ok := predefinedAttributes[text]; ok {
 		text = mapped

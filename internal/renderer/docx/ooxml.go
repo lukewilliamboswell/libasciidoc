@@ -54,8 +54,6 @@ const (
 	twipsPerLevel = 360
 	// listHangingTwips is the hanging indent for list items (in twips).
 	listHangingTwips = 360
-	// tableGridWidthTwips is the nominal page width used to compute equal column widths.
-	tableGridWidthTwips = 9000
 )
 
 type docxDocument struct {
@@ -80,10 +78,11 @@ type docxDocument struct {
 	headerRelID      string
 	footerRelID      string
 	theme            *DocxTheme
-	title            string    // document title for core properties
-	creators         string    // semicolon-joined author names
-	created          time.Time // document creation timestamp
-	modified         time.Time // document modification timestamp
+	title            string         // document title for core properties
+	creators         string         // semicolon-joined author names
+	created          time.Time      // document creation timestamp
+	modified         time.Time      // document modification timestamp
+	bookmarkNames    map[string]int // tracks sanitized bookmark names for deduplication
 }
 
 type relationship struct {
@@ -114,7 +113,31 @@ func newDocxDocument() *docxDocument {
 		nextNumID:        1,
 		nextAbsNumID:     1,
 		abstractNumByFmt: make(map[string]int),
+		bookmarkNames:    make(map[string]int),
 	}
+}
+
+// uniqueBookmarkName returns a deduplicated version of the sanitized bookmark name.
+// The first occurrence of a name is returned unchanged. Subsequent occurrences are
+// suffixed with _2, _3, … to satisfy the OOXML requirement that w:name values are
+// unique within a document.
+func (d *docxDocument) uniqueBookmarkName(raw string) string {
+	name := sanitizeBookmarkName(raw)
+	count := d.bookmarkNames[name]
+	d.bookmarkNames[name]++
+	if count == 0 {
+		return name
+	}
+	return fmt.Sprintf("%s_%d", name, count+1)
+}
+
+// textWidthTwips returns the printable text width in twips, derived from the
+// theme's page size and left/right margin settings.  This is the authoritative
+// base for all table column-width calculations.
+func (d *docxDocument) textWidthTwips() int {
+	t := d.theme
+	pageW, _ := pageSizeTwips(t.Page.Size, t.Page.Layout)
+	return pageW - mmToTwips(t.Page.Margin[3]) - mmToTwips(t.Page.Margin[1])
 }
 
 func (d *docxDocument) addExternalRelationship(relType, target string) string {
@@ -942,7 +965,13 @@ func (d *docxDocument) stylesXML() string {
 	}))
 
 	// Remaining styles
-	b.WriteString(styleParaXML(styleParaOpts{id: "ListParagraph", name: "List Paragraph", size: ptToHalfPt(t.Base.FontSize)}))
+	b.WriteString(styleParaXML(styleParaOpts{
+		id: "ListParagraph", name: "List Paragraph",
+		size: ptToHalfPt(t.Base.FontSize),
+		// Canonical Word ListParagraph definition: base indent + suppress inter-item spacing.
+		indentLeft:        ptToTwips(t.List.Indent),
+		contextualSpacing: true,
+	}))
 	// TOC entry styles: level 1 = bold, level 2 = indented, level 3 = further indented + smaller
 	tocIndent := ptToTwips(t.List.Indent)
 	b.WriteString(styleParaXML(styleParaOpts{
@@ -984,26 +1013,27 @@ func (d *docxDocument) stylesXML() string {
 
 // styleParaOpts configures a paragraph style definition.
 type styleParaOpts struct {
-	id              string
-	name            string
-	font            string
-	size            int
-	bold            bool
-	italic          bool
-	caps            bool
-	color           string
-	shading         string  // background color (w:shd fill)
-	borderLeft      string  // left border color
-	borderLeftWidth float64 // left border width in pt
-	borderAll       string  // all-side border color
-	borderAllWidth  float64 // all-side border width in pt
-	spaceBefore     int     // w:spacing w:before (twips)
-	spaceAfter      int     // w:spacing w:after (twips)
-	lineSpacing     int     // w:spacing w:line (240 = single)
-	align           string  // text alignment
-	indentLeft      int     // w:ind w:left (twips)
-	outlineLevel    int     // -1 = not set; 0–8 = Word outline level (w:outlineLvl)
-	keepNext        bool    // w:keepNext: keep paragraph on same page as next
+	id                string
+	name              string
+	font              string
+	size              int
+	bold              bool
+	italic            bool
+	caps              bool
+	color             string
+	shading           string  // background color (w:shd fill)
+	borderLeft        string  // left border color
+	borderLeftWidth   float64 // left border width in pt
+	borderAll         string  // all-side border color
+	borderAllWidth    float64 // all-side border width in pt
+	spaceBefore       int     // w:spacing w:before (twips)
+	spaceAfter        int     // w:spacing w:after (twips)
+	lineSpacing       int     // w:spacing w:line (240 = single)
+	align             string  // text alignment
+	indentLeft        int     // w:ind w:left (twips)
+	outlineLevel      int     // -1 = not set; 0–8 = Word outline level (w:outlineLvl)
+	keepNext          bool    // w:keepNext: keep paragraph on same page as next
+	contextualSpacing bool    // w:contextualSpacing: suppress spacing between same-style paragraphs
 }
 
 func styleParaXML(opts styleParaOpts) string {
@@ -1022,13 +1052,16 @@ func styleParaXML(opts styleParaOpts) string {
 func writeStylePPr(b *strings.Builder, opts styleParaOpts) {
 	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
 		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0 ||
-		opts.keepNext || opts.outlineLevel >= 0
+		opts.keepNext || opts.contextualSpacing || opts.outlineLevel >= 0
 	if !hasPPr {
 		return
 	}
 	b.WriteString(`<w:pPr>`)
 	if opts.keepNext {
 		b.WriteString(`<w:keepNext/>`)
+	}
+	if opts.contextualSpacing {
+		b.WriteString(`<w:contextualSpacing/>`)
 	}
 	if opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 {
 		b.WriteString(`<w:spacing`)

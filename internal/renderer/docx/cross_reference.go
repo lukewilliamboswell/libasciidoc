@@ -7,7 +7,7 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
-func (r *docxRenderer) renderCrossReference(para *strings.Builder, ref *types.InternalCrossReference, style runStyle) error {
+func (r *docxRenderer) renderCrossReference(para *paragraphBuilder, ref *types.InternalCrossReference, style runStyle) error {
 	refID, ok := ref.ID.(string)
 	if !ok {
 		text, err := r.renderPlainText(ref.ID)
@@ -63,24 +63,27 @@ func (r *docxRenderer) resolveElementReferenceID(id string) string {
 	return id
 }
 
-func (r *docxRenderer) renderFootnoteRef(para *strings.Builder, ref *types.FootnoteReference, style runStyle) error {
+func (r *docxRenderer) renderFootnoteRef(para *paragraphBuilder, ref *types.FootnoteReference, style runStyle) error {
 	if ref.ID == types.InvalidFootnoteReference {
 		r.writeTextRun(para, "[missing footnote: "+ref.Ref+"]", style)
 		return nil
 	}
+	// This is a structural run (footnote reference marker), not a text run.
+	// WriteString flushes any pending text run first, then writes to para.xml.
+	// writeRunProperties writes directly to para.xml (the underlying builder).
 	para.WriteString(`<w:r>`)
-	writeRunProperties(para, mergeRunStyle(style, runStyle{charStyle: "FootnoteReference", superscript: true}))
+	writeRunProperties(&para.xml, mergeRunStyle(style, runStyle{charStyle: "FootnoteReference", superscript: true}))
 	para.WriteString(`<w:footnoteReference w:id="`)
 	para.WriteString(strconv.Itoa(ref.ID))
 	para.WriteString(`"/></w:r>`)
 	return nil
 }
 
-func (r *docxRenderer) renderInlinePassthrough(para *strings.Builder, p *types.InlinePassthrough, style runStyle) error {
+func (r *docxRenderer) renderInlinePassthrough(para *paragraphBuilder, p *types.InlinePassthrough, style runStyle) error {
 	// Render passthrough content as plain text
 	return r.renderInlineElements(para, p.Elements, style)
 }
 
-func (r *docxRenderer) renderLineBreak(para *strings.Builder) {
+func (r *docxRenderer) renderLineBreak(para *paragraphBuilder) {
 	para.WriteString("<w:r><w:br/></w:r>")
 }

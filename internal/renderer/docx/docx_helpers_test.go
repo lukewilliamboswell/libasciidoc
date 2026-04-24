@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
+	"strconv"
 	"strings"
 
 	. "github.com/onsi/gomega"
@@ -120,9 +121,11 @@ func textFromXML(content string) string {
 
 // parsedParagraph represents a w:p element with its properties and child runs.
 type parsedParagraph struct {
-	Style    string // w:pStyle val
-	NumID    string // w:numId val (from w:numPr)
-	NumLevel string // w:ilvl val (from w:numPr)
+	Style      string // w:pStyle val
+	NumID      string // w:numId val (from w:numPr)
+	NumLevel   string // w:ilvl val (from w:numPr)
+	KeepNext   bool   // true when w:keepNext is present in w:pPr
+	IndentLeft int    // w:ind w:left value in twips (0 if absent)
 	// Children preserves the document order of runs and hyperlinks
 	Children []interface{} // parsedRun or parsedHyperlink
 	// Convenience accessors (also available via Children)
@@ -177,11 +180,13 @@ type parsedHyperlink struct {
 
 // parsedTable represents a w:tbl element.
 type parsedTable struct {
-	Rows []parsedTableRow
+	Rows          []parsedTableRow
+	GridColWidths []int // w:gridCol w:w values in order
 }
 
 type parsedTableRow struct {
-	Cells []parsedTableCell
+	Cells    []parsedTableCell
+	IsHeader bool // true when w:trPr contains w:tblHeader
 }
 
 type parsedTableCell struct {
@@ -432,6 +437,16 @@ func parseParagraphProperties(decoder *xml.Decoder, p *parsedParagraph) {
 						p.Style = a.Value
 					}
 				}
+			case "keepNext":
+				p.KeepNext = true
+			case "ind":
+				for _, a := range t.Attr {
+					if a.Name.Local == "left" {
+						if v, err := strconv.Atoi(a.Value); err == nil {
+							p.IndentLeft = v
+						}
+					}
+				}
 			case "numId":
 				for _, a := range t.Attr {
 					if a.Name.Local == "val" {
@@ -631,7 +646,16 @@ func parseTableElement(decoder *xml.Decoder) parsedTable {
 		switch tok := token.(type) {
 		case xml.StartElement:
 			depth++
-			if tok.Name.Local == "tr" && tok.Name.Space == nsMl {
+			switch {
+			case tok.Name.Local == "gridCol" && tok.Name.Space == nsMl:
+				for _, a := range tok.Attr {
+					if a.Name.Local == "w" {
+						if w, err := strconv.Atoi(a.Value); err == nil {
+							t.GridColWidths = append(t.GridColWidths, w)
+						}
+					}
+				}
+			case tok.Name.Local == "tr" && tok.Name.Space == nsMl:
 				row := parseTableRowElement(decoder)
 				t.Rows = append(t.Rows, row)
 				depth--
@@ -654,7 +678,10 @@ func parseTableRowElement(decoder *xml.Decoder) parsedTableRow {
 		switch t := token.(type) {
 		case xml.StartElement:
 			depth++
-			if t.Name.Local == "tc" && t.Name.Space == nsMl {
+			switch {
+			case t.Name.Local == "tblHeader" && t.Name.Space == nsMl:
+				row.IsHeader = true
+			case t.Name.Local == "tc" && t.Name.Space == nsMl:
 				cell := parseTableCellElement(decoder)
 				row.Cells = append(row.Cells, cell)
 				depth--
@@ -824,15 +851,17 @@ type parsedStyle struct {
 	Caps   bool   // w:caps
 	Color  string // w:color val
 	// Paragraph properties
-	SpaceBefore  string // w:spacing w:before
-	SpaceAfter   string // w:spacing w:after
-	LineSpacing  string // w:spacing w:line
-	Shading      string // w:shd w:fill
-	BorderLeft   string // w:pBdr w:left w:color
-	BorderAll    string // w:pBdr w:top w:color (same for all sides)
-	Alignment    string // w:jc w:val
-	OutlineLevel string // w:outlineLvl w:val
-	KeepNext     bool   // w:keepNext present
+	SpaceBefore       string // w:spacing w:before
+	SpaceAfter        string // w:spacing w:after
+	LineSpacing       string // w:spacing w:line
+	Shading           string // w:shd w:fill
+	BorderLeft        string // w:pBdr w:left w:color
+	BorderAll         string // w:pBdr w:top w:color (same for all sides)
+	Alignment         string // w:jc w:val
+	OutlineLevel      string // w:outlineLvl w:val
+	KeepNext          bool   // w:keepNext present
+	ContextualSpacing bool   // w:contextualSpacing present
+	IndentLeft        string // w:ind w:left
 }
 
 func (d renderedDocx) parseStyles() []parsedStyle {
@@ -872,13 +901,18 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 	type xmlOutlineLvl struct {
 		Val string `xml:"val,attr"`
 	}
+	type xmlInd struct {
+		Left string `xml:"left,attr"`
+	}
 	type xmlPPr struct {
-		Spacing    *xmlSpacing    `xml:"spacing"`
-		Shd        *xmlShd        `xml:"shd"`
-		PBdr       *xmlPBdr       `xml:"pBdr"`
-		Jc         *xmlJc         `xml:"jc"`
-		OutlineLvl *xmlOutlineLvl `xml:"outlineLvl"`
-		KeepNext   *struct{}      `xml:"keepNext"`
+		Spacing           *xmlSpacing    `xml:"spacing"`
+		Shd               *xmlShd        `xml:"shd"`
+		PBdr              *xmlPBdr       `xml:"pBdr"`
+		Jc                *xmlJc         `xml:"jc"`
+		OutlineLvl        *xmlOutlineLvl `xml:"outlineLvl"`
+		KeepNext          *struct{}      `xml:"keepNext"`
+		ContextualSpacing *struct{}      `xml:"contextualSpacing"`
+		Ind               *xmlInd        `xml:"ind"`
 	}
 	type xmlRPr struct {
 		RFonts *xmlRFonts `xml:"rFonts"`
@@ -942,6 +976,12 @@ func (d renderedDocx) parseStyles() []parsedStyle {
 		}
 		if s.PPr.KeepNext != nil {
 			ps.KeepNext = true
+		}
+		if s.PPr.ContextualSpacing != nil {
+			ps.ContextualSpacing = true
+		}
+		if s.PPr.Ind != nil {
+			ps.IndentLeft = s.PPr.Ind.Left
 		}
 		result = append(result, ps)
 	}

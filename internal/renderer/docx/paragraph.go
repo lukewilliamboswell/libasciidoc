@@ -20,7 +20,7 @@ func (r *docxRenderer) renderParagraph(p *types.Paragraph) error {
 }
 
 func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
-	para := r.startParagraph(paragraphOptions{indentLeft: r.legalIndent})
+	para := r.startParagraph(paragraphOptions{indentLeft: r.effectiveBodyIndent()})
 	if err := r.renderCheckPrefix(para, p); err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
 }
 
 func (r *docxRenderer) renderCodeParagraph(p *types.Paragraph) error {
-	para := r.startParagraph(paragraphOptions{style: "CodeBlock"})
+	para := r.startParagraph(paragraphOptions{style: "CodeBlock", indentLeft: r.effectiveBodyIndent()})
 	if err := r.renderInlineElements(para, p.Elements, runStyle{monospace: true, monoFont: r.ctx.theme.Code.FontFamily}); err != nil {
 		return err
 	}
@@ -44,18 +44,58 @@ func (r *docxRenderer) renderParagraphAsListItem(p *types.Paragraph, opts paragr
 	if opts.style == "" {
 		opts.style = "ListParagraph"
 	}
-	para := r.startParagraph(opts)
-	if err := r.renderCheckPrefix(para, p); err != nil {
-		return err
+	segments := splitAtLineBreaks(p.Elements)
+	for i, seg := range segments {
+		segOpts := opts
+		if i > 0 {
+			// Subsequent segments: same indent as the list text, no numbering marker.
+			segOpts = paragraphOptions{
+				style:      "ListParagraph",
+				indentLeft: opts.indentLeft,
+			}
+		}
+		para := r.startParagraph(segOpts)
+		if i == 0 {
+			if err := r.renderCheckPrefix(para, p); err != nil {
+				return err
+			}
+		}
+		if err := r.renderInlineElements(para, seg, runStyle{}); err != nil {
+			return err
+		}
+		r.endParagraph(para)
 	}
-	if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {
-		return err
-	}
-	r.endParagraph(para)
 	return nil
 }
 
-func (r *docxRenderer) renderCheckPrefix(para *strings.Builder, p *types.Paragraph) error {
+// splitAtLineBreaks splits an inline element slice at every types.LineBreak.
+// If no LineBreak is present the original slice is returned as-is in a
+// single-element result (no allocation).
+func splitAtLineBreaks(elements []interface{}) [][]interface{} {
+	hasBreak := false
+	for _, e := range elements {
+		if _, ok := e.(*types.LineBreak); ok {
+			hasBreak = true
+			break
+		}
+	}
+	if !hasBreak {
+		return [][]interface{}{elements}
+	}
+	var segs [][]interface{}
+	cur := make([]interface{}, 0, len(elements))
+	for _, e := range elements {
+		if _, ok := e.(*types.LineBreak); ok {
+			segs = append(segs, cur)
+			cur = make([]interface{}, 0, len(elements))
+		} else {
+			cur = append(cur, e)
+		}
+	}
+	return append(segs, cur)
+}
+
+func (r *docxRenderer) renderCheckPrefix(para *paragraphBuilder, p *types.Paragraph) error {
 	switch p.Attributes[types.AttrCheckStyle] {
 	case types.Checked, types.CheckedInteractive:
 		r.writeTextRun(para, "☑ ", runStyle{})
@@ -66,7 +106,7 @@ func (r *docxRenderer) renderCheckPrefix(para *strings.Builder, p *types.Paragra
 }
 
 func (r *docxRenderer) renderAdmonitionParagraph(p *types.Paragraph, kind string) error {
-	para := r.startParagraph(paragraphOptions{style: "Admonition"})
+	para := r.startParagraph(paragraphOptions{style: "Admonition", indentLeft: r.effectiveBodyIndent()})
 	label := r.admonitionLabel(kind) + ": "
 	r.writeTextRun(para, label, r.admonitionLabelStyle())
 	if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {

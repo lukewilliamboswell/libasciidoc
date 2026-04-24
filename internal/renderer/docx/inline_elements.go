@@ -8,11 +8,86 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
+// paragraphBuilder accumulates paragraph XML with deferred run serialisation.
+// Text added via appendText is held in a pending run and merged as long as the
+// runStyle is identical.  Any call to WriteString or Write (structural XML such
+// as pPr, bookmarks, hyperlinks, or line breaks) automatically flushes the
+// pending run first, maintaining correct element ordering without requiring
+// callers to manage state.
+type paragraphBuilder struct {
+	xml          strings.Builder // serialised XML output
+	pendingText  strings.Builder // accumulated text for the pending run
+	pendingStyle runStyle        // style of the currently buffered run
+	hasPending   bool
+}
+
+// WriteString flushes the pending run and appends raw XML.
+// All non-text content (pPr, bookmarks, hyperlinks, br, etc.) uses this path.
+// Returns nothing because strings.Builder.WriteString never errors.
+func (pb *paragraphBuilder) WriteString(s string) {
+	pb.flushPendingRun()
+	pb.xml.WriteString(s)
+}
+
+// Write implements io.Writer so that fmt.Fprint can write to the builder.
+func (pb *paragraphBuilder) Write(p []byte) (int, error) {
+	pb.flushPendingRun()
+	return pb.xml.Write(p)
+}
+
+// appendText buffers text into the pending run.
+// If the incoming style matches the current pending style the text is merged;
+// otherwise the pending run is flushed and a new one is started.
+func (pb *paragraphBuilder) appendText(text string, style runStyle) {
+	if text == "" {
+		return
+	}
+	if pb.hasPending && pb.pendingStyle == style {
+		pb.pendingText.WriteString(text)
+		return
+	}
+	pb.flushPendingRun()
+	pb.pendingStyle = style
+	pb.pendingText.Reset()
+	pb.pendingText.WriteString(text)
+	pb.hasPending = true
+}
+
+func (pb *paragraphBuilder) flushPendingRun() {
+	if !pb.hasPending {
+		return
+	}
+	text := pb.pendingText.String()
+	pb.hasPending = false
+	pb.pendingText.Reset()
+	if text == "" {
+		return
+	}
+	pb.xml.WriteString("<w:r>")
+	writeRunProperties(&pb.xml, pb.pendingStyle)
+	writeRunTextChildren(&pb.xml, text)
+	pb.xml.WriteString("</w:r>")
+}
+
+// String flushes any pending run and returns the full serialised XML.
+func (pb *paragraphBuilder) String() string {
+	pb.flushPendingRun()
+	return pb.xml.String()
+}
+
+func (pb *paragraphBuilder) Reset() {
+	pb.xml.Reset()
+	pb.pendingText.Reset()
+	pb.hasPending = false
+	pb.pendingStyle = runStyle{}
+}
+
 var paragraphBuilderPool = sync.Pool{
 	New: func() interface{} {
-		b := &strings.Builder{}
-		b.Grow(256)
-		return b
+		pb := &paragraphBuilder{}
+		pb.xml.Grow(256)
+		pb.pendingText.Grow(64)
+		return pb
 	},
 }
 
@@ -37,10 +112,11 @@ type paragraphOptions struct {
 	numID        int
 	level        int
 	bookmarkName string
-	indentLeft   int // left indent in twips (0 = no indent)
+	indentLeft   int  // left indent in twips (0 = no indent)
+	keepNext     bool // emit <w:keepNext/> to keep this paragraph with the next
 }
 
-func (r *docxRenderer) renderInlineElements(para *strings.Builder, elements []interface{}, style runStyle) error {
+func (r *docxRenderer) renderInlineElements(para *paragraphBuilder, elements []interface{}, style runStyle) error {
 	for _, element := range elements {
 		if err := r.renderInlineElement(para, element, style); err != nil {
 			return err
@@ -49,7 +125,7 @@ func (r *docxRenderer) renderInlineElements(para *strings.Builder, elements []in
 	return nil
 }
 
-func (r *docxRenderer) renderInlineElement(para *strings.Builder, element interface{}, style runStyle) error {
+func (r *docxRenderer) renderInlineElement(para *paragraphBuilder, element interface{}, style runStyle) error {
 	switch e := element.(type) {
 	case *types.StringElement:
 		return r.renderStringElement(para, e, style)
@@ -107,17 +183,18 @@ func (r *docxRenderer) renderInlineElement(para *strings.Builder, element interf
 	}
 }
 
-func (r *docxRenderer) startParagraph(opts paragraphOptions) *strings.Builder {
-	para := paragraphBuilderPool.Get().(*strings.Builder)
+func (r *docxRenderer) startParagraph(opts paragraphOptions) *paragraphBuilder {
+	para := paragraphBuilderPool.Get().(*paragraphBuilder)
 	para.Reset()
 	para.WriteString("<w:p>")
 	writeParagraphProperties(para, opts)
 	if opts.bookmarkName != "" {
 		id := r.doc.nextBookmarkID()
+		name := r.doc.uniqueBookmarkName(opts.bookmarkName)
 		para.WriteString(`<w:bookmarkStart w:id="`)
 		fmt.Fprint(para, id)
 		para.WriteString(`" w:name="`)
-		para.WriteString(xmlAttr(sanitizeBookmarkName(opts.bookmarkName)))
+		para.WriteString(xmlAttr(name))
 		para.WriteString(`"/>`)
 		para.WriteString(`<w:bookmarkEnd w:id="`)
 		fmt.Fprint(para, id)
@@ -126,14 +203,14 @@ func (r *docxRenderer) startParagraph(opts paragraphOptions) *strings.Builder {
 	return para
 }
 
-func (r *docxRenderer) endParagraph(para *strings.Builder) {
+func (r *docxRenderer) endParagraph(para *paragraphBuilder) {
 	para.WriteString("</w:p>")
 	r.writer.WriteString(para.String())
 	paragraphBuilderPool.Put(para)
 }
 
-func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {
-	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 {
+func writeParagraphProperties(para *paragraphBuilder, opts paragraphOptions) {
+	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 && !opts.keepNext {
 		return
 	}
 	para.WriteString("<w:pPr>")
@@ -141,6 +218,9 @@ func writeParagraphProperties(para *strings.Builder, opts paragraphOptions) {
 		para.WriteString(`<w:pStyle w:val="`)
 		para.WriteString(xmlAttr(opts.style))
 		para.WriteString(`"/>`)
+	}
+	if opts.keepNext {
+		para.WriteString(`<w:keepNext/>`)
 	}
 	if opts.numID > 0 {
 		para.WriteString(`<w:numPr><w:ilvl w:val="`)
@@ -164,29 +244,28 @@ func (r *docxRenderer) renderTextParagraph(text string, opts paragraphOptions) e
 	return nil
 }
 
-func (r *docxRenderer) writeTextRun(para *strings.Builder, text string, style runStyle) {
-	if text == "" {
-		return
-	}
-	para.WriteString("<w:r>")
-	writeRunProperties(para, style)
-	writeRunTextChildren(para, text)
-	para.WriteString("</w:r>")
+// writeTextRun buffers text into the paragraph's pending run.
+// Adjacent calls with the same runStyle are automatically merged into a single
+// <w:r> by the paragraphBuilder's deferred serialisation.
+func (r *docxRenderer) writeTextRun(para *paragraphBuilder, text string, style runStyle) {
+	para.appendText(text, style)
 }
 
 // writeRunProperties emits w:rPr children in the order required by
 // ECMA-376 CT_RPr (§17.3.2.28): rStyle, rFonts, b, i, caps, …,
 // color, …, highlight, u, …, vertAlign.
-func writeRunProperties(para *strings.Builder, style runStyle) {
+// It writes to a *strings.Builder — the xml field inside paragraphBuilder —
+// and is only called from paragraphBuilder.flushPendingRun.
+func writeRunProperties(b *strings.Builder, style runStyle) {
 	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" && style.font == "" && style.shading == "" {
 		return
 	}
-	para.WriteString("<w:rPr>")
+	b.WriteString("<w:rPr>")
 	// 1. rStyle
 	if style.charStyle != "" {
-		para.WriteString(`<w:rStyle w:val="`)
-		para.WriteString(xmlAttr(style.charStyle))
-		para.WriteString(`"/>`)
+		b.WriteString(`<w:rStyle w:val="`)
+		b.WriteString(xmlAttr(style.charStyle))
+		b.WriteString(`"/>`)
 	}
 	// 2. rFonts (monospace takes precedence over explicit font)
 	if style.monospace {
@@ -194,78 +273,78 @@ func writeRunProperties(para *strings.Builder, style runStyle) {
 		if font == "" {
 			font = "Courier New"
 		}
-		para.WriteString(`<w:rFonts w:ascii="`)
-		para.WriteString(xmlAttr(font))
-		para.WriteString(`" w:hAnsi="`)
-		para.WriteString(xmlAttr(font))
-		para.WriteString(`" w:cs="`)
-		para.WriteString(xmlAttr(font))
-		para.WriteString(`"/>`)
+		b.WriteString(`<w:rFonts w:ascii="`)
+		b.WriteString(xmlAttr(font))
+		b.WriteString(`" w:hAnsi="`)
+		b.WriteString(xmlAttr(font))
+		b.WriteString(`" w:cs="`)
+		b.WriteString(xmlAttr(font))
+		b.WriteString(`"/>`)
 	} else if style.font != "" {
-		para.WriteString(`<w:rFonts w:ascii="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`" w:hAnsi="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`" w:cs="`)
-		para.WriteString(xmlAttr(style.font))
-		para.WriteString(`"/>`)
+		b.WriteString(`<w:rFonts w:ascii="`)
+		b.WriteString(xmlAttr(style.font))
+		b.WriteString(`" w:hAnsi="`)
+		b.WriteString(xmlAttr(style.font))
+		b.WriteString(`" w:cs="`)
+		b.WriteString(xmlAttr(style.font))
+		b.WriteString(`"/>`)
 	}
 	// 3. b
 	if style.bold {
-		para.WriteString("<w:b/>")
+		b.WriteString("<w:b/>")
 	}
 	// 4. i
 	if style.italic {
-		para.WriteString("<w:i/>")
+		b.WriteString("<w:i/>")
 	}
 	// 5. color
 	if style.color != "" {
-		para.WriteString(`<w:color w:val="`)
-		para.WriteString(xmlAttr(style.color))
-		para.WriteString(`"/>`)
+		b.WriteString(`<w:color w:val="`)
+		b.WriteString(xmlAttr(style.color))
+		b.WriteString(`"/>`)
 	}
 	// 6. shading (inline background)
 	if style.shading != "" {
-		para.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
-		para.WriteString(xmlAttr(style.shading))
-		para.WriteString(`"/>`)
+		b.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
+		b.WriteString(xmlAttr(style.shading))
+		b.WriteString(`"/>`)
 	}
 	// 7. highlight
 	if style.highlight {
-		para.WriteString(`<w:highlight w:val="yellow"/>`)
+		b.WriteString(`<w:highlight w:val="yellow"/>`)
 	}
 	// 8. u
 	if style.underline {
-		para.WriteString(`<w:u w:val="single"/>`)
+		b.WriteString(`<w:u w:val="single"/>`)
 	}
 	// 9. vertAlign
 	if style.subscript {
-		para.WriteString(`<w:vertAlign w:val="subscript"/>`)
+		b.WriteString(`<w:vertAlign w:val="subscript"/>`)
 	}
 	if style.superscript {
-		para.WriteString(`<w:vertAlign w:val="superscript"/>`)
+		b.WriteString(`<w:vertAlign w:val="superscript"/>`)
 	}
-	para.WriteString("</w:rPr>")
+	b.WriteString("</w:rPr>")
 }
 
-func writeRunTextChildren(para *strings.Builder, text string) {
+func writeRunTextChildren(b *strings.Builder, text string) {
 	if text == "" {
 		return
 	}
 	for i, line := range strings.Split(text, "\n") {
 		if i > 0 {
-			para.WriteString("<w:br/>")
+			b.WriteString("<w:br/>")
 		}
 		for j, part := range strings.Split(line, "\t") {
 			if j > 0 {
-				para.WriteString("<w:tab/>")
+				b.WriteString("<w:tab/>")
 			}
 			if part == "" {
 				continue
 			}
-			para.WriteString(`<w:t xml:space="preserve">`)
-			para.WriteString(xmlText(part))
-			para.WriteString("</w:t>")
+			b.WriteString(`<w:t xml:space="preserve">`)
+			b.WriteString(xmlText(part))
+			b.WriteString("</w:t>")
 		}
 	}
 }

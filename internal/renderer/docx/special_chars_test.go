@@ -1,6 +1,8 @@
 package docx_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -103,6 +105,36 @@ var _ = Describe("special characters and symbols", func() {
 
 			r := doc.findRun("\u00b0")
 			Expect(r).ToNot(BeNil())
+		})
+	})
+
+	Context("run merging via paragraphBuilder", func() {
+
+		It("should merge adjacent plain text runs into a single w:r", func() {
+			// A possessive apostrophe is parsed as a Symbol element interspersed
+			// between StringElement runs.  Without deferred run serialisation,
+			// "Luke" + "\u2019" + "s guide" would produce three separate <w:r>
+			// elements.  paragraphBuilder merges adjacent runs sharing the same
+			// runStyle, so the paragraph should contain only ONE non-empty run.
+			doc := renderDocx(`Luke's guide`)
+
+			paras := doc.parseParagraphs()
+			var targetPara *parsedParagraph
+			for i := range paras {
+				if strings.Contains(paras[i].text(), "Luke") {
+					targetPara = &paras[i]
+					break
+				}
+			}
+			Expect(targetPara).ToNot(BeNil())
+
+			nonEmpty := 0
+			for _, r := range targetPara.Runs {
+				if r.Text != "" {
+					nonEmpty++
+				}
+			}
+			Expect(nonEmpty).To(Equal(1), "adjacent plain runs should be merged into a single <w:r>")
 		})
 	})
 })

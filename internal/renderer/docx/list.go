@@ -135,18 +135,42 @@ func (r *docxRenderer) renderCalloutList(l *types.List) error {
 }
 
 func (r *docxRenderer) renderListItem(numID int, elements []interface{}, ilvl int) error {
+	// Compute the left indent for continuation blocks (paragraphs, admonitions,
+	// code blocks, etc.) that follow the numbered/bulleted first paragraph.
+	// This mirrors writeNumberingLevel: baseIndent + (listLevel-1)*step + ilvl*step.
+	baseIndent := ptToTwips(r.ctx.theme.List.Indent)
+	contIndent := (r.listLevel-1)*twipsPerLevel + baseIndent + ilvl*twipsPerLevel
+
+	hasMultiple := len(elements) > 1
 	for i, elem := range elements {
 		switch e := elem.(type) {
 		case *types.Paragraph:
 			if i == 0 {
-				if err := r.renderParagraphAsListItem(e, paragraphOptions{numID: numID, level: ilvl}); err != nil {
+				opts := paragraphOptions{numID: numID, level: ilvl}
+				if hasMultiple {
+					opts.keepNext = true
+				}
+				if err := r.renderParagraphAsListItem(e, opts); err != nil {
 					return err
 				}
-			} else if err := r.renderParagraphAsListItem(e, paragraphOptions{style: "ListParagraph"}); err != nil {
-				return err
+			} else {
+				// Route through the full paragraph dispatcher so that admonition,
+				// code, and other styled paragraphs are handled correctly,
+				// and set listContIndent so effectiveBodyIndent() picks it up.
+				prev := r.listContIndent
+				r.listContIndent = contIndent
+				err := r.renderParagraph(e)
+				r.listContIndent = prev
+				if err != nil {
+					return err
+				}
 			}
 		default:
-			if err := r.renderElement(elem); err != nil {
+			prev := r.listContIndent
+			r.listContIndent = contIndent
+			err := r.renderElement(elem)
+			r.listContIndent = prev
+			if err != nil {
 				return err
 			}
 		}

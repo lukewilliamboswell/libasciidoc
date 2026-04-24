@@ -45,7 +45,7 @@ func (r *docxRenderer) renderImageBlock(img *types.ImageBlock) error {
 	return nil
 }
 
-func (r *docxRenderer) renderInlineImage(para *strings.Builder, img *types.InlineImage) error {
+func (r *docxRenderer) renderInlineImage(para *paragraphBuilder, img *types.InlineImage) error {
 	src := r.resolveImagePath(img.Location)
 	if err := r.writeImageDrawing(para, src, img.Attributes); err != nil {
 		r.writeTextRun(para, imageAlt(img.Attributes, src), runStyle{italic: true})
@@ -82,7 +82,7 @@ func (r *docxRenderer) resolveImagePath(location *types.Location) string {
 	return src
 }
 
-func (r *docxRenderer) writeImageDrawing(para *strings.Builder, src string, attrs types.Attributes) error {
+func (r *docxRenderer) writeImageDrawing(para *paragraphBuilder, src string, attrs types.Attributes) error {
 	if src == "" {
 		return os.ErrNotExist
 	}

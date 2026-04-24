@@ -1,12 +1,10 @@
 package docx
 
 import (
-	"strings"
-
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
-func (r *docxRenderer) renderQuotedText(para *strings.Builder, qt *types.QuotedText, style runStyle) error {
+func (r *docxRenderer) renderQuotedText(para *paragraphBuilder, qt *types.QuotedText, style runStyle) error {
 	merged := mergeStyle(style, qt.Kind)
 	if merged.monospace {
 		cs := r.ctx.theme.Codespan

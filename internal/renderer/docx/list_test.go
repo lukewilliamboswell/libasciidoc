@@ -74,4 +74,22 @@ Term 2:: Definition 2`)
 		defPara := doc.findParagraph("Definition 1")
 		Expect(defPara).ToNot(BeNil())
 	})
+
+	It("should split a list item with a hard line break into two paragraphs", func() {
+		// A hard line break (+ at end of line) inside a list item should produce
+		// two separate paragraphs, not a <w:br/> inside a single paragraph.
+		doc := renderDocx(`. Line one +
+line two`)
+
+		p1 := doc.findParagraph("Line one")
+		Expect(p1).ToNot(BeNil())
+		Expect(p1.NumID).ToNot(BeEmpty(), "first segment should carry the numbering")
+
+		p2 := doc.findParagraph("line two")
+		Expect(p2).ToNot(BeNil())
+		Expect(p2.NumID).To(BeEmpty(), "second segment should not carry numbering")
+
+		// They must be distinct paragraphs — not the same paragraph
+		Expect(p1.text()).ToNot(ContainSubstring("line two"), "first paragraph should not contain the second line's text")
+	})
 })

@@ -229,6 +229,51 @@ a|
 		Expect(listParas).To(HaveLen(3), "expected 3 lettered paragraphs in cell")
 	})
 
+	It("should use proportional column widths from cols attribute", func() {
+		// [cols="1,3"] means col1 = 1/4 of text width, col2 = 3/4 of text width.
+		// Default A4 page (11906 twips) with 20mm margins on each side (1134 twips each)
+		// text width = 11906 - 1134 - 1134 = 9638 twips
+		// col1 = 9638 * 1/4 = 2409, col2 = 9638 * 3/4 = 7228
+		doc := renderDocx(`[cols="1,3"]
+|===
+| Label | Value
+
+| Name | Alice
+|===`)
+
+		tables := doc.parseTables()
+		Expect(tables).To(HaveLen(1))
+		Expect(tables[0].GridColWidths).To(HaveLen(2))
+
+		col1 := tables[0].GridColWidths[0]
+		col2 := tables[0].GridColWidths[1]
+
+		// col2 should be approximately 3× col1
+		ratio := float64(col2) / float64(col1)
+		Expect(ratio).To(BeNumerically("~", 3.0, 0.1), "col2 should be ~3× col1, got col1=%d col2=%d", col1, col2)
+
+		// Total should equal text width
+		textWidth := col1 + col2
+		Expect(textWidth).To(BeNumerically("~", 9638, 10), "total width should equal text width (~9638 twips), got %d", textWidth)
+	})
+
+	It("should use equal column widths when no cols attribute is given", func() {
+		doc := renderDocx(`|===
+| A | B | C
+| 1 | 2 | 3
+|===`)
+
+		tables := doc.parseTables()
+		Expect(tables).To(HaveLen(1))
+		Expect(tables[0].GridColWidths).To(HaveLen(3))
+
+		w0 := tables[0].GridColWidths[0]
+		w1 := tables[0].GridColWidths[1]
+		w2 := tables[0].GridColWidths[2]
+		Expect(w0).To(Equal(w1), "all columns should be equal width")
+		Expect(w1).To(Equal(w2), "all columns should be equal width")
+	})
+
 	It("should apply percentage width from theme", func() {
 		doc := renderDocxWithTheme(`|===
 | A | B

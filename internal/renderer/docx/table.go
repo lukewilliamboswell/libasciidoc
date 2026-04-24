@@ -60,16 +60,35 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 		r.writer.WriteString(`</w:tblCellMar>`)
 	}
 
+	cols, _ := t.Columns()
+	textWidth := r.doc.textWidthTwips()
 	r.writer.WriteString(`</w:tblPr><w:tblGrid>`)
-	for i := 0; i < colCount; i++ {
-		r.writer.WriteString(`<w:gridCol w:w="`)
-		fmt.Fprint(r.writer, tableGridWidthTwips/colCount)
-		r.writer.WriteString(`"/>`)
+	if len(cols) > 0 {
+		totalWeight := 0
+		for _, c := range cols {
+			totalWeight += c.Weight
+		}
+		if totalWeight <= 0 {
+			totalWeight = len(cols)
+		}
+		for _, c := range cols {
+			w := c.Weight * textWidth / totalWeight
+			if w <= 0 {
+				w = textWidth / len(cols)
+			}
+			r.writer.WriteString(`<w:gridCol w:w="` + itoa(w) + `"/>`)
+		}
+	} else {
+		colW := textWidth / colCount
+		for i := 0; i < colCount; i++ {
+			r.writer.WriteString(`<w:gridCol w:w="` + itoa(colW) + `"/>`)
+		}
 	}
 	r.writer.WriteString(`</w:tblGrid>`)
 	for i, row := range rows {
 		bold, italic, bgColor := r.tableRowStyle(t, theme, i, len(rows))
-		if err := r.renderTableRow(row, colCount, bold, italic, bgColor); err != nil {
+		isHeader := t.Header != nil && i == 0
+		if err := r.renderTableRow(row, colCount, bold, italic, bgColor, isHeader); err != nil {
 			return err
 		}
 	}
@@ -118,8 +137,11 @@ func (r *docxRenderer) tableRowStyle(t *types.Table, theme TableTheme, i int, to
 	return
 }
 
-func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string) error {
+func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string, isHeader bool) error {
 	r.writer.WriteString("<w:tr>")
+	if isHeader {
+		r.writer.WriteString(`<w:trPr><w:tblHeader/></w:trPr>`)
+	}
 	for i := 0; i < colCount; i++ {
 		var cell *types.TableCell
 		if i < len(row.Cells) {
