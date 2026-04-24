@@ -70,9 +70,9 @@ func (r *docxRenderer) renderFootnoteRef(para *paragraphBuilder, ref *types.Foot
 	}
 	// This is a structural run (footnote reference marker), not a text run.
 	// WriteString flushes any pending text run first, then writes to para.xml.
-	// writeRunProperties writes directly to para.xml (the underlying builder).
+	// writeRPr writes directly to para.xml (the underlying builder).
 	para.WriteString(`<w:r>`)
-	writeRunProperties(&para.xml, mergeRunStyle(style, runStyle{charStyle: "FootnoteReference", superscript: true}))
+	mergeRunStyle(style, runStyle{charStyle: "FootnoteReference", superscript: true}).writeRPr(&para.xml)
 	para.WriteString(`<w:footnoteReference w:id="`)
 	para.WriteString(strconv.Itoa(ref.ID))
 	para.WriteString(`"/></w:r>`)

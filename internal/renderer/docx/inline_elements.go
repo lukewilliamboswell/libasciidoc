@@ -64,7 +64,7 @@ func (pb *paragraphBuilder) flushPendingRun() {
 		return
 	}
 	pb.xml.WriteString("<w:r>")
-	writeRunProperties(&pb.xml, pb.pendingStyle)
+	pb.pendingStyle.writeRPr(&pb.xml)
 	writeRunTextChildren(&pb.xml, text)
 	pb.xml.WriteString("</w:r>")
 }
@@ -187,7 +187,7 @@ func (r *docxRenderer) startParagraph(opts paragraphOptions) *paragraphBuilder {
 	para := paragraphBuilderPool.Get().(*paragraphBuilder)
 	para.Reset()
 	para.WriteString("<w:p>")
-	writeParagraphProperties(para, opts)
+	opts.writePPr(para)
 	if opts.bookmarkName != "" {
 		id := r.doc.nextBookmarkID()
 		name := r.doc.uniqueBookmarkName(opts.bookmarkName)
@@ -209,7 +209,7 @@ func (r *docxRenderer) endParagraph(para *paragraphBuilder) {
 	paragraphBuilderPool.Put(para)
 }
 
-func writeParagraphProperties(para *paragraphBuilder, opts paragraphOptions) {
+func (opts paragraphOptions) writePPr(para *paragraphBuilder) {
 	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 && !opts.keepNext {
 		return
 	}
@@ -251,12 +251,10 @@ func (r *docxRenderer) writeTextRun(para *paragraphBuilder, text string, style r
 	para.appendText(text, style)
 }
 
-// writeRunProperties emits w:rPr children in the order required by
+// writeRPr emits w:rPr children in the order required by
 // ECMA-376 CT_RPr (§17.3.2.28): rStyle, rFonts, b, i, caps, …,
 // color, …, highlight, u, …, vertAlign.
-// It writes to a *strings.Builder — the xml field inside paragraphBuilder —
-// and is only called from paragraphBuilder.flushPendingRun.
-func writeRunProperties(b *strings.Builder, style runStyle) {
+func (style runStyle) writeRPr(b *strings.Builder) {
 	if !style.bold && !style.italic && !style.monospace && !style.highlight && !style.subscript && !style.superscript && !style.underline && style.color == "" && style.charStyle == "" && style.font == "" && style.shading == "" {
 		return
 	}

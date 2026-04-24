@@ -28,41 +28,31 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	}
 
 	theme := r.ctx.theme.Table
-	borderSz := itoa(ptToEighths(theme.BorderWidth))
-	borderColor := theme.BorderColor
-	outerBorder := `w:val="single" w:sz="` + borderSz + `" w:space="0" w:color="` + xmlAttr(borderColor) + `"`
-
-	// Grid lines may differ from outer borders
-	gridSz := borderSz
-	gridColor := borderColor
+	outer := borderLine{sizePt: theme.BorderWidth, space: 0, color: theme.BorderColor}
+	inner := borderLine{sizePt: theme.BorderWidth, space: 0, color: theme.BorderColor}
 	if theme.GridColor != "" {
-		gridColor = theme.GridColor
+		inner.color = theme.GridColor
 	}
 	if theme.GridWidth > 0 {
-		gridSz = itoa(ptToEighths(theme.GridWidth))
+		inner.sizePt = theme.GridWidth
 	}
-	innerBorder := `w:val="single" w:sz="` + gridSz + `" w:space="0" w:color="` + xmlAttr(gridColor) + `"`
 
 	tblW, tblWType := tableWidthAttrs(theme.Width)
-	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="` + tblW + `" w:type="` + tblWType + `"/><w:tblBorders>` +
-		`<w:top ` + outerBorder + `/><w:left ` + outerBorder + `/><w:bottom ` + outerBorder + `/>` +
-		`<w:right ` + outerBorder + `/><w:insideH ` + innerBorder + `/><w:insideV ` + innerBorder + `/>` +
-		`</w:tblBorders>`)
-
-	// Cell padding (table-level cell margins)
+	props := tableProps{
+		width: tableWidth{w: tblW, wType: tblWType},
+		borders: tableBorders{
+			top: outer, left: outer, bottom: outer, right: outer,
+			insideH: inner, insideV: inner,
+		},
+	}
 	if theme.CellPadding > 0 {
-		pad := itoa(ptToTwips(theme.CellPadding))
-		r.writer.WriteString(`<w:tblCellMar>`)
-		r.writer.WriteString(`<w:top w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:left w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:bottom w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:right w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`</w:tblCellMar>`)
+		pad := ptToTwips(theme.CellPadding)
+		props.cellMar = &tableCellMargins{top: pad, left: pad, bottom: pad, right: pad}
 	}
 
 	cols, _ := t.Columns()
 	textWidth := r.doc.textWidthTwips()
-	r.writer.WriteString(`</w:tblPr><w:tblGrid>`)
+	var colWidths []int
 	if len(cols) > 0 {
 		totalWeight := 0
 		for _, c := range cols {
@@ -76,15 +66,19 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 			if w <= 0 {
 				w = textWidth / len(cols)
 			}
-			r.writer.WriteString(`<w:gridCol w:w="` + itoa(w) + `"/>`)
+			colWidths = append(colWidths, w)
 		}
 	} else {
 		colW := textWidth / colCount
-		for i := 0; i < colCount; i++ {
-			r.writer.WriteString(`<w:gridCol w:w="` + itoa(colW) + `"/>`)
+		colWidths = make([]int, colCount)
+		for i := range colWidths {
+			colWidths[i] = colW
 		}
 	}
-	r.writer.WriteString(`</w:tblGrid>`)
+
+	r.writer.WriteString("<w:tbl>")
+	props.xml(r.writer)
+	tableGrid{colWidths: colWidths}.xml(r.writer)
 	for i, row := range rows {
 		bold, italic, bgColor := r.tableRowStyle(t, theme, i, len(rows))
 		isHeader := t.Header != nil && i == 0
@@ -156,13 +150,8 @@ func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, i
 }
 
 func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool, bgColor string) error {
-	r.writer.WriteString(`<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>`)
-	if bgColor != "" {
-		r.writer.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
-		r.writer.WriteString(xmlAttr(bgColor))
-		r.writer.WriteString(`"/>`)
-	}
-	r.writer.WriteString(`</w:tcPr>`)
+	r.writer.WriteString("<w:tc>")
+	tableCellProps{widthW: "0", widthWType: "auto", bgColor: bgColor}.xml(r.writer)
 	if cell == nil || len(cell.Elements) == 0 {
 		r.writer.WriteString(`<w:p/>`)
 		r.writer.WriteString(`</w:tc>`)

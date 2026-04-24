@@ -392,29 +392,22 @@ func (d *docxDocument) documentXML() string {
 func (d *docxDocument) sectionPropertiesXML() string {
 	t := d.theme
 	w, h := pageSizeTwips(t.Page.Size, t.Page.Layout)
-	top := mmToTwips(t.Page.Margin[0])
-	right := mmToTwips(t.Page.Margin[1])
-	bottom := mmToTwips(t.Page.Margin[2])
-	left := mmToTwips(t.Page.Margin[3])
-
-	b := &strings.Builder{}
-	b.WriteString(`<w:sectPr>`)
-	// Header/footer references
+	sp := sectionProps{
+		pageW:        w,
+		pageH:        h,
+		marginTop:    mmToTwips(t.Page.Margin[0]),
+		marginRight:  mmToTwips(t.Page.Margin[1]),
+		marginBottom: mmToTwips(t.Page.Margin[2]),
+		marginLeft:   mmToTwips(t.Page.Margin[3]),
+	}
 	if d.hasHeader {
-		b.WriteString(`<w:headerReference w:type="default" r:id="`)
-		b.WriteString(d.headerRelID)
-		b.WriteString(`"/>`)
+		sp.headerRelID = d.headerRelID
 	}
 	if d.hasFooter {
-		b.WriteString(`<w:footerReference w:type="default" r:id="`)
-		b.WriteString(d.footerRelID)
-		b.WriteString(`"/>`)
+		sp.footerRelID = d.footerRelID
 	}
-	b.WriteString(`<w:pgSz w:w="` + itoa(w) + `" w:h="` + itoa(h) + `"/>`)
-	b.WriteString(`<w:pgMar w:top="` + itoa(top) + `" w:right="` + itoa(right) +
-		`" w:bottom="` + itoa(bottom) + `" w:left="` + itoa(left) +
-		`" w:header="709" w:footer="709" w:gutter="0"/>`)
-	b.WriteString(`</w:sectPr>`)
+	b := &strings.Builder{}
+	sp.xml(b)
 	return b.String()
 }
 
@@ -793,43 +786,26 @@ func (d *docxDocument) writeNumberingLevel(b *strings.Builder, def numberingDefi
 
 func (d *docxDocument) stylesXML() string {
 	t := d.theme
-	baseSz := itoa(ptToHalfPt(t.Base.FontSize))
-	baseFont := t.Base.FontFamily
 	headingFont := t.Heading.FontFamily
 
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
 	b.WriteString(`<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
-	b.WriteString(`<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="`)
-	b.WriteString(xmlAttr(baseFont))
-	b.WriteString(`" w:hAnsi="`)
-	b.WriteString(xmlAttr(baseFont))
-	b.WriteString(`" w:cs="`)
-	b.WriteString(xmlAttr(baseFont))
-	b.WriteString(`"/><w:sz w:val="`)
-	b.WriteString(baseSz)
-	b.WriteString(`"/><w:szCs w:val="`)
-	b.WriteString(baseSz)
-	b.WriteString(`"/></w:rPr></w:rPrDefault>`)
 
-	// Paragraph defaults: spacing and alignment.
 	afterTwips := 160 // default ~8pt after
 	if t.Prose.MarginBottom > 0 {
 		afterTwips = ptToTwips(t.Prose.MarginBottom)
 	}
-	lineVal := t.lineHeightValue()
-	b.WriteString(`<w:pPrDefault><w:pPr><w:spacing w:after="`)
-	b.WriteString(itoa(afterTwips))
-	b.WriteString(`" w:line="`)
-	b.WriteString(itoa(lineVal))
-	b.WriteString(`" w:lineRule="auto"/>`)
-	if align := resolveTextAlign(t.Prose.TextAlign, t.Base.TextAlign); align != "" {
-		b.WriteString(`<w:jc w:val="`)
-		b.WriteString(xmlAttr(ooxmlAlignment(align)))
-		b.WriteString(`"/>`)
+	dd := docDefaults{
+		font:       t.Base.FontFamily,
+		size:       itoa(ptToHalfPt(t.Base.FontSize)),
+		afterTwips: afterTwips,
+		lineVal:    t.lineHeightValue(),
 	}
-	b.WriteString(`</w:pPr></w:pPrDefault>`)
-	b.WriteString(`</w:docDefaults>`)
+	if align := resolveTextAlign(t.Prose.TextAlign, t.Base.TextAlign); align != "" {
+		dd.align = ooxmlAlignment(align)
+	}
+	dd.xml(b)
 
 	// Normal style
 	baseBold, baseItalic := fontStyleBoldItalic(t.Base.FontStyle)
@@ -990,23 +966,13 @@ func (d *docxDocument) stylesXML() string {
 
 	// Hyperlink character style
 	linkBold, linkItalic := fontStyleBoldItalic(t.Link.FontStyle)
-	linkUnderline := t.Link.TextDecoration != "none"
-	b.WriteString(`<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr>`)
-	b.WriteString(`<w:color w:val="`)
-	b.WriteString(xmlAttr(t.Link.FontColor))
-	b.WriteString(`"/>`)
-	if linkBold {
-		b.WriteString(`<w:b/>`)
-	}
-	if linkItalic {
-		b.WriteString(`<w:i/>`)
-	}
-	if linkUnderline {
-		b.WriteString(`<w:u w:val="single"/>`)
-	}
-	b.WriteString(`</w:rPr></w:style>`)
+	charStyle{
+		id: "Hyperlink", name: "Hyperlink",
+		color: t.Link.FontColor, bold: linkBold, italic: linkItalic,
+		underline: t.Link.TextDecoration != "none",
+	}.xml(b)
 
-	b.WriteString(`<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="Footnote Reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>`)
+	charStyle{id: "FootnoteReference", name: "Footnote Reference", vertAlign: "superscript"}.xml(b)
 	b.WriteString(`</w:styles>`)
 	return b.String()
 }
@@ -1043,13 +1009,13 @@ func styleParaXML(opts styleParaOpts) string {
 	b.WriteString(`"><w:name w:val="`)
 	b.WriteString(xmlAttr(opts.name))
 	b.WriteString(`"/>`)
-	writeStylePPr(b, opts)
-	writeStyleRPr(b, opts)
+	opts.writePPr(b)
+	opts.writeRPr(b)
 	b.WriteString(`</w:style>`)
 	return b.String()
 }
 
-func writeStylePPr(b *strings.Builder, opts styleParaOpts) {
+func (opts styleParaOpts) writePPr(b *strings.Builder) {
 	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
 		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0 ||
 		opts.keepNext || opts.contextualSpacing || opts.outlineLevel >= 0
@@ -1082,30 +1048,33 @@ func writeStylePPr(b *strings.Builder, opts styleParaOpts) {
 		}
 		b.WriteString(`/>`)
 	}
-	if opts.shading != "" {
-		b.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
-		b.WriteString(xmlAttr(opts.shading))
-		b.WriteString(`"/>`)
-	}
+	writeShading(b, opts.shading)
 	if opts.borderAll != "" {
-		bw := ptToEighths(opts.borderAllWidth)
-		if bw < 1 {
-			bw = 4 // default 0.5pt
+		bw := opts.borderAllWidth
+		if ptToEighths(bw) < 1 {
+			bw = 0.5 // default 0.5pt = 4 eighths
 		}
-		border := `w:val="single" w:sz="` + itoa(bw) + `" w:space="4" w:color="` + xmlAttr(opts.borderAll) + `"`
+		bl := borderLine{sizePt: bw, space: 4, color: opts.borderAll}
 		b.WriteString(`<w:pBdr>`)
-		b.WriteString(`<w:top ` + border + `/><w:left ` + border + `/><w:bottom ` + border + `/><w:right ` + border + `/>`)
+		b.WriteString(`<w:top `)
+		bl.writeAttrs(b)
+		b.WriteString(`/><w:left `)
+		bl.writeAttrs(b)
+		b.WriteString(`/><w:bottom `)
+		bl.writeAttrs(b)
+		b.WriteString(`/><w:right `)
+		bl.writeAttrs(b)
+		b.WriteString(`/>`)
 		b.WriteString(`</w:pBdr>`)
 	} else if opts.borderLeft != "" {
-		bw := ptToEighths(opts.borderLeftWidth)
-		if bw < 1 {
-			bw = 4
+		bw := opts.borderLeftWidth
+		if ptToEighths(bw) < 1 {
+			bw = 0.5
 		}
-		b.WriteString(`<w:pBdr><w:left w:val="single" w:sz="`)
-		b.WriteString(itoa(bw))
-		b.WriteString(`" w:space="4" w:color="`)
-		b.WriteString(xmlAttr(opts.borderLeft))
-		b.WriteString(`"/></w:pBdr>`)
+		bl := borderLine{sizePt: bw, space: 4, color: opts.borderLeft}
+		b.WriteString(`<w:pBdr><w:left `)
+		bl.writeAttrs(b)
+		b.WriteString(`/></w:pBdr>`)
 	}
 	if opts.indentLeft > 0 {
 		b.WriteString(`<w:ind w:left="`)
@@ -1125,7 +1094,7 @@ func writeStylePPr(b *strings.Builder, opts styleParaOpts) {
 	b.WriteString(`</w:pPr>`)
 }
 
-func writeStyleRPr(b *strings.Builder, opts styleParaOpts) {
+func (opts styleParaOpts) writeRPr(b *strings.Builder) {
 	b.WriteString(`<w:rPr>`)
 	if opts.font != "" {
 		b.WriteString(`<w:rFonts w:ascii="`)
