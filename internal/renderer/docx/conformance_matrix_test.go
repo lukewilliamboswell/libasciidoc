@@ -302,9 +302,9 @@ var conformanceMatrix = []conformanceEntry{
 	{
 		AsciiDocSpec: "https://docs.asciidoctor.org/asciidoc/latest/tables/span-cells/",
 		ECMA376Sec:   "§17.4.3.15",
-		Description:  "column span 2+| emits w:gridSpan val=2 (PENDING: not yet implemented)",
+		Description:  "column span 2+| emits w:gridSpan val=2",
 		Source:       "|===\n2+| Wide\n| A | B\n|===",
-		Pending:      true,
+		Pending:      false,
 		Check: func(doc renderedDocx) {
 			tables := doc.parseTables()
 			Expect(tables).To(HaveLen(1))
@@ -314,9 +314,9 @@ var conformanceMatrix = []conformanceEntry{
 	{
 		AsciiDocSpec: "https://docs.asciidoctor.org/asciidoc/latest/tables/span-cells/",
 		ECMA376Sec:   "§17.7.6",
-		Description:  "row span .2+| emits w:vMerge restart/continuation (PENDING: not yet implemented)",
+		Description:  "row span .2+| emits w:vMerge restart/continuation",
 		Source:       "|===\n.2+| Tall | B\n| C\n|===",
-		Pending:      true,
+		Pending:      false,
 		Check: func(doc renderedDocx) {
 			tables := doc.parseTables()
 			Expect(tables).To(HaveLen(1))
@@ -327,9 +327,9 @@ var conformanceMatrix = []conformanceEntry{
 	{
 		AsciiDocSpec: "https://docs.asciidoctor.org/asciidoc/latest/tables/format-cell-content/",
 		ECMA376Sec:   "§17.3.1.13",
-		Description:  "^| center-aligned cell emits w:jc val=center on cell paragraph (PENDING: not yet implemented)",
+		Description:  "^| center-aligned cell emits w:jc val=center on cell paragraph",
 		Source:       "|===\n^| Centered\n|===",
-		Pending:      true,
+		Pending:      false,
 		Check: func(doc renderedDocx) {
 			// ^| sets horizontal centering — rendered as w:jc val="center" on the
 			// paragraph inside the cell (w:pPr/w:jc), not as w:vAlign on the cell.

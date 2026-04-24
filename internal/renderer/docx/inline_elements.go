@@ -112,8 +112,9 @@ type paragraphOptions struct {
 	numID        int
 	level        int
 	bookmarkName string
-	indentLeft   int  // left indent in twips (0 = no indent)
-	keepNext     bool // emit <w:keepNext/> to keep this paragraph with the next
+	indentLeft   int    // left indent in twips (0 = no indent)
+	keepNext     bool   // emit <w:keepNext/> to keep this paragraph with the next
+	alignment    string // OOXML w:jc value: "center", "right", "left", or "" (omit)
 }
 
 func (r *docxRenderer) renderInlineElements(para *paragraphBuilder, elements []interface{}, style runStyle) error {
@@ -210,7 +211,7 @@ func (r *docxRenderer) endParagraph(para *paragraphBuilder) {
 }
 
 func (opts paragraphOptions) writePPr(para *paragraphBuilder) {
-	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 && !opts.keepNext {
+	if opts.style == "" && opts.numID == 0 && opts.indentLeft == 0 && !opts.keepNext && opts.alignment == "" {
 		return
 	}
 	para.WriteString("<w:pPr>")
@@ -232,6 +233,11 @@ func (opts paragraphOptions) writePPr(para *paragraphBuilder) {
 	if opts.indentLeft > 0 {
 		para.WriteString(`<w:ind w:left="`)
 		fmt.Fprint(para, opts.indentLeft)
+		para.WriteString(`"/>`)
+	}
+	if opts.alignment != "" {
+		para.WriteString(`<w:jc w:val="`)
+		para.WriteString(xmlAttr(opts.alignment))
 		para.WriteString(`"/>`)
 	}
 	para.WriteString("</w:pPr>")

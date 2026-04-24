@@ -357,7 +357,7 @@ Second occurrence.`)
 
 var _ = Describe("ECMA-376 §17.4.3 — table column spans (pending)", func() {
 
-	XIt("2+| syntax should emit w:gridSpan val=2 on the spanning cell", func() {
+	It("2+| syntax should emit w:gridSpan val=2 on the spanning cell", func() {
 		// AsciiDoc: https://docs.asciidoctor.org/asciidoc/latest/tables/span-cells/
 		// ECMA-376 §17.4.3.15 w:gridSpan
 		doc := renderDocx(`|===
@@ -371,7 +371,7 @@ var _ = Describe("ECMA-376 §17.4.3 — table column spans (pending)", func() {
 			"a cell with 2+| prefix must emit w:gridSpan w:val=\"2\"")
 	})
 
-	XIt(".2+| syntax should emit w:vMerge restart on the first merged cell", func() {
+	It(".2+| syntax should emit w:vMerge restart on the first merged cell", func() {
 		// AsciiDoc: https://docs.asciidoctor.org/asciidoc/latest/tables/span-cells/
 		// ECMA-376 §17.7.6 w:vMerge
 		doc := renderDocx(`|===

@@ -131,6 +131,8 @@ type tableCellProps struct {
 	widthW     string
 	widthWType string
 	bgColor    string // shading fill; empty = no shading
+	gridSpan   int    // column span; 0 or 1 = omit
+	vMerge     string // "restart", "continue", or "" (omit)
 }
 
 func (tcp tableCellProps) xml(w *strings.Builder) {
@@ -139,6 +141,17 @@ func (tcp tableCellProps) xml(w *strings.Builder) {
 	w.WriteString(`" w:type="`)
 	w.WriteString(xmlAttr(tcp.widthWType))
 	w.WriteString(`"/>`)
+	if tcp.gridSpan > 1 {
+		w.WriteString(`<w:gridSpan w:val="`)
+		w.WriteString(itoa(tcp.gridSpan))
+		w.WriteString(`"/>`)
+	}
+	switch tcp.vMerge {
+	case "restart":
+		w.WriteString(`<w:vMerge w:val="restart"/>`)
+	case "continue":
+		w.WriteString(`<w:vMerge/>`)
+	}
 	writeShading(w, tcp.bgColor)
 	w.WriteString(`</w:tcPr>`)
 }
