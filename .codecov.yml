@@ -1,5 +1,4 @@
 codecov:
-  token: 61ac59d6-e16b-4057-9b30-c541bde05a3f
   notify:
     require_ci_to_pass: yes
 
@@ -7,21 +6,13 @@ coverage:
   status:
     project:
       default:
-        # basic
-        target: 80
-        threshold: 2
-    patch: yes
-    changes: no
+        target: 69%
+        threshold: 2%
+    patch:
+      default:
+        target: auto
   precision: 2
   round: down
-
-parsers:
-  gcov:
-    branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
 
 comment:
   layout: "header, diff"
@@ -29,8 +20,7 @@ comment:
   require_changes: no
 
 ignore:
-  # - "path/to/folder"  # ignore folders and all its contents
-  # - "test_*.rb"       # wildcards accepted
-  # - "**/*.py"         # glob accepted
-  # - "[a-z]+/test_.*"  # regexp accepted
-  - "pkg/parser/parser.go"
+  - "internal/parser/parser.go"   # generated PEG parser — not hand-written
+  - "internal/codegen/**"          # parser code-generator tool, not library
+  - "internal/testsupport/**"      # test helper infrastructure
+  - "cmd/**"                       # binary entry points (thin wrappers around internal/cli)

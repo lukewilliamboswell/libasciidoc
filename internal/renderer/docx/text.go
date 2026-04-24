@@ -14,6 +14,8 @@ func (r *docxRenderer) renderPlainText(element interface{}) (string, error) {
 	switch e := element.(type) {
 	case nil:
 		return "", nil
+	case string:
+		return e, nil
 	case []interface{}:
 		buf := &strings.Builder{}
 		for _, child := range e {
@@ -97,7 +99,7 @@ func (r *docxRenderer) renderInternalCrossRefPlainText(e *types.InternalCrossRef
 		if target, found := r.ctx.elementReferences[id]; found {
 			return r.renderPlainText(target)
 		}
-		return "[" + id + "]", nil
+		return id, nil
 	}
 	return r.renderPlainText(e.ID)
 }
@@ -117,7 +119,7 @@ func (r *docxRenderer) renderInlineImagePlainText(e *types.InlineImage) string {
 	return imageAlt(e.Attributes, src)
 }
 
-func (r *docxRenderer) renderUserMacroInline(para *strings.Builder, m *types.UserMacro, style runStyle) error {
+func (r *docxRenderer) renderUserMacroInline(para *paragraphBuilder, m *types.UserMacro, style runStyle) error {
 	tmpl, ok := r.ctx.config.Macros[m.Name]
 	if !ok {
 		r.writeTextRun(para, m.RawText, style)
@@ -246,7 +248,7 @@ func (r *docxRenderer) renderTableOfContentsEntry(entry *types.ToCSection) error
 	return r.renderTableOfContentsSections(entry.Children)
 }
 
-func (r *docxRenderer) writeBookmark(para *strings.Builder, id string) {
+func (r *docxRenderer) writeBookmark(para *paragraphBuilder, id string) {
 	if id == "" {
 		return
 	}

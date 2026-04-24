@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,7 +39,7 @@ var opts = []cmp.Option{cmpopts.IgnoreUnexported(
 
 func (m *documentMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.(*types.Document); !ok {
-		return false, errors.Errorf("MatchDocument matcher expects a 'types.Document' (actual: %T)", actual)
+		return false, fmt.Errorf("MatchDocument matcher expects a 'types.Document' (actual: %T)", actual)
 	}
 	if diff := cmp.Diff(m.expected, actual, opts...); diff != "" {
 		if log.IsLevelEnabled(log.DebugLevel) {

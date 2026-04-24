@@ -2,21 +2,22 @@ package sgml
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderImageBlock(ctx *context, img *types.ImageBlock) (string, error) {
 	title, err := r.renderElementTitle(ctx, img.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render image")
+		return "", fmt.Errorf("unable to render image: %w", err)
 	}
 
 	// Matching asciidoctor behavior, we increment the counter if we have a title,
@@ -43,12 +44,12 @@ func (r *sgmlRenderer) renderImageBlock(ctx *context, img *types.ImageBlock) (st
 	}
 	roles, err := r.renderImageRoles(ctx, img.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render image")
+		return "", fmt.Errorf("unable to render image: %w", err)
 	}
 	src := r.getImageSrc(ctx, img.Location)
 	alt, err := r.renderImageAlt(img.Attributes, src)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render image")
+		return "", fmt.Errorf("unable to render image: %w", err)
 	}
 	return r.execute(r.blockImage, struct {
 		ID          string
@@ -78,17 +79,17 @@ func (r *sgmlRenderer) renderImageBlock(ctx *context, img *types.ImageBlock) (st
 func (r *sgmlRenderer) renderInlineImage(ctx *context, img *types.InlineImage) (string, error) {
 	roles, err := r.renderImageRoles(ctx, img.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render inline image")
+		return "", fmt.Errorf("unable to render inline image: %w", err)
 	}
 	href := img.Attributes.GetAsStringWithDefault(types.AttrInlineLink, "")
 	src := r.getImageSrc(ctx, img.Location)
 	alt, err := r.renderImageAlt(img.Attributes, src)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render inline image")
+		return "", fmt.Errorf("unable to render inline image: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, img.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render inline image roles")
+		return "", fmt.Errorf("unable to render inline image roles: %w", err)
 	}
 	return r.execute(r.inlineImage, struct {
 		Src    string
@@ -137,7 +138,7 @@ func (r *sgmlRenderer) renderImageAlt(attrs types.Attributes, path string) (stri
 	}
 	u, err := url.Parse(path)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render image")
+		return "", fmt.Errorf("unable to render image: %w", err)
 	}
 	// return base path without its extension
 	result := strings.TrimSuffix(filepath.Base(u.Path), filepath.Ext(u.Path))

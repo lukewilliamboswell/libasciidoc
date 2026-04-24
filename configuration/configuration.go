@@ -1,3 +1,7 @@
+// Package configuration provides options for controlling AsciiDoc parsing and rendering.
+// Use [NewConfiguration] with functional [Setting] options to build a configuration,
+// then pass it to [github.com/lukewilliamboswell/libasciidoc/asciidoc.Convert] or
+// [github.com/lukewilliamboswell/libasciidoc/asciidoc.ConvertFile].
 package configuration
 
 import (
@@ -6,8 +10,9 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // NewConfiguration returns a new configuration
@@ -60,7 +65,7 @@ const (
 // Setting a setting to customize the configuration used during parsing and rendering of a document
 type Setting func(config *Configuration)
 
-// WithFigureCaption function to set the `fogure-caption` attribute
+// WithFigureCaption function to set the `figure-caption` attribute
 func WithFigureCaption(caption string) Setting {
 	return func(config *Configuration) {
 		config.Attributes[types.AttrFigureCaption] = caption
@@ -74,7 +79,9 @@ func WithLastUpdated(value time.Time) Setting {
 	}
 }
 
-// WithAttributes function to set the `attribute overrides`
+// WithAttributes merges the given attributes into the configuration, overriding
+// any previously set values for the same keys while leaving other existing
+// attributes (such as the default backend attributes) intact.
 func WithAttributes(attrs map[string]interface{}) Setting {
 	return func(config *Configuration) {
 		for k, v := range attrs {

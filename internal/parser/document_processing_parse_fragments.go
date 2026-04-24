@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func ParseDocumentFragments(ctx *ParseContext, source io.Reader, done <-chan interface{}) <-chan types.DocumentFragment {

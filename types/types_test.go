@@ -1,1048 +1,785 @@
 package types_test
 
 import (
+	"errors"
+
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("line ranges", func() {
+var _ = Describe("DocumentFragment", func() {
 
-	Context("single range", func() {
-		// given
-		ranges := types.NewLineRanges(
-			types.LineRange{StartLine: 2, EndLine: 4},
-		)
+	Describe("NewDocumentFragment", func() {
 
-		DescribeTable("match line range",
-			func(line int, expectation bool) {
-				Expect(ranges.Match(line)).To(Equal(expectation))
-			},
-			Entry("should not match line 1", 1, false),
-			Entry("should match line 2", 2, true),
-			Entry("should match line 3", 3, true),
-			Entry("should match line 4", 4, true),
-			Entry("should not match line 5", 5, false),
-		)
-	})
-
-	Context("multiple ranges", func() {
-
-		ranges := types.NewLineRanges([]interface{}{
-			types.LineRange{StartLine: 1, EndLine: 1},
-			types.LineRange{StartLine: 3, EndLine: 4},
-			types.LineRange{StartLine: 6, EndLine: -1},
+		It("should create a fragment with position and no elements", func() {
+			p := types.Position{Start: 0, End: 10}
+			f := types.NewDocumentFragment(p)
+			Expect(f.Position.Start).To(Equal(0))
+			Expect(f.Position.End).To(Equal(10))
+			Expect(f.Error).To(BeNil())
+			Expect(f.Elements).To(BeEmpty())
 		})
 
-		DescribeTable("match line range",
-			func(line int, expectation bool) {
-				Expect(ranges.Match(line)).To(Equal(expectation))
-			},
-			Entry("should match line 1", 1, true),
-			Entry("should not match line 2", 2, false),
-			Entry("should match line 3", 3, true),
-			Entry("should match line 4", 4, true),
-			Entry("should match line 6", 6, true),
-			Entry("should match line 100", 100, true),
-		)
+		It("should create a fragment with multiple elements", func() {
+			p := types.Position{Start: 5, End: 20}
+			e1 := &types.StringElement{Content: "hello"}
+			e2 := &types.StringElement{Content: "world"}
+			f := types.NewDocumentFragment(p, e1, e2)
+			Expect(f.Elements).To(HaveLen(2))
+			Expect(f.Elements[0]).To(Equal(e1))
+			Expect(f.Elements[1]).To(Equal(e2))
+			Expect(f.Error).To(BeNil())
+		})
 	})
 
+	Describe("NewErrorFragment", func() {
+
+		It("should create a fragment carrying an error", func() {
+			p := types.Position{Start: 0, End: 5}
+			err := errors.New("parse error")
+			f := types.NewErrorFragment(p, err)
+			Expect(f.Position.Start).To(Equal(0))
+			Expect(f.Position.End).To(Equal(5))
+			Expect(f.Error).To(MatchError("parse error"))
+			Expect(f.Elements).To(BeNil())
+		})
+	})
 })
 
-var _ = Describe("tag ranges", func() {
+var _ = Describe("AttributeDeclaration", func() {
 
-	DescribeTable("single range",
-		func(line int, c types.CurrentRanges, expectation bool) {
-			// given
-			ranges := types.NewTagRanges(types.TagRange{
-				Name:     "foo",
-				Included: true,
+	Describe("NewAttributeDeclaration", func() {
+
+		It("should create a declaration with name and string value", func() {
+			decl, err := types.NewAttributeDeclaration("toc", "left", ":toc: left")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(decl.Name).To(Equal("toc"))
+			Expect(decl.Value).To(Equal("left"))
+		})
+
+		It("should trim spaces from string value", func() {
+			decl, err := types.NewAttributeDeclaration("foo", "  bar  ", ":foo:   bar  ")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(decl.Value).To(Equal("bar"))
+		})
+
+		It("should create a declaration with nil value", func() {
+			decl, err := types.NewAttributeDeclaration("myattr", nil, ":myattr:")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(decl.Name).To(Equal("myattr"))
+			Expect(decl.Value).To(BeNil())
+		})
+
+		It("should expose RawText", func() {
+			rawText := ":myattr: somevalue"
+			decl, err := types.NewAttributeDeclaration("myattr", "somevalue", rawText)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(decl.RawText()).To(Equal(rawText))
+		})
+	})
+})
+
+var _ = Describe("AttributeReset", func() {
+
+	Describe("NewAttributeReset", func() {
+
+		It("should create a reset with name", func() {
+			reset, err := types.NewAttributeReset("toc", ":toc!:")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reset.Name).To(Equal("toc"))
+		})
+
+		It("should expose RawText", func() {
+			rawText := ":myattr!:"
+			reset, err := types.NewAttributeReset("myattr", rawText)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reset.RawText()).To(Equal(rawText))
+		})
+	})
+})
+
+var _ = Describe("List", func() {
+
+	makeList := func(kind types.ListKind, elements ...types.ListElement) *types.List {
+		return &types.List{
+			Kind:     kind,
+			Elements: elements,
+		}
+	}
+
+	makeUnorderedElement := func(content string) *types.UnorderedListElement {
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: content}},
+		}
+		prefix := types.UnorderedListElementPrefix{BulletStyle: types.OneAsterisk}
+		elem, err := types.NewUnorderedListElement(prefix, nil, p)
+		Expect(err).NotTo(HaveOccurred())
+		return elem
+	}
+
+	Describe("GetAttributes", func() {
+
+		It("should return nil when no attributes", func() {
+			l := makeList(types.UnorderedListKind)
+			Expect(l.GetAttributes()).To(BeNil())
+		})
+
+		It("should return set attributes", func() {
+			l := makeList(types.UnorderedListKind)
+			l.Attributes = types.Attributes{"id": "mylist"}
+			Expect(l.GetAttributes()).To(HaveKeyWithValue("id", "mylist"))
+		})
+	})
+
+	Describe("AddAttributes", func() {
+
+		It("should add attributes to empty list", func() {
+			l := makeList(types.UnorderedListKind)
+			l.AddAttributes(types.Attributes{"id": "mylist"})
+			Expect(l.GetAttributes()).To(HaveKeyWithValue("id", "mylist"))
+		})
+
+		It("should merge new attributes with existing", func() {
+			l := makeList(types.UnorderedListKind)
+			l.Attributes = types.Attributes{"existing": "val"}
+			l.AddAttributes(types.Attributes{"new": "attr"})
+			Expect(l.GetAttributes()).To(HaveKeyWithValue("existing", "val"))
+			Expect(l.GetAttributes()).To(HaveKeyWithValue("new", "attr"))
+		})
+	})
+
+	Describe("SetAttributes", func() {
+
+		It("should replace attributes", func() {
+			l := makeList(types.UnorderedListKind)
+			l.Attributes = types.Attributes{"old": "gone"}
+			l.SetAttributes(types.Attributes{"new": "kept"})
+			Expect(l.GetAttributes()).To(HaveKeyWithValue("new", "kept"))
+			Expect(l.GetAttributes()).NotTo(HaveKey("old"))
+		})
+	})
+
+	Describe("GetElements", func() {
+
+		It("should return elements as interface slice", func() {
+			e := makeUnorderedElement("item")
+			l := makeList(types.UnorderedListKind, e)
+			elems := l.GetElements()
+			Expect(elems).To(HaveLen(1))
+		})
+
+		It("should return empty slice for list with no elements", func() {
+			l := makeList(types.UnorderedListKind)
+			Expect(l.GetElements()).To(BeEmpty())
+		})
+	})
+
+	Describe("SetElements", func() {
+
+		It("should not error (not implemented)", func() {
+			l := makeList(types.UnorderedListKind)
+			err := l.SetElements([]interface{}{})
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("CanAddElement", func() {
+
+		It("should accept list element of the same kind", func() {
+			e1 := makeUnorderedElement("first")
+			e2 := makeUnorderedElement("second")
+			l := makeList(types.UnorderedListKind, e1)
+			Expect(l.CanAddElement(e2)).To(BeTrue())
+		})
+
+		It("should reject element of different kind", func() {
+			prefix := types.OrderedListElementPrefix{Style: types.Arabic}
+			ordered, err := types.NewOrderedListElement(prefix, &types.Paragraph{
+				Elements: []interface{}{&types.StringElement{Content: "ordered"}},
 			})
-			// when
-			match := ranges.Match(line, c)
-			// then
-			Expect(match).To(Equal(expectation))
-		},
-		Entry("should match within expected tag range", 2, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   -1, // range must be "open"
-			},
-		}, true),
-		Entry("should not match outside expected tag range", 4, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   3,
-			},
-		}, false),
-		Entry("should not match within unexpected tag range", 20, types.CurrentRanges{
-			"bar": &types.CurrentTagRange{
-				StartLine: 10,
-				EndLine:   30,
-			},
-		}, false),
-		Entry("should not match outside unexpected tag range", 40, types.CurrentRanges{
-			"bar": &types.CurrentTagRange{
-				StartLine: 10,
-				EndLine:   30,
-			},
-		}, false),
-	)
+			Expect(err).NotTo(HaveOccurred())
+			e := makeUnorderedElement("unordered")
+			l := makeList(types.UnorderedListKind, e)
+			Expect(l.CanAddElement(ordered)).To(BeFalse())
+		})
 
-	DescribeTable("multiple ranges",
-		func(line int, c types.CurrentRanges, expectation bool) {
-			// given
-			ranges := types.NewTagRanges([]interface{}{
-				types.TagRange{
-					Name:     "foo",
-					Included: true,
-				}, types.TagRange{
-					Name:     "bar",
-					Included: true,
-				},
+		It("should accept ListContinuation", func() {
+			e := makeUnorderedElement("first")
+			l := makeList(types.UnorderedListKind, e)
+			cont := &types.ListContinuation{Offset: 0, Element: &types.BlankLine{}}
+			Expect(l.CanAddElement(cont)).To(BeTrue())
+		})
+
+		It("should reject unrelated type", func() {
+			e := makeUnorderedElement("first")
+			l := makeList(types.UnorderedListKind, e)
+			Expect(l.CanAddElement(&types.BlankLine{})).To(BeFalse())
+		})
+	})
+
+	Describe("AddElement", func() {
+
+		It("should add a matching list element", func() {
+			e1 := makeUnorderedElement("first")
+			l := makeList(types.UnorderedListKind, e1)
+			e2 := makeUnorderedElement("second")
+			err := l.AddElement(e2)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(l.Elements).To(HaveLen(2))
+		})
+
+		It("should return error for non-matching element", func() {
+			prefix := types.OrderedListElementPrefix{Style: types.Arabic}
+			ordered, _ := types.NewOrderedListElement(prefix, &types.Paragraph{
+				Elements: []interface{}{&types.StringElement{Content: "ordered"}},
 			})
-			// when
-			match := ranges.Match(line, c)
-			// then
-			Expect(match).To(Equal(expectation))
-		},
-		Entry("should match within first expected tag range", 2, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   -1, // range must be "open"
-			},
-		}, true),
-		Entry("should match within second expected tag ranges", 5, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   3, // range must be "open"
-			},
-			"bar": &types.CurrentTagRange{
-				StartLine: 4,
-				EndLine:   -1, // range must be "open"
-			},
-		}, true),
-		Entry("should not match outside expected tag range", 15, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   3,
-			},
-			"bar": &types.CurrentTagRange{
-				StartLine: 10,
-				EndLine:   20,
-			},
-		}, false),
-		Entry("should not match within unexpected tag range", 25, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   3,
-			},
-			"baz": &types.CurrentTagRange{
-				StartLine: 10,
-				EndLine:   30,
-			},
-		}, false),
-		Entry("should not match outside unexpected tag range", 40, types.CurrentRanges{
-			"foo": &types.CurrentTagRange{
-				StartLine: 1,
-				EndLine:   3,
-			},
-			"baz": &types.CurrentTagRange{
-				StartLine: 10,
-				EndLine:   30,
-			},
-		}, false),
-	)
-
-	Context("permutations", func() {
-
-		DescribeTable("** - all lines", // except lines containing a tag directive
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges(types.TagRange{
-					Name:     "**",
-					Included: true,
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match within any tag ranges", 15, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   -1, // range must be "open"
-				},
-			}, true),
-			Entry("should match outside any tag range", 25, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3,
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   20,
-				},
-			}, true),
-		)
-
-		DescribeTable("* - all tagged regions", // except lines containing a tag directive
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges(types.TagRange{
-					Name:     "*",
-					Included: true,
-				})
-
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match within any tag ranges", 15, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   -1, // range must be "open"
-				},
-			}, true),
-			Entry("should not match outside any tag range", 25, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3,
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   20,
-				},
-			}, false),
-		)
-
-		DescribeTable("**;* - all the lines outside and inside of tagged regions", // except lines containing a tag directive
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges([]interface{}{
-					types.TagRange{
-						Name:     "**",
-						Included: true,
-					}, types.TagRange{
-						Name:     "*",
-						Included: true,
-					},
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match within any tag ranges", 15, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   -1, // range must be "open"
-				},
-			}, true),
-			Entry("should match outside any tag range", 25, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   3,
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   20,
-				},
-			}, true),
-		)
-
-		DescribeTable("foo;!bar - regions tagged foo, but not nested regions tagged bar",
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges([]interface{}{types.TagRange{
-					Name:     "foo",
-					Included: true,
-				}, types.TagRange{
-					Name:     "bar",
-					Included: false,
-				},
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match within expected tag range", 2, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-				// "bar" is not be here yet, since we're still processing lines before its "start" tag
-			}, true),
-			Entry("should match within expected tag range", 16, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 10,
-					EndLine:   15,
-				},
-			}, true),
-			Entry("should not match within excluded tag range", 12, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{ // this range is excluded, and since we're on line 12, we can't include it
-					StartLine: 10,
-					EndLine:   -1,
-				},
-			}, false),
-		)
-
-		DescribeTable("*;!foo — all tagged regions, but excludes any regions tagged foo",
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges([]interface{}{
-					types.TagRange{
-						Name:     "*",
-						Included: true,
-					}, types.TagRange{
-						Name:     "foo",
-						Included: false,
-					},
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should not match before any tag range", 1, types.CurrentRanges{}, false),
-			Entry("should not match within foo tag range", 2, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-			}, false),
-			Entry("should match in another range", 20, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   10, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 15,
-					EndLine:   -1, // range must be "open"
-				},
-			}, true),
-			Entry("should match in a range but outside foo tag range", 20, types.CurrentRanges{
-				"bar": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-				"foo": &types.CurrentTagRange{
-					StartLine: 3,
-					EndLine:   10, // range is closed/passed
-				},
-			}, true),
-			Entry("should not match after all tag ranges", 30, types.CurrentRanges{
-				"bar": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   25, // range must be "open"
-				},
-				"foo": &types.CurrentTagRange{
-					StartLine: 3,
-					EndLine:   10, // range is closed/passed
-				},
-			}, false),
-		)
-
-		DescribeTable("**;!foo — selects all the lines of the document except for regions tagged foo",
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges([]interface{}{
-					types.TagRange{
-						Name:     "**",
-						Included: true,
-					}, types.TagRange{
-						Name:     "foo",
-						Included: false,
-					},
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match before any tag range", 1, types.CurrentRanges{}, true),
-			Entry("should not match within foo tag range", 2, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-			}, false),
-			Entry("should match in another range", 20, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   10, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 15,
-					EndLine:   -1, // range must be "open"
-				},
-			}, true),
-			Entry("should match in a range but outside foo tag range", 20, types.CurrentRanges{
-				"bar": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-				"foo": &types.CurrentTagRange{
-					StartLine: 3,
-					EndLine:   10, // range is closed/passed
-				},
-			}, true),
-			Entry("should match after all tag ranges", 30, types.CurrentRanges{
-				"bar": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   25, // range must be "open"
-				},
-				"foo": &types.CurrentTagRange{
-					StartLine: 3,
-					EndLine:   10, // range is closed/passed
-				},
-			}, true),
-		)
-
-		DescribeTable("**;!* — selects only the regions of the document outside of tags (i.e., non-tagged regions).",
-			func(line int, c types.CurrentRanges, expectation bool) {
-				// given
-				ranges := types.NewTagRanges([]interface{}{
-					types.TagRange{
-						Name:     "**",
-						Included: true,
-					}, types.TagRange{
-						Name:     "*",
-						Included: false,
-					},
-				})
-				// when
-				match := ranges.Match(line, c)
-				// then
-				Expect(match).To(Equal(expectation))
-			},
-			Entry("should match before any tag range", 1, types.CurrentRanges{}, true),
-			Entry("should not match within foo tag range", 2, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   -1, // range must be "open"
-				},
-			}, false),
-			Entry("should not match in another range", 20, types.CurrentRanges{
-				"foo": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   10, // range must be "open"
-				},
-				"bar": &types.CurrentTagRange{
-					StartLine: 15,
-					EndLine:   -1, // range must be "open"
-				},
-			}, false),
-			Entry("should match after all tag ranges", 30, types.CurrentRanges{
-				"bar": &types.CurrentTagRange{
-					StartLine: 1,
-					EndLine:   25, // range must be "open"
-				},
-				"foo": &types.CurrentTagRange{
-					StartLine: 3,
-					EndLine:   10, // range is closed/passed
-				},
-			}, true),
-		)
-	})
-
-	It("invalid tage ranges", func() {
-		// when
-		ranges := types.NewTagRanges([]interface{}{"foo", "bar"})
-		// then
-		Expect(ranges).To(BeEmpty())
-	})
-
-})
-
-var _ = Describe("section id resolution", func() {
-
-	Context("default id", func() {
-
-		It("simple title", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(types.Attributes{}, types.ElementReferences{})
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("_foo"))
-		})
-
-		It("title with link", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "a link to ",
-					},
-					&types.InlineLink{
-						Location: &types.Location{
-							Scheme: "https://",
-							Path:   "foo.com",
-						},
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(types.Attributes{}, types.ElementReferences{})
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("_a_link_to_httpsfoo_com")) // TODO: should be `httpsfoo`
-		})
-
-		It("avoid duplicate id", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(types.Attributes{}, types.ElementReferences{})
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("_foo"))
+			e := makeUnorderedElement("first")
+			l := makeList(types.UnorderedListKind, e)
+			err := l.AddElement(ordered)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Context("custom id prefix", func() {
+	Describe("Reference", func() {
 
-		It("simple title", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-				},
+		It("should add to refs when id and title are set", func() {
+			e := makeUnorderedElement("item")
+			l := makeList(types.UnorderedListKind, e)
+			l.Attributes = types.Attributes{
+				types.AttrID:    "mylist",
+				types.AttrTitle: "My List",
 			}
-			// when
-			err := section.ResolveID(
-				types.Attributes{
-					types.AttrIDPrefix: "custom_",
-				},
-				types.ElementReferences{},
-			)
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("custom_foo"))
+			refs := types.ElementReferences{}
+			l.Reference(refs)
+			Expect(refs).To(HaveKeyWithValue("mylist", "My List"))
 		})
 
-		It("title with link", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "a link to ",
-					},
-					&types.InlineLink{
-						Location: &types.Location{
-							Scheme: "https://",
-							Path:   "foo.com",
-						},
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(
-				types.Attributes{
-					types.AttrIDPrefix: "custom_",
-				},
-				types.ElementReferences{},
-			)
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("custom_a_link_to_httpsfoo_com")) // TODO: should be `httpsfoo`
+		It("should not add to refs when no id", func() {
+			e := makeUnorderedElement("item")
+			l := makeList(types.UnorderedListKind, e)
+			l.Attributes = types.Attributes{types.AttrTitle: "My List"}
+			refs := types.ElementReferences{}
+			l.Reference(refs)
+			Expect(refs).To(BeEmpty())
 		})
 	})
 
-	Context("custom id", func() {
+	Describe("LastElement", func() {
 
-		It("simple title", func() {
-			// given
-			section := types.Section{
-				Level: 0,
-				Attributes: types.Attributes{
-					types.AttrID: "bar",
-				},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(
-				types.Attributes{
-					types.AttrIDPrefix: "custom_",
-				},
-				types.ElementReferences{},
-			)
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("bar"))
+		It("should return last list element", func() {
+			e1 := makeUnorderedElement("first")
+			e2 := makeUnorderedElement("second")
+			l := makeList(types.UnorderedListKind, e1, e2)
+			Expect(l.LastElement()).To(Equal(e2))
 		})
 
-		It("title with link", func() {
-			// given
-			section := types.Section{
-				Level: 0,
-				Attributes: types.Attributes{
-					types.AttrID: "bar",
-				},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "a link to ",
-					},
-					&types.InlineLink{
-						Location: &types.Location{
-							Scheme: "https://",
-							Path:   "foo.com",
-						},
-					},
-				},
-			}
-			// when
-			err := section.ResolveID(
-				types.Attributes{
-					types.AttrIDPrefix: "custom_",
-				},
-				types.ElementReferences{},
-			)
-			// then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(section.Attributes[types.AttrID]).To(Equal("bar"))
-		})
-
-	})
-})
-
-var _ = Describe("footnote replacements", func() {
-
-	Context("sections", func() {
-
-		It("title with footnote without ref", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-					&types.Footnote{
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a regular footnote.",
-							},
-						},
-					},
-				},
-			}
-			footnotes := types.NewFootnotes()
-			// when
-			section.SubstituteFootnotes(footnotes)
-			// then
-			Expect(section).To(Equal(types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-					&types.FootnoteReference{
-						ID: 1,
-					},
-				},
-			}))
-			Expect(footnotes.Notes).To(Equal([]*types.Footnote{
-				{
-					ID: 1,
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a regular footnote.",
-						},
-					},
-				},
-			}))
-		})
-
-		It("title with footnote with ref", func() {
-			// given
-			section := types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-					&types.Footnote{
-						Ref: "disclaimer",
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a regular footnote.",
-							},
-						},
-					},
-				},
-			}
-			footnotes := types.NewFootnotes()
-			// when
-			section.SubstituteFootnotes(footnotes)
-			// then
-			Expect(section).To(Equal(types.Section{
-				Level:      0,
-				Attributes: types.Attributes{},
-				Title: []interface{}{
-					&types.StringElement{
-						Content: "foo",
-					},
-					&types.FootnoteReference{
-						ID:  1,
-						Ref: "disclaimer",
-					},
-				},
-			}))
-			Expect(footnotes.Notes).To(Equal([]*types.Footnote{
-				{
-					ID:  1,
-					Ref: "disclaimer",
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a regular footnote.",
-						},
-					},
-				},
-			}))
-		})
-	})
-
-	Context("paragraphs", func() {
-
-		It("paragraph with multiple footnotes", func() {
-			// given
-			paragraph := types.Paragraph{
-				Elements: []interface{}{
-					&types.StringElement{
-						Content: "first line",
-					},
-					&types.Footnote{
-						Ref: "disclaimer",
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a disclaimer.",
-							},
-						},
-					},
-					&types.StringElement{
-						Content: "second line",
-					},
-					&types.Footnote{
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a regular footnote.",
-							},
-						},
-					},
-					&types.StringElement{
-						Content: "third line",
-					},
-					&types.Footnote{
-						Ref:      "disclaimer",
-						Elements: []interface{}{},
-					},
-				},
-			}
-			footnotes := types.NewFootnotes()
-			// when
-			paragraph.SubstituteFootnotes(footnotes)
-			// then
-			Expect(paragraph).To(Equal(types.Paragraph{
-				Elements: []interface{}{
-					&types.StringElement{
-						Content: "first line",
-					},
-					&types.FootnoteReference{
-						ID:  1,
-						Ref: "disclaimer",
-					},
-					&types.StringElement{
-						Content: "second line",
-					},
-					&types.FootnoteReference{
-						ID: 2,
-					},
-					&types.StringElement{
-						Content: "third line",
-					},
-					&types.FootnoteReference{
-						ID:        1,
-						Ref:       "disclaimer",
-						Duplicate: true,
-					},
-				},
-			}))
-			Expect(footnotes.Notes).To(Equal([]*types.Footnote{
-				{
-					ID:  1,
-					Ref: "disclaimer",
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a disclaimer.",
-						},
-					},
-				},
-				{
-					ID: 2,
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a regular footnote.",
-						},
-					},
-				},
-			}))
-		})
-
-		It("paragraph with invalid footnote reference", func() {
-			// given
-			paragraph := types.Paragraph{
-				Elements: []interface{}{
-					&types.StringElement{
-						Content: "first line",
-					},
-					&types.Footnote{
-						Ref: "disclaimer",
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a disclaimer.",
-							},
-						},
-					},
-					&types.StringElement{
-						Content: "second line",
-					},
-					&types.Footnote{
-						Elements: []interface{}{
-							&types.StringElement{
-								Content: "a regular footnote.",
-							},
-						},
-					},
-					&types.StringElement{
-						Content: "third line",
-					},
-					&types.Footnote{
-						Ref:      "disclaimer_",
-						Elements: []interface{}{},
-					},
-				},
-			}
-			footnotes := types.NewFootnotes()
-			// when
-			paragraph.SubstituteFootnotes(footnotes)
-			// then
-			Expect(paragraph).To(Equal(types.Paragraph{
-				Elements: []interface{}{
-					&types.StringElement{
-						Content: "first line",
-					},
-					&types.FootnoteReference{
-						ID:  1,
-						Ref: "disclaimer",
-					},
-					&types.StringElement{
-						Content: "second line",
-					},
-					&types.FootnoteReference{
-						ID: 2,
-					},
-					&types.StringElement{
-						Content: "third line",
-					},
-					&types.FootnoteReference{
-						ID:  types.InvalidFootnoteReference, // marks as an invalid reference
-						Ref: "disclaimer_",
-					},
-				},
-			}))
-			Expect(footnotes.Notes).To(Equal([]*types.Footnote{
-				{
-					ID:  1,
-					Ref: "disclaimer",
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a disclaimer.",
-						},
-					},
-				},
-				{
-					ID: 2,
-					Elements: []interface{}{
-						&types.StringElement{
-							Content: "a regular footnote.",
-						},
-					},
-				},
-			}))
+		It("should return nil when empty", func() {
+			l := makeList(types.UnorderedListKind)
+			Expect(l.LastElement()).To(BeNil())
 		})
 	})
 })
 
-var _ = DescribeTable("match for attribute with key and value",
-	func(key string, value interface{}, expected bool) {
-		// given
-		attributes := []interface{}{
-			&types.Attribute{ // single attribute
-				Key:   types.AttrStyle,
-				Value: types.Quote,
-			},
-			types.Attributes{ // multiple attributes
-				types.AttrStyle: types.Verse,
-				types.AttrTitle: "verse title",
+var _ = Describe("NewListElements", func() {
+
+	It("should collect plain elements", func() {
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: "hello"}},
+		}
+		le, err := types.NewListElements([]interface{}{p})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(le.Elements).To(HaveLen(1))
+	})
+
+	It("should attach preceding attributes to following WithAttributes element", func() {
+		attrs := types.Attributes{"id": "para1"}
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: "hello"}},
+		}
+		le, err := types.NewListElements([]interface{}{attrs, p})
+		Expect(err).NotTo(HaveOccurred())
+		// The paragraph should have received the attributes
+		Expect(le.Elements).To(HaveLen(1))
+		Expect(p.GetAttributes()).To(HaveKeyWithValue("id", "para1"))
+	})
+})
+
+var _ = Describe("CalloutListElement", func() {
+
+	makeCalloutElement := func(content string) *types.CalloutListElement {
+		return &types.CalloutListElement{
+			Ref: 1,
+			Elements: []interface{}{
+				&types.Paragraph{
+					Elements: []interface{}{&types.StringElement{Content: content}},
+				},
 			},
 		}
-		// when
-		result := types.HasAttributeWithValue(attributes, key, value)
+	}
 
-		// then
-		Expect(result).To((Equal(expected)))
+	Describe("GetAttributes", func() {
 
-	},
-	Entry("match for block-kind: verse", types.AttrStyle, types.Verse, true),
-	Entry("match for block-kind: quote", types.AttrStyle, types.Quote, true),
-	Entry("no match for block-kind: quote", types.AttrID, "unknown", false),
-)
+		It("should return attributes", func() {
+			e := makeCalloutElement("text")
+			e.Attributes = types.Attributes{"id": "callout1"}
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("id", "callout1"))
+		})
+	})
 
-var _ = DescribeTable("no match attribute with key",
-	func(key string, expected bool) {
-		// given
-		attributes := []interface{}{
-			types.Attribute{ // single attribute
-				Key:   types.AttrStyle,
-				Value: types.Quote,
-			},
-			types.Attributes{ // multiple attributes
-				types.AttrStyle: types.Verse,
-				types.AttrTitle: "verse title",
-			},
+	Describe("AddAttributes", func() {
+
+		It("should add attributes", func() {
+			e := makeCalloutElement("text")
+			e.AddAttributes(types.Attributes{"id": "c1"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("id", "c1"))
+		})
+	})
+
+	Describe("SetAttributes", func() {
+
+		It("should set attributes", func() {
+			e := makeCalloutElement("text")
+			e.Attributes = types.Attributes{"old": "gone"}
+			e.SetAttributes(types.Attributes{"new": "kept"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("new", "kept"))
+			Expect(e.GetAttributes()).NotTo(HaveKey("old"))
+		})
+	})
+
+	Describe("GetElements", func() {
+
+		It("should return elements", func() {
+			e := makeCalloutElement("text")
+			Expect(e.GetElements()).To(HaveLen(1))
+		})
+	})
+
+	Describe("SetElements", func() {
+
+		It("should set elements", func() {
+			e := makeCalloutElement("text")
+			newElems := []interface{}{&types.BlankLine{}}
+			err := e.SetElements(newElems)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(e.GetElements()).To(HaveLen(1))
+		})
+	})
+
+	Describe("AddElement", func() {
+
+		It("should add a raw line element to existing paragraph", func() {
+			e := makeCalloutElement("existing")
+			rl, err := types.NewRawLine("new line")
+			Expect(err).NotTo(HaveOccurred())
+			err = e.AddElement(rl)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("LastElement", func() {
+
+		It("should return last element", func() {
+			p := &types.Paragraph{
+				Elements: []interface{}{&types.StringElement{Content: "text"}},
+			}
+			e := &types.CalloutListElement{
+				Ref:      1,
+				Elements: []interface{}{p},
+			}
+			Expect(e.LastElement()).To(Equal(p))
+		})
+
+		It("should return nil when empty", func() {
+			e := &types.CalloutListElement{Ref: 1}
+			Expect(e.LastElement()).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("OrderedListElement", func() {
+
+	makeOrderedElement := func(content string) *types.OrderedListElement {
+		prefix := types.OrderedListElementPrefix{Style: types.Arabic}
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: content}},
 		}
-		// when
-		result := types.HasNotAttribute(attributes, key)
+		elem, err := types.NewOrderedListElement(prefix, p)
+		Expect(err).NotTo(HaveOccurred())
+		return elem
+	}
 
-		// then
-		Expect(result).To((Equal(expected)))
+	Describe("AdjustStyle", func() {
 
-	},
-	Entry("match for block-kind: verse", types.AttrStyle, false),
-	Entry("match for block-kind: quote", types.AttrStyle, false),
-	Entry("no match for block-kind: quote", types.AttrID, true),
-)
+		It("should not panic on AdjustStyle (no-op)", func() {
+			e := makeOrderedElement("item")
+			l := &types.List{Kind: types.OrderedListKind, Elements: []types.ListElement{e}}
+			Expect(func() { e.AdjustStyle(l) }).NotTo(Panic())
+		})
+	})
 
-var _ = DescribeTable("ifeval operands",
+	Describe("ListKind", func() {
 
-	func(operand types.IfevalOperand, left, right interface{}, expected bool) {
-		Expect(operand(left, right)).To(Equal(expected))
-	},
+		It("should return OrderedListKind", func() {
+			e := makeOrderedElement("item")
+			Expect(e.ListKind()).To(Equal(types.OrderedListKind))
+		})
+	})
 
-	// Equal (==)
-	Entry(`2==1`, types.EqualOperand, 2, 1, false),
-	Entry(`2==2`, types.EqualOperand, 2, 2, true),
-	Entry(`2.0==1.0`, types.EqualOperand, 2.0, 1.0, false),
-	Entry(`2.0==2.0`, types.EqualOperand, 2.0, 2.0, true),
-	Entry(`"2"=="1"`, types.EqualOperand, "2", "1", false),
-	Entry(`"2"=="2"`, types.EqualOperand, "2", "2", true),
+	Describe("GetElements / SetElements", func() {
 
-	// Not Equal (!=)
-	Entry(`2!=1`, types.NotEqualOperand, 2, 1, true),
-	Entry(`2!=2`, types.NotEqualOperand, 2, 2, false),
-	Entry(`2.0!=1.0`, types.NotEqualOperand, 2.0, 1.0, true),
-	Entry(`2.0!=2.0`, types.NotEqualOperand, 2.0, 2.0, false),
-	Entry(`"2"!="1"`, types.NotEqualOperand, "2", "1", true),
-	Entry(`"2"!="2"`, types.NotEqualOperand, "2", "2", false),
+		It("should set and get elements", func() {
+			e := makeOrderedElement("item")
+			Expect(e.GetElements()).To(HaveLen(1))
+			err := e.SetElements([]interface{}{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(e.GetElements()).To(BeEmpty())
+		})
+	})
 
-	// Greater than (>)
-	Entry(`2>1`, types.GreaterThanOperand, 2, 1, true),
-	Entry(`2>2`, types.GreaterThanOperand, 2, 2, false),
-	Entry(`1>2`, types.GreaterThanOperand, 1, 2, false),
-	Entry(`2.0>1.0`, types.GreaterThanOperand, 2.0, 1.0, true),
-	Entry(`2.0>2.0`, types.GreaterThanOperand, 2.0, 2.0, false),
-	Entry(`1.0>2.0`, types.GreaterThanOperand, 1.0, 2.0, false),
-	Entry(`"2">"1"`, types.GreaterThanOperand, "2", "1", true),
-	Entry(`"2">"2"`, types.GreaterThanOperand, "2", "2", false),
-	Entry(`"1">"2"`, types.GreaterThanOperand, "1", "2", false),
+	Describe("LastElement", func() {
 
-	// Greater than or Equal (>=)
-	Entry(`3>=2`, types.GreaterOrEqualOperand, 3, 2, true),
-	Entry(`2>=2`, types.GreaterOrEqualOperand, 2, 2, true),
-	Entry(`1>=2`, types.GreaterOrEqualOperand, 1, 2, false),
-	Entry(`3.0>=2.0`, types.GreaterOrEqualOperand, 3.0, 2.0, true),
-	Entry(`2.0>=2.0`, types.GreaterOrEqualOperand, 2.0, 2.0, true),
-	Entry(`1.0>=2.0`, types.GreaterOrEqualOperand, 1.0, 2.0, false),
-	Entry(`"3">="2"`, types.GreaterOrEqualOperand, "3", "2", true),
-	Entry(`"2">="2"`, types.GreaterOrEqualOperand, "2", "2", true),
-	Entry(`"1">="2"`, types.GreaterOrEqualOperand, "1", "2", false),
+		It("should return last element", func() {
+			e := makeOrderedElement("item")
+			p := e.GetElements()[0]
+			Expect(e.LastElement()).To(Equal(p))
+		})
 
-	// Less than (<)
-	Entry(`2<1`, types.LessThanOperand, 2, 1, false),
-	Entry(`2<2`, types.LessThanOperand, 2, 2, false),
-	Entry(`1<2`, types.LessThanOperand, 1, 2, true),
-	Entry(`2.0<1.0`, types.LessThanOperand, 2.0, 1.0, false),
-	Entry(`2.0<2.0`, types.LessThanOperand, 2.0, 2.0, false),
-	Entry(`1.0<2.0`, types.LessThanOperand, 1.0, 2.0, true),
-	Entry(`"2"<"1"`, types.LessThanOperand, "2", "1", false),
-	Entry(`"2"<"2"`, types.LessThanOperand, "2", "2", false),
-	Entry(`"1"<"2"`, types.LessThanOperand, "1", "2", true),
+		It("should return nil when empty", func() {
+			e := &types.OrderedListElement{}
+			Expect(e.LastElement()).To(BeNil())
+		})
+	})
 
-	// Less than or Equal (>=)
-	Entry(`2<=3`, types.LessOrEqualOperand, 2, 3, true),
-	Entry(`2<=2`, types.LessOrEqualOperand, 2, 2, true),
-	Entry(`2<=1`, types.LessOrEqualOperand, 2, 1, false),
-	Entry(`2.0<=3.0`, types.LessOrEqualOperand, 2.0, 3.0, true),
-	Entry(`2.0<=2.0`, types.LessOrEqualOperand, 2.0, 2.0, true),
-	Entry(`2.0<=1.0`, types.LessOrEqualOperand, 2.0, 1.0, false),
-	Entry(`"2"<="3"`, types.LessOrEqualOperand, "2", "3", true),
-	Entry(`"2"<="2"`, types.LessOrEqualOperand, "2", "2", true),
-	Entry(`"2"<="1"`, types.LessOrEqualOperand, "2", "1", false),
-)
+	Describe("AddElement", func() {
+
+		It("should add a raw line to the paragraph", func() {
+			e := makeOrderedElement("existing")
+			rl, _ := types.NewRawLine("appended")
+			err := e.AddElement(rl)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("GetAttributes / AddAttributes / SetAttributes", func() {
+
+		It("should get, add and set attributes", func() {
+			e := makeOrderedElement("item")
+			Expect(e.GetAttributes()).To(BeNil())
+
+			e.AddAttributes(types.Attributes{"id": "item1"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("id", "item1"))
+
+			e.SetAttributes(types.Attributes{"new": "val"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("new", "val"))
+			Expect(e.GetAttributes()).NotTo(HaveKey("id"))
+		})
+	})
+})
+
+var _ = Describe("LabeledListElement", func() {
+
+	makeLabeled := func(term, content string) *types.LabeledListElement {
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: content}},
+		}
+		elem, err := types.NewLabeledListElement(1, &types.StringElement{Content: term}, p)
+		Expect(err).NotTo(HaveOccurred())
+		return elem
+	}
+
+	Describe("AdjustStyle", func() {
+
+		It("should not panic (no-op)", func() {
+			e := makeLabeled("term", "desc")
+			l := &types.List{Kind: types.LabeledListKind, Elements: []types.ListElement{e}}
+			Expect(func() { e.AdjustStyle(l) }).NotTo(Panic())
+		})
+	})
+
+	Describe("ListKind", func() {
+
+		It("should return LabeledListKind", func() {
+			e := makeLabeled("term", "desc")
+			Expect(e.ListKind()).To(Equal(types.LabeledListKind))
+		})
+	})
+
+	Describe("GetElements / SetElements", func() {
+
+		It("should set and get elements", func() {
+			e := makeLabeled("term", "desc")
+			Expect(e.GetElements()).To(HaveLen(1))
+			err := e.SetElements([]interface{}{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(e.GetElements()).To(BeEmpty())
+		})
+	})
+
+	Describe("LastElement", func() {
+
+		It("should return last element", func() {
+			e := makeLabeled("term", "desc")
+			p := e.GetElements()[0]
+			Expect(e.LastElement()).To(Equal(p))
+		})
+
+		It("should return nil when no elements", func() {
+			e := &types.LabeledListElement{}
+			Expect(e.LastElement()).To(BeNil())
+		})
+	})
+
+	Describe("AddElement", func() {
+
+		It("should add a raw line to the paragraph", func() {
+			e := makeLabeled("term", "desc")
+			rl, _ := types.NewRawLine("extra")
+			err := e.AddElement(rl)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("GetAttributes / AddAttributes / SetAttributes", func() {
+
+		It("should get, add, and set attributes", func() {
+			e := makeLabeled("term", "desc")
+			Expect(e.GetAttributes()).To(BeNil())
+
+			e.AddAttributes(types.Attributes{"id": "label1"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("id", "label1"))
+
+			e.SetAttributes(types.Attributes{"new": "attr"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("new", "attr"))
+			Expect(e.GetAttributes()).NotTo(HaveKey("id"))
+		})
+	})
+})
+
+var _ = Describe("UnorderedListElement", func() {
+
+	makeUnordered := func(content string) *types.UnorderedListElement {
+		prefix := types.UnorderedListElementPrefix{BulletStyle: types.OneAsterisk}
+		p := &types.Paragraph{
+			Elements: []interface{}{&types.StringElement{Content: content}},
+		}
+		elem, err := types.NewUnorderedListElement(prefix, nil, p)
+		Expect(err).NotTo(HaveOccurred())
+		return elem
+	}
+
+	Describe("ListKind", func() {
+
+		It("should return UnorderedListKind", func() {
+			e := makeUnordered("item")
+			Expect(e.ListKind()).To(Equal(types.UnorderedListKind))
+		})
+	})
+
+	Describe("GetElements / SetElements", func() {
+
+		It("should set and get elements", func() {
+			e := makeUnordered("item")
+			Expect(e.GetElements()).To(HaveLen(1))
+			err := e.SetElements([]interface{}{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(e.GetElements()).To(BeEmpty())
+		})
+	})
+
+	Describe("LastElement", func() {
+
+		It("should return last element", func() {
+			e := makeUnordered("item")
+			p := e.GetElements()[0]
+			Expect(e.LastElement()).To(Equal(p))
+		})
+
+		It("should return nil when empty", func() {
+			e := &types.UnorderedListElement{}
+			Expect(e.LastElement()).To(BeNil())
+		})
+	})
+
+	Describe("AddElement", func() {
+
+		It("should add a raw line to the paragraph", func() {
+			e := makeUnordered("first")
+			rl, _ := types.NewRawLine("second")
+			err := e.AddElement(rl)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("GetAttributes / AddAttributes / SetAttributes", func() {
+
+		It("should get, add, and set attributes", func() {
+			e := makeUnordered("item")
+			Expect(e.GetAttributes()).To(BeNil())
+
+			e.AddAttributes(types.Attributes{"id": "ul1"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("id", "ul1"))
+
+			e.SetAttributes(types.Attributes{"new": "val"})
+			Expect(e.GetAttributes()).To(HaveKeyWithValue("new", "val"))
+			Expect(e.GetAttributes()).NotTo(HaveKey("id"))
+		})
+	})
+
+	Describe("Reference", func() {
+
+		It("should add to refs when id and title set", func() {
+			e := makeUnordered("item")
+			e.Attributes = types.Attributes{
+				types.AttrID:    "ul-id",
+				types.AttrTitle: "UL Title",
+			}
+			refs := types.ElementReferences{}
+			e.Reference(refs)
+			Expect(refs).To(HaveKeyWithValue("ul-id", "UL Title"))
+		})
+	})
+})
+
+var _ = Describe("ImageBlock", func() {
+
+	makeLocation := func(path string) *types.Location {
+		return &types.Location{Path: path}
+	}
+
+	Describe("NewImageBlock", func() {
+
+		It("should create an image block with location", func() {
+			loc := makeLocation("images/photo.png")
+			img, err := types.NewImageBlock(loc, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(img.GetLocation()).To(Equal(loc))
+		})
+
+		It("should map positional attributes to alt/width/height", func() {
+			loc := makeLocation("images/photo.png")
+			attrs := types.Attributes{
+				types.AttrPositional1: "My Alt",
+				types.AttrPositional2: "300",
+				types.AttrPositional3: "200",
+			}
+			img, err := types.NewImageBlock(loc, attrs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(img.GetAttributes()).To(HaveKeyWithValue(types.AttrImageAlt, "My Alt"))
+			Expect(img.GetAttributes()).To(HaveKeyWithValue(types.AttrWidth, "300"))
+			Expect(img.GetAttributes()).To(HaveKeyWithValue(types.AttrHeight, "200"))
+		})
+	})
+
+	Describe("SetAttributes", func() {
+
+		It("should replace attributes", func() {
+			loc := makeLocation("images/photo.png")
+			img, _ := types.NewImageBlock(loc, nil)
+			img.SetAttributes(types.Attributes{"id": "img1"})
+			Expect(img.GetAttributes()).To(HaveKeyWithValue("id", "img1"))
+		})
+	})
+
+	Describe("AddAttributes", func() {
+
+		It("should add attributes", func() {
+			loc := makeLocation("images/photo.png")
+			img, _ := types.NewImageBlock(loc, nil)
+			img.AddAttributes(types.Attributes{"id": "img1"})
+			Expect(img.GetAttributes()).To(HaveKeyWithValue("id", "img1"))
+		})
+	})
+
+	Describe("Reference", func() {
+
+		It("should add to refs when id and title set", func() {
+			loc := makeLocation("images/photo.png")
+			img, _ := types.NewImageBlock(loc, nil)
+			img.SetAttributes(types.Attributes{
+				types.AttrID:    "img-id",
+				types.AttrTitle: "Image Title",
+			})
+			refs := types.ElementReferences{}
+			img.Reference(refs)
+			Expect(refs).To(HaveKeyWithValue("img-id", "Image Title"))
+		})
+
+		It("should not add to refs when no id", func() {
+			loc := makeLocation("images/photo.png")
+			img, _ := types.NewImageBlock(loc, nil)
+			img.SetAttributes(types.Attributes{types.AttrTitle: "Title Only"})
+			refs := types.ElementReferences{}
+			img.Reference(refs)
+			Expect(refs).To(BeEmpty())
+		})
+	})
+})
+
+var _ = Describe("InlineImage", func() {
+
+	makeLocation := func(path string) *types.Location {
+		return &types.Location{Path: path}
+	}
+
+	Describe("NewInlineImage", func() {
+
+		It("should create an inline image", func() {
+			loc := makeLocation("icons/warning.png")
+			img, err := types.NewInlineImage(loc, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(img.GetLocation()).To(Equal(loc))
+		})
+
+		It("should map positional attributes", func() {
+			loc := makeLocation("icons/warning.png")
+			attrs := types.Attributes{
+				types.AttrPositional1: "Warning Icon",
+			}
+			img, err := types.NewInlineImage(loc, attrs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(img.GetAttributes()).To(HaveKeyWithValue(types.AttrImageAlt, "Warning Icon"))
+		})
+	})
+
+	Describe("AddAttributes", func() {
+
+		It("should add attributes", func() {
+			loc := makeLocation("icons/warning.png")
+			img, _ := types.NewInlineImage(loc, nil)
+			img.AddAttributes(types.Attributes{"class": "icon"})
+			Expect(img.GetAttributes()).To(HaveKeyWithValue("class", "icon"))
+		})
+	})
+
+	Describe("SetAttributes", func() {
+
+		It("should replace attributes", func() {
+			loc := makeLocation("icons/warning.png")
+			img, _ := types.NewInlineImage(loc, nil)
+			img.SetAttributes(types.Attributes{"class": "icon"})
+			Expect(img.GetAttributes()).To(HaveKeyWithValue("class", "icon"))
+		})
+	})
+})
+
+var _ = Describe("ExternalCrossReference", func() {
+
+	Describe("AddAttributes / SetAttributes / GetAttributes", func() {
+
+		It("should add and set attributes", func() {
+			xref, err := types.NewExternalCrossReference(
+				&types.Location{Path: "https://example.com"},
+				nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			xref.AddAttributes(types.Attributes{"label": "Example"})
+			Expect(xref.GetAttributes()).To(HaveKeyWithValue("label", "Example"))
+
+			xref.SetAttributes(types.Attributes{"new": "val"})
+			Expect(xref.GetAttributes()).NotTo(BeNil())
+		})
+	})
+})

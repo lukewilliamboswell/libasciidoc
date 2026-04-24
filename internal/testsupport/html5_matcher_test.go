@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 

@@ -3,10 +3,11 @@ package parser_test
 import (
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lukewilliamboswell/libasciidoc/internal/parser"
 	. "github.com/lukewilliamboswell/libasciidoc/internal/testsupport"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	log "github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -699,7 +700,8 @@ var _ = DescribeTable("valid block attributes",
 
 	Entry(`[[here, an id]]`, `[[here, an id]]`,
 		types.Attributes{
-			types.AttrID: `here, an id`,
+			types.AttrID:      `here`,
+			types.AttrReftext: `an id`,
 		},
 	),
 	Entry(`[[another id.not_a_role]]`, `[[another id.not_a_role]]`,

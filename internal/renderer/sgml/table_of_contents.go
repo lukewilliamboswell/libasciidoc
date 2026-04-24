@@ -1,12 +1,14 @@
 package sgml
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) prerenderTableOfContents(ctx *context, toc *types.TableOfContents) error {
@@ -18,7 +20,7 @@ func (r *sgmlRenderer) prerenderTableOfContents(ctx *context, toc *types.TableOf
 		log.Debugf("pre-rendering table of contents: %s", spew.Sdump(toc))
 	}
 	if err := r.prerenderTableOfContentsSections(ctx, toc.Sections); err != nil {
-		return errors.Wrap(err, "error while rendering table of contents")
+		return fmt.Errorf("error while rendering table of contents: %w", err)
 	}
 	// if log.IsLevelEnabled(log.DebugLevel) {
 	// 	log.Debugf("pre-rendered table of contents: %s", spew.Sdump(toc))
@@ -29,7 +31,7 @@ func (r *sgmlRenderer) prerenderTableOfContents(ctx *context, toc *types.TableOf
 func (r *sgmlRenderer) prerenderTableOfContentsSections(ctx *context, sections []*types.ToCSection) error {
 	for _, entry := range sections {
 		if err := r.prerenderTableOfContentsEntry(ctx, entry); err != nil {
-			return errors.Wrap(err, "unable to render table of contents section")
+			return fmt.Errorf("unable to render table of contents section: %w", err)
 		}
 	}
 	// log.Debugf("retrieved sections for table of contents: %+v", sections)
@@ -38,7 +40,7 @@ func (r *sgmlRenderer) prerenderTableOfContentsSections(ctx *context, sections [
 
 func (r *sgmlRenderer) prerenderTableOfContentsEntry(ctx *context, entry *types.ToCSection) error {
 	if err := r.prerenderTableOfContentsSections(ctx, entry.Children); err != nil {
-		return errors.Wrap(err, "unable to render table of contents entry children")
+		return fmt.Errorf("unable to render table of contents entry children: %w", err)
 	}
 	if ctx.sectionNumbering != nil {
 		entry.Number = ctx.sectionNumbering[entry.ID]
@@ -48,16 +50,18 @@ func (r *sgmlRenderer) prerenderTableOfContentsEntry(ctx *context, entry *types.
 		return errors.New("unable to render table of contents entry title (missing element reference")
 	}
 	switch s := s.(type) {
+	case string:
+		entry.Title = s
 	case []interface{}:
 		title, err := r.renderElements(ctx, s)
 		if err != nil {
-			return errors.Wrap(err, "unable to render table of contents entry title (missing element reference")
+			return fmt.Errorf("unable to render table of contents entry title (missing element reference: %w", err)
 		}
 		entry.Title = title
 	default:
 		title, err := r.renderElement(ctx, s)
 		if err != nil {
-			return errors.Wrap(err, "unable to render table of contents entry title (missing element reference")
+			return fmt.Errorf("unable to render table of contents entry title (missing element reference: %w", err)
 		}
 		entry.Title = title
 	}
@@ -71,7 +75,7 @@ func (r *sgmlRenderer) renderTableOfContents(ctx *context, toc *types.TableOfCon
 
 	title, err := r.renderTableOfContentsTitle(ctx)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering table of contents")
+		return "", fmt.Errorf("error while rendering table of contents: %w", err)
 	}
 
 	// if log.IsLevelEnabled(log.DebugLevel) {
@@ -79,7 +83,7 @@ func (r *sgmlRenderer) renderTableOfContents(ctx *context, toc *types.TableOfCon
 	// }
 	renderedSections, err := r.renderTableOfContentsSections(ctx, toc.Sections)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering table of contents")
+		return "", fmt.Errorf("error while rendering table of contents: %w", err)
 	}
 	if renderedSections == "" {
 		// nothing to render (document has no section)
@@ -119,7 +123,7 @@ func (r *sgmlRenderer) renderTableOfContentsSections(ctx *context, sections []*t
 	for _, entry := range sections {
 		buf, err := r.renderTableOfContentsEntry(ctx, entry)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render table of contents section")
+			return "", fmt.Errorf("unable to render table of contents section: %w", err)
 		}
 		contents.WriteString(buf)
 	}
@@ -135,7 +139,7 @@ func (r *sgmlRenderer) renderTableOfContentsSections(ctx *context, sections []*t
 func (r *sgmlRenderer) renderTableOfContentsEntry(ctx *context, entry *types.ToCSection) (string, error) {
 	content, err := r.renderTableOfContentsSections(ctx, entry.Children)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render table of contents entry children")
+		return "", fmt.Errorf("unable to render table of contents entry children: %w", err)
 	}
 	return r.execute(r.tocEntry, struct {
 		Number  string

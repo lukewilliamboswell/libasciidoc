@@ -3,7 +3,7 @@
 
 == Prerequisites
 
-* https://go.dev/dl/[Go] 1.24 or later
+* https://go.dev/dl/[Go] 1.26 or later
 * Git
 
 == Clone and Build
@@ -21,14 +21,26 @@ Build the CLI tools:
 
  go test ./...
 
+== Local CI
+
+Before committing, run the full set of checks that mirror CI:
+
+ ./minici.sh
+
+This runs `go mod tidy`, build, tests with the race detector, `golangci-lint`, `go generate` freshness, `govulncheck`, example validation, and then builds and serves the static site locally at http://localhost:8000.
+
 == Run the Site Locally
 
-To preview documentation changes, build the site and serve it locally:
+To just preview documentation changes without running the full check suite:
 
  go build -o ascii2html ./cmd/ascii2html
  ./ascii2html --static-site --css style.css -o _site www/
 
-Then open `_site/index.html` in your browser, or serve the directory with any static file server.
+Then serve the directory locally:
+
+ python3 -m http.server 8000 --directory _site
+
+Open http://localhost:8000 in your browser to preview the site.
 
 == Project Structure
 

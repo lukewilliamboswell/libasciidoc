@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -111,7 +110,7 @@ type Console interface {
 func (m *containMessageMatcher) Match(actual interface{}) (success bool, err error) {
 	console, ok := actual.(Console)
 	if !ok {
-		return false, errors.Errorf("ContainJSONLog matcher expects an io.Reader (actual: %T)", actual)
+		return false, fmt.Errorf("ContainJSONLog matcher expects an io.Reader (actual: %T)", actual)
 	}
 	scanner := bufio.NewScanner(console.Content())
 scan:
@@ -120,7 +119,7 @@ scan:
 		err := json.Unmarshal(scanner.Bytes(), &out)
 		if err != nil {
 			fmt.Printf("invalid content %s: %s\n", scanner.Text(), err.Error())
-			return false, errors.Wrapf(err, "failed to decode console line")
+			return false, fmt.Errorf("failed to decode console line: %w", err)
 		}
 		if !strings.HasPrefix(out["msg"].(string), m.msg) ||
 			out["level"] != m.level.String() ||
@@ -167,14 +166,14 @@ type containAnyMessageMatcher struct {
 func (m *containAnyMessageMatcher) Match(actual interface{}) (success bool, err error) {
 	console, ok := actual.(Console)
 	if !ok {
-		return false, errors.Errorf("ContainAnyMessageWithLevels matcher expects an io.Reader (actual: %T)", actual)
+		return false, fmt.Errorf("ContainAnyMessageWithLevels matcher expects an io.Reader (actual: %T)", actual)
 	}
 	scanner := bufio.NewScanner(console.Content())
 	for scanner.Scan() {
 		out := make(map[string]interface{})
 		err := json.Unmarshal(scanner.Bytes(), &out)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to decode console line")
+			return false, fmt.Errorf("failed to decode console line: %w", err)
 		}
 		if level, ok := out["level"].(string); ok {
 			for _, l := range m.levels {

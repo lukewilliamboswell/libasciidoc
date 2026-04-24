@@ -1,7 +1,6 @@
 package sgml
 
 import (
-	"html"
 	"strings"
 )
 
@@ -9,10 +8,6 @@ import (
 // a few replacements.  It is a bit more conservative.
 func escapeString(s string) string {
 	return htmlEscaper.Replace(s)
-}
-
-func unescapeString(s string) string {
-	return html.UnescapeString(s)
 }
 
 var htmlEscaper = strings.NewReplacer(

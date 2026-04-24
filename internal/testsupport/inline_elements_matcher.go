@@ -7,7 +7,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 )
 
 // MatchInlineElements a custom matcher to verify that a document matches the given expectation
@@ -25,7 +24,7 @@ type inlineElementsMatcher struct {
 
 func (m *inlineElementsMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.([]interface{}); !ok {
-		return false, errors.Errorf("MatchInlineElements matcher expects a '[]interface{}' (actual: %T)", actual)
+		return false, fmt.Errorf("MatchInlineElements matcher expects a '[]interface{}' (actual: %T)", actual)
 	}
 	if !reflect.DeepEqual(m.expected, actual) {
 		m.diffs = cmp.Diff(spew.Sdump(m.expected), spew.Sdump(actual))

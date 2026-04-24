@@ -666,7 +666,7 @@ func serialize(content interface{}) ([]byte, *placeholders, error) {
 			case *types.RawLine:
 				result.WriteString(element.Content)
 			case string:
-				result.WriteString(string(element))
+				result.WriteString(element)
 			case *types.StringElement:
 				result.WriteString(element.Content)
 			case *types.SpecialCharacter:

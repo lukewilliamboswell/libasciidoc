@@ -1,10 +1,10 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 )
 
 func (r *sgmlRenderer) renderPassthroughBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
@@ -15,11 +15,11 @@ func (r *sgmlRenderer) renderPassthroughBlock(ctx *context, b *types.DelimitedBl
 	ctx.withinDelimitedBlock = true
 	content, err := r.renderElements(ctx, b.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render passthrough block content")
+		return "", fmt.Errorf("unable to render passthrough block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render passthrough block roles")
+		return "", fmt.Errorf("unable to render passthrough block roles: %w", err)
 	}
 	return r.execute(r.passthroughBlock, struct {
 		Context *context

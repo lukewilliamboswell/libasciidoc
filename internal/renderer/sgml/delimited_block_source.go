@@ -9,20 +9,20 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderSourceBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
 	// first, render the content
 	content, highlighter, language, err := r.renderSourceBlockElements(ctx, b)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render source block content")
+		return "", fmt.Errorf("unable to render source block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render source block roles")
+		return "", fmt.Errorf("unable to render source block roles: %w", err)
 	}
 	var nowrap bool
 	if options, ok := b.Attributes[types.AttrOptions].(types.Options); ok {
@@ -35,7 +35,7 @@ func (r *sgmlRenderer) renderSourceBlock(ctx *context, b *types.DelimitedBlock) 
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render source block title")
+		return "", fmt.Errorf("unable to render source block title: %w", err)
 	}
 	return r.execute(r.sourceBlock, struct {
 		ID                string
@@ -175,10 +175,10 @@ func (r *sgmlRenderer) renderCalloutRef(co *types.Callout) (string, error) {
 
 	tmpl, err := r.calloutRef()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to load cross references template")
+		return "", fmt.Errorf("unable to load cross references template: %w", err)
 	}
 	if err = tmpl.Execute(result, co); err != nil {
-		return "", errors.Wrap(err, "unable to render callout reference")
+		return "", fmt.Errorf("unable to render callout reference: %w", err)
 	}
 	return result.String(), nil
 }

@@ -1,6 +1,9 @@
 package docx
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -42,7 +45,7 @@ func (r *docxRenderer) renderImageBlock(img *types.ImageBlock) error {
 	return nil
 }
 
-func (r *docxRenderer) renderInlineImage(para *strings.Builder, img *types.InlineImage) error {
+func (r *docxRenderer) renderInlineImage(para *paragraphBuilder, img *types.InlineImage) error {
 	src := r.resolveImagePath(img.Location)
 	if err := r.writeImageDrawing(para, src, img.Attributes); err != nil {
 		r.writeTextRun(para, imageAlt(img.Attributes, src), runStyle{italic: true})
@@ -65,16 +68,44 @@ func (r *docxRenderer) resolveImagePath(location *types.Location) string {
 		dir := filepath.Dir(r.ctx.config.Filename)
 		src = filepath.Join(dir, src)
 	}
+
+	// Guard against path traversal: local image paths must stay within the document root.
+	if !strings.Contains(src, "://") {
+		docDir := filepath.Dir(r.ctx.config.Filename)
+		allowedRoot, err1 := filepath.Abs(docDir)
+		resolvedSrc, err2 := filepath.Abs(src)
+		if err1 != nil || err2 != nil || (resolvedSrc != allowedRoot && !strings.HasPrefix(resolvedSrc, allowedRoot+string(os.PathSeparator))) {
+			return ""
+		}
+		src = resolvedSrc
+	}
 	return src
 }
 
-func (r *docxRenderer) writeImageDrawing(para *strings.Builder, src string, attrs types.Attributes) error {
-	if src == "" || strings.Contains(src, "://") {
+func (r *docxRenderer) writeImageDrawing(para *paragraphBuilder, src string, attrs types.Attributes) error {
+	if src == "" {
 		return os.ErrNotExist
 	}
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return err
+	var data []byte
+	if strings.Contains(src, "://") {
+		resp, err := http.Get(src) //nolint:noctx
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("remote image %s: HTTP %d", src, resp.StatusCode)
+		}
+		data, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		data, err = os.ReadFile(src)
+		if err != nil {
+			return err
+		}
 	}
 	rID, name := r.doc.addImage(data, src)
 	alt := imageAlt(attrs, src)

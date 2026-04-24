@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go-version: ['1.24']
+        go-version: ['1.25', '1.26']
         os: [ubuntu-latest, macos-latest, windows-latest]
     name: Test ${{ matrix.os }} with Go ${{ matrix.go-version }}
 
@@ -27,11 +27,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Check go mod tidy
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod go.sum
+
     - name: Build
       run: go build ./...
 
     - name: Test
-      run: go test ${{ runner.os == 'Linux' && '-coverprofile=coverage.txt' || '' }} ./...
+      run: go test -race ${{ runner.os == 'Linux' && '-coverpkg=./... -coverprofile=coverage.txt -covermode=atomic' || '' }} ./...
 
     - name: Validate examples
       shell: bash
@@ -47,6 +52,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.txt
 
   golangci:
     name: Lint
@@ -58,10 +64,48 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: '1.26'
 
     - name: Lint
       uses: golangci/golangci-lint-action@v7
       with:
-        version: latest
+        version: v2.11
+
+  generate:
+    name: Check generated code
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+
+    - name: Install pigeon
+      run: go install github.com/mna/pigeon@v1.3.0
+
+    - name: Run go generate
+      run: go generate ./...
+
+    - name: Check for uncommitted changes
+      run: git diff --exit-code
+
+  govulncheck:
+    name: Vulnerability check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+
+    - name: Run govulncheck
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
 

@@ -1,6 +1,8 @@
 package docx_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -66,6 +68,76 @@ Content in subsection.`)
 		Expect(second).ToNot(BeNil())
 		Expect(second.NumID).ToNot(BeEmpty())
 		Expect(second.NumLevel).To(Equal("0"))
+	})
+
+	It("should set outlineLvl and keepNext on all heading styles", func() {
+		doc := renderDocx(`= Doc
+
+== H2
+
+=== H3`)
+
+		h1 := doc.findStyle("Heading1")
+		Expect(h1).ToNot(BeNil())
+		Expect(h1.OutlineLevel).To(Equal("0"))
+		Expect(h1.KeepNext).To(BeTrue())
+
+		h2 := doc.findStyle("Heading2")
+		Expect(h2).ToNot(BeNil())
+		Expect(h2.OutlineLevel).To(Equal("1"))
+		Expect(h2.KeepNext).To(BeTrue())
+
+		h3 := doc.findStyle("Heading3")
+		Expect(h3).ToNot(BeNil())
+		Expect(h3.OutlineLevel).To(Equal("2"))
+		Expect(h3.KeepNext).To(BeTrue())
+	})
+
+	It("should deduplicate bookmark names when the same heading text appears multiple times", func() {
+		doc := renderDocx(`= Doc
+
+== Introduction
+
+First introduction.
+
+== Background
+
+Some background.
+
+== Introduction
+
+Second introduction with same heading text.`)
+
+		paras := doc.parseParagraphs()
+
+		// Collect all bookmark names across all paragraphs
+		var allBookmarks []string
+		for _, p := range paras {
+			allBookmarks = append(allBookmarks, p.Bookmarks...)
+		}
+
+		// There should be no duplicate bookmark names
+		seen := map[string]int{}
+		for _, name := range allBookmarks {
+			seen[name]++
+		}
+		for name, count := range seen {
+			Expect(count).To(Equal(1), "bookmark name %q appeared %d times — must be unique", name, count)
+		}
+
+		// The second "Introduction" heading should have a _2-suffixed bookmark
+		intro2 := doc.findParagraph("Second introduction")
+		Expect(intro2).ToNot(BeNil())
+		// Walk all paragraphs to find which one has the _2 bookmark
+		found := false
+		for _, p := range paras {
+			for _, bm := range p.Bookmarks {
+				if strings.HasSuffix(bm, "_2") {
+					found = true
+				}
+			}
+		}
+		Expect(found).To(BeTrue(), "expected a bookmark with _2 suffix for the duplicate heading")
 	})
 
 	It("should render a document with author metadata", func() {

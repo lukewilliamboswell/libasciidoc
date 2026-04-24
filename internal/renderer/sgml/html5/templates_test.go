@@ -3,9 +3,10 @@ package html5_test
 import (
 	"reflect"
 
-	"github.com/lukewilliamboswell/libasciidoc/internal/renderer/sgml/html5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/lukewilliamboswell/libasciidoc/internal/renderer/sgml/html5"
 )
 
 var _ = Describe("fields", func() {

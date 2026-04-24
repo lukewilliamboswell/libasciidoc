@@ -1,9 +1,10 @@
 package types_test
 
 import (
-	"github.com/lukewilliamboswell/libasciidoc/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 var _ = Describe("convert to inline elements", func() {

@@ -75,6 +75,18 @@ type HeadingTheme struct {
 	H4FontStyle     string
 	H5FontStyle     string
 	H6FontStyle     string
+	H1MarginTop     float64 // per-level space before in pt; 0 means use global MarginTop
+	H1MarginBottom  float64
+	H2MarginTop     float64
+	H2MarginBottom  float64
+	H3MarginTop     float64
+	H3MarginBottom  float64
+	H4MarginTop     float64
+	H4MarginBottom  float64
+	H5MarginTop     float64
+	H5MarginBottom  float64
+	H6MarginTop     float64
+	H6MarginBottom  float64
 }
 
 // TitlePageTheme controls the document title and subtitle.
@@ -227,7 +239,19 @@ func DefaultTheme() *DocxTheme {
 			FontSize:   11, // 22 half-points
 		},
 		Heading: HeadingTheme{
-			FontStyle: "bold",
+			FontStyle:      "bold",
+			H1MarginTop:    math.MaxFloat64,
+			H1MarginBottom: math.MaxFloat64,
+			H2MarginTop:    math.MaxFloat64,
+			H2MarginBottom: math.MaxFloat64,
+			H3MarginTop:    math.MaxFloat64,
+			H3MarginBottom: math.MaxFloat64,
+			H4MarginTop:    math.MaxFloat64,
+			H4MarginBottom: math.MaxFloat64,
+			H5MarginTop:    math.MaxFloat64,
+			H5MarginBottom: math.MaxFloat64,
+			H6MarginTop:    math.MaxFloat64,
+			H6MarginBottom: math.MaxFloat64,
 		},
 		Title: TitlePageTheme{
 			TitleFontSize:    20, // 40 half-points
@@ -418,6 +442,54 @@ func (t *DocxTheme) headingFontStyle(level int) (bold, italic bool) {
 	bold = style == "bold" || style == "bold_italic"
 	italic = style == "italic" || style == "bold_italic"
 	return bold, italic
+}
+
+// headingMarginTop returns the space-before value (in pt) for the given heading level.
+// math.MaxFloat64 is the sentinel meaning "not set"; fall back to global MarginTop.
+func (t *DocxTheme) headingMarginTop(level int) float64 {
+	perLevel := math.MaxFloat64
+	switch level {
+	case 1:
+		perLevel = t.Heading.H1MarginTop
+	case 2:
+		perLevel = t.Heading.H2MarginTop
+	case 3:
+		perLevel = t.Heading.H3MarginTop
+	case 4:
+		perLevel = t.Heading.H4MarginTop
+	case 5:
+		perLevel = t.Heading.H5MarginTop
+	case 6:
+		perLevel = t.Heading.H6MarginTop
+	}
+	if perLevel != math.MaxFloat64 {
+		return perLevel
+	}
+	return t.Heading.MarginTop
+}
+
+// headingMarginBottom returns the space-after value (in pt) for the given heading level.
+// math.MaxFloat64 is the sentinel meaning "not set"; fall back to global MarginBottom.
+func (t *DocxTheme) headingMarginBottom(level int) float64 {
+	perLevel := math.MaxFloat64
+	switch level {
+	case 1:
+		perLevel = t.Heading.H1MarginBottom
+	case 2:
+		perLevel = t.Heading.H2MarginBottom
+	case 3:
+		perLevel = t.Heading.H3MarginBottom
+	case 4:
+		perLevel = t.Heading.H4MarginBottom
+	case 5:
+		perLevel = t.Heading.H5MarginBottom
+	case 6:
+		perLevel = t.Heading.H6MarginBottom
+	}
+	if perLevel != math.MaxFloat64 {
+		return perLevel
+	}
+	return t.Heading.MarginBottom
 }
 
 // lineHeightValue returns the OOXML w:line value for the base line height.

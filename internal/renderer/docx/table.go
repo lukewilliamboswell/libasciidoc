@@ -2,10 +2,59 @@ package docx
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
 )
+
+// cellFormat holds the parsed cell format specifier from AsciiDoc syntax.
+// Format: [colspan[.rowspan]+][halign[.valign]][style]
+type cellFormat struct {
+	ColSpan int    // default 1; from "2+" prefix
+	RowSpan int    // default 1; from ".2+" prefix
+	HAlign  string // "center", "right", "left", or "" (default)
+}
+
+// parseCellFormat parses an AsciiDoc cell format string (e.g. "2+", ".2+", "^", "2+^").
+func parseCellFormat(format string) cellFormat {
+	cf := cellFormat{ColSpan: 1, RowSpan: 1}
+	if format == "" {
+		return cf
+	}
+	rest := format
+	if i := strings.IndexByte(format, '+'); i >= 0 {
+		span := format[:i]
+		rest = format[i+1:]
+		if dot := strings.IndexByte(span, '.'); dot >= 0 {
+			if dot > 0 {
+				if n, err := strconv.Atoi(span[:dot]); err == nil && n > 1 {
+					cf.ColSpan = n
+				}
+			}
+			if dot < len(span)-1 {
+				if n, err := strconv.Atoi(span[dot+1:]); err == nil && n > 1 {
+					cf.RowSpan = n
+				}
+			}
+		} else if span != "" {
+			if n, err := strconv.Atoi(span); err == nil && n > 1 {
+				cf.ColSpan = n
+			}
+		}
+	}
+	if len(rest) > 0 {
+		switch rest[0] {
+		case '<':
+			cf.HAlign = "left"
+		case '>':
+			cf.HAlign = "right"
+		case '^':
+			cf.HAlign = "center"
+		}
+	}
+	return cf
+}
 
 func (r *docxRenderer) renderTable(t *types.Table) error {
 	rows := tableRows(t)
@@ -13,6 +62,12 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	if colCount == 0 || len(rows) == 0 {
 		return nil
 	}
+
+	// Redistribute cells into rows when spans are present.
+	// The AsciiDoc parser may group all cells from multiple source lines into
+	// a single raw row; redistributeCells corrects this using span-aware placement.
+	rows, colCount = redistributeCells(rows, colCount)
+
 	if title := t.Attributes.GetAsStringWithDefault(types.AttrTitle, ""); title != "" {
 		number := r.ctx.GetAndIncrementTableCounter()
 		captionPrefix := t.Attributes.GetAsStringWithDefault(types.AttrCaption, "")
@@ -28,48 +83,62 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	}
 
 	theme := r.ctx.theme.Table
-	borderSz := itoa(ptToEighths(theme.BorderWidth))
-	borderColor := theme.BorderColor
-	outerBorder := `w:val="single" w:sz="` + borderSz + `" w:space="0" w:color="` + xmlAttr(borderColor) + `"`
-
-	// Grid lines may differ from outer borders
-	gridSz := borderSz
-	gridColor := borderColor
+	outer := borderLine{sizePt: theme.BorderWidth, space: 0, color: theme.BorderColor}
+	inner := borderLine{sizePt: theme.BorderWidth, space: 0, color: theme.BorderColor}
 	if theme.GridColor != "" {
-		gridColor = theme.GridColor
+		inner.color = theme.GridColor
 	}
 	if theme.GridWidth > 0 {
-		gridSz = itoa(ptToEighths(theme.GridWidth))
+		inner.sizePt = theme.GridWidth
 	}
-	innerBorder := `w:val="single" w:sz="` + gridSz + `" w:space="0" w:color="` + xmlAttr(gridColor) + `"`
 
 	tblW, tblWType := tableWidthAttrs(theme.Width)
-	r.writer.WriteString(`<w:tbl><w:tblPr><w:tblW w:w="` + tblW + `" w:type="` + tblWType + `"/><w:tblBorders>` +
-		`<w:top ` + outerBorder + `/><w:left ` + outerBorder + `/><w:bottom ` + outerBorder + `/>` +
-		`<w:right ` + outerBorder + `/><w:insideH ` + innerBorder + `/><w:insideV ` + innerBorder + `/>` +
-		`</w:tblBorders>`)
-
-	// Cell padding (table-level cell margins)
+	props := tableProps{
+		width: tableWidth{w: tblW, wType: tblWType},
+		borders: tableBorders{
+			top: outer, left: outer, bottom: outer, right: outer,
+			insideH: inner, insideV: inner,
+		},
+	}
 	if theme.CellPadding > 0 {
-		pad := itoa(ptToTwips(theme.CellPadding))
-		r.writer.WriteString(`<w:tblCellMar>`)
-		r.writer.WriteString(`<w:top w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:left w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:bottom w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`<w:right w:w="` + pad + `" w:type="dxa"/>`)
-		r.writer.WriteString(`</w:tblCellMar>`)
+		pad := ptToTwips(theme.CellPadding)
+		props.cellMar = &tableCellMargins{top: pad, left: pad, bottom: pad, right: pad}
 	}
 
-	r.writer.WriteString(`</w:tblPr><w:tblGrid>`)
-	for i := 0; i < colCount; i++ {
-		r.writer.WriteString(`<w:gridCol w:w="`)
-		fmt.Fprint(r.writer, tableGridWidthTwips/colCount)
-		r.writer.WriteString(`"/>`)
+	cols, _ := t.Columns()
+	textWidth := r.doc.textWidthTwips()
+	var colWidths []int
+	if len(cols) > 0 && len(cols) == colCount {
+		totalWeight := 0
+		for _, c := range cols {
+			totalWeight += c.Weight
+		}
+		if totalWeight <= 0 {
+			totalWeight = len(cols)
+		}
+		for _, c := range cols {
+			w := c.Weight * textWidth / totalWeight
+			if w <= 0 {
+				w = textWidth / len(cols)
+			}
+			colWidths = append(colWidths, w)
+		}
+	} else {
+		colW := textWidth / colCount
+		colWidths = make([]int, colCount)
+		for i := range colWidths {
+			colWidths[i] = colW
+		}
 	}
-	r.writer.WriteString(`</w:tblGrid>`)
+
+	r.writer.WriteString("<w:tbl>")
+	props.xml(r.writer)
+	tableGrid{colWidths: colWidths}.xml(r.writer)
+	vmerge := make([]int, colCount) // remaining rows for vertical merge at each column
 	for i, row := range rows {
 		bold, italic, bgColor := r.tableRowStyle(t, theme, i, len(rows))
-		if err := r.renderTableRow(row, colCount, bold, italic, bgColor); err != nil {
+		isHeader := t.Header != nil && i == 0
+		if err := r.renderTableRow(row, colCount, bold, italic, bgColor, isHeader, vmerge); err != nil {
 			return err
 		}
 	}
@@ -118,29 +187,55 @@ func (r *docxRenderer) tableRowStyle(t *types.Table, theme TableTheme, i int, to
 	return
 }
 
-func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string) error {
+func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string, isHeader bool, vmerge []int) error {
 	r.writer.WriteString("<w:tr>")
-	for i := 0; i < colCount; i++ {
-		var cell *types.TableCell
-		if i < len(row.Cells) {
-			cell = row.Cells[i]
+	if isHeader {
+		r.writer.WriteString(`<w:trPr><w:tblHeader/></w:trPr>`)
+	}
+	cellIdx := 0
+	for col := 0; col < colCount; col++ {
+		if vmerge[col] > 0 {
+			// Emit vertical merge continuation cell.
+			r.writer.WriteString(`<w:tc>`)
+			tableCellProps{widthW: "0", widthWType: "auto", bgColor: bgColor, vMerge: "continue"}.xml(r.writer)
+			r.writer.WriteString(`<w:p/></w:tc>`)
+			vmerge[col]--
+			continue
 		}
-		if err := r.renderTableCell(cell, bold, italic, bgColor); err != nil {
+		var cell *types.TableCell
+		if cellIdx < len(row.Cells) {
+			cell = row.Cells[cellIdx]
+		}
+		cellIdx++
+		var cf cellFormat
+		if cell != nil {
+			cf = parseCellFormat(cell.Format)
+		}
+		if cf.RowSpan > 1 {
+			vmerge[col] = cf.RowSpan - 1
+		}
+		if err := r.renderTableCell(cell, bold, italic, bgColor, cf); err != nil {
 			return err
+		}
+		// Skip columns consumed by a column span.
+		if cf.ColSpan > 1 {
+			col += cf.ColSpan - 1
 		}
 	}
 	r.writer.WriteString("</w:tr>")
 	return nil
 }
 
-func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool, bgColor string) error {
-	r.writer.WriteString(`<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>`)
-	if bgColor != "" {
-		r.writer.WriteString(`<w:shd w:val="clear" w:color="auto" w:fill="`)
-		r.writer.WriteString(xmlAttr(bgColor))
-		r.writer.WriteString(`"/>`)
+func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool, bgColor string, cf cellFormat) error {
+	r.writer.WriteString("<w:tc>")
+	tcp := tableCellProps{widthW: "0", widthWType: "auto", bgColor: bgColor}
+	if cf.ColSpan > 1 {
+		tcp.gridSpan = cf.ColSpan
 	}
-	r.writer.WriteString(`</w:tcPr>`)
+	if cf.RowSpan > 1 {
+		tcp.vMerge = "restart"
+	}
+	tcp.xml(r.writer)
 	if cell == nil || len(cell.Elements) == 0 {
 		r.writer.WriteString(`<w:p/>`)
 		r.writer.WriteString(`</w:tc>`)
@@ -152,12 +247,17 @@ func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool,
 	for _, elem := range cell.Elements {
 		switch e := elem.(type) {
 		case *types.Paragraph:
-			para := r.startParagraph(paragraphOptions{})
+			para := r.startParagraph(paragraphOptions{alignment: cf.HAlign})
 			if err := r.renderInlineElements(para, e.Elements, runStyle{bold: bold, italic: italic}); err != nil {
 				r.writer = old
 				return err
 			}
 			r.endParagraph(para)
+		case *types.List:
+			if err := r.renderList(e); err != nil {
+				r.writer = old
+				return err
+			}
 		default:
 			if err := r.renderElement(elem); err != nil {
 				r.writer = old
@@ -166,10 +266,16 @@ func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool,
 		}
 	}
 	r.writer = old
-	if cellWriter.Len() == 0 {
+	content := cellWriter.String()
+	if content == "" {
 		r.writer.WriteString(`<w:p/>`)
 	} else {
-		r.writer.WriteString(cellWriter.String())
+		r.writer.WriteString(content)
+		// OOXML requires every <w:tc> to end with a <w:p>.
+		// A nested table does not include one, so append it.
+		if strings.HasSuffix(content, "</w:tbl>") {
+			r.writer.WriteString(`<w:p/>`)
+		}
 	}
 	r.writer.WriteString(`</w:tc>`)
 	return nil
@@ -199,4 +305,133 @@ func tableColumnCount(t *types.Table, rows []*types.TableRow) int {
 		}
 	}
 	return max
+}
+
+// redistributeCells corrects the row layout when cells have row or column spans.
+// The AsciiDoc parser may group cells from multiple source lines into a single
+// raw TableRow. This function detects span format specifiers, computes the
+// effective column count, and places cells into the correct rows.
+// When no spans are present, the original rows and colCount are returned unchanged.
+func redistributeCells(rows []*types.TableRow, rawColCount int) ([]*types.TableRow, int) {
+	// Flatten all cells.
+	var cells []*types.TableCell
+	for _, row := range rows {
+		cells = append(cells, row.Cells...)
+	}
+	// Check for spans.
+	hasSpans := false
+	maxCS := 1
+	for _, c := range cells {
+		if c != nil {
+			cf := parseCellFormat(c.Format)
+			if cf.RowSpan > 1 || cf.ColSpan > 1 {
+				hasSpans = true
+			}
+			if cf.ColSpan > maxCS {
+				maxCS = cf.ColSpan
+			}
+		}
+	}
+	if !hasSpans {
+		return rows, rawColCount
+	}
+	// Find the correct column count by trying values from rawColCount down.
+	colCount := rawColCount
+	for cc := rawColCount; cc >= maxCS; cc-- {
+		if fitsGrid(cells, cc) {
+			colCount = cc
+			break
+		}
+	}
+	// Place cells into rows using span-aware grid placement.
+	type pos struct{ r, c int }
+	grid := map[pos]bool{}
+	newRows := []*types.TableRow{}
+	row, col := 0, 0
+	ensureRow := func(r int) {
+		for len(newRows) <= r {
+			newRows = append(newRows, &types.TableRow{})
+		}
+	}
+	for _, cell := range cells {
+		for grid[pos{row, col}] {
+			col++
+			if col >= colCount {
+				col = 0
+				row++
+			}
+		}
+		ensureRow(row)
+		newRows[row].Cells = append(newRows[row].Cells, cell)
+		cf := cellFormat{ColSpan: 1, RowSpan: 1}
+		if cell != nil {
+			cf = parseCellFormat(cell.Format)
+		}
+		for r := 0; r < cf.RowSpan; r++ {
+			for c := 0; c < cf.ColSpan; c++ {
+				grid[pos{row + r, col + c}] = true
+			}
+		}
+		col += cf.ColSpan
+		if col >= colCount {
+			col = 0
+			row++
+		}
+	}
+	if len(newRows) == 0 {
+		return rows, rawColCount
+	}
+	return newRows, colCount
+}
+
+// fitsGrid returns true if placing cells into a grid of colCount columns
+// fills every position with no gaps.
+func fitsGrid(cells []*types.TableCell, colCount int) bool {
+	if colCount <= 0 {
+		return false
+	}
+	type pos struct{ r, c int }
+	grid := map[pos]bool{}
+	row, col := 0, 0
+	for _, cell := range cells {
+		for grid[pos{row, col}] {
+			col++
+			if col >= colCount {
+				col = 0
+				row++
+			}
+		}
+		cf := cellFormat{ColSpan: 1, RowSpan: 1}
+		if cell != nil {
+			cf = parseCellFormat(cell.Format)
+		}
+		if col+cf.ColSpan > colCount {
+			return false
+		}
+		for r := 0; r < cf.RowSpan; r++ {
+			for c := 0; c < cf.ColSpan; c++ {
+				grid[pos{row + r, col + c}] = true
+			}
+		}
+		col += cf.ColSpan
+		if col >= colCount {
+			col = 0
+			row++
+		}
+	}
+	// Determine total rows used and check every position is filled.
+	maxRow := 0
+	for p := range grid {
+		if p.r > maxRow {
+			maxRow = p.r
+		}
+	}
+	for r := 0; r <= maxRow; r++ {
+		for c := 0; c < colCount; c++ {
+			if !grid[pos{r, c}] {
+				return false
+			}
+		}
+	}
+	return true
 }

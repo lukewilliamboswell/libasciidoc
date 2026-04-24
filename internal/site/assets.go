@@ -55,6 +55,10 @@ func walkSource(sourceDir string) (adocFiles []string, assets []string, err erro
 			}
 			return nil
 		}
+		// skip symlinks to prevent reading files outside the source directory
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
 		// skip hidden files
 		if strings.HasPrefix(info.Name(), ".") {
 			return nil

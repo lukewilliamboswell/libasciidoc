@@ -2,12 +2,13 @@ package sgml
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderDocumentDetails(ctx *context) (string, error) {
@@ -17,7 +18,7 @@ func (r *sgmlRenderer) renderDocumentDetails(ctx *context) (string, error) {
 	}
 	authors, err := r.renderDocumentAuthorsDetails(ctx)
 	if err != nil {
-		return "", errors.Wrap(err, "error while rendering the document details")
+		return "", fmt.Errorf("error while rendering the document details: %w", err)
 	}
 	documentDetailsBuff := &bytes.Buffer{}
 	revLabel, _ := ctx.attributes.GetAsString(types.AttrVersionLabel)
@@ -26,7 +27,7 @@ func (r *sgmlRenderer) renderDocumentDetails(ctx *context) (string, error) {
 	revRemark, _ := ctx.attributes.GetAsString("revremark")
 	tmpl, err := r.documentDetails()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to load document details template")
+		return "", fmt.Errorf("unable to load document details template: %w", err)
 	}
 	if err = tmpl.Execute(documentDetailsBuff, struct {
 		Authors   string
@@ -41,7 +42,7 @@ func (r *sgmlRenderer) renderDocumentDetails(ctx *context) (string, error) {
 		RevDate:   revDate,
 		RevRemark: revRemark,
 	}); err != nil {
-		return "", errors.Wrap(err, "error while rendering the document details")
+		return "", fmt.Errorf("error while rendering the document details: %w", err)
 	}
 	return documentDetailsBuff.String(), nil
 }
@@ -70,7 +71,7 @@ func (r *sgmlRenderer) renderDocumentAuthorsDetails(ctx *context) (string, error
 			email, _ := ctx.attributes.GetAsString(emailKey)
 			tmpl, err := r.documentAuthorDetails()
 			if err != nil {
-				return "", errors.Wrap(err, "unable to load document authors template")
+				return "", fmt.Errorf("unable to load document authors template: %w", err)
 			}
 			if err := tmpl.Execute(authorsDetailsBuff, struct {
 				Index string
@@ -81,7 +82,7 @@ func (r *sgmlRenderer) renderDocumentAuthorsDetails(ctx *context) (string, error
 				Name:  author,
 				Email: email,
 			}); err != nil {
-				return "", errors.Wrap(err, "error while rendering the document authors")
+				return "", fmt.Errorf("error while rendering the document authors: %w", err)
 			}
 			// if there were authors before, need to insert a `\n`
 			i++

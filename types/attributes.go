@@ -54,6 +54,8 @@ const (
 	AttrNoFooter = "nofooter"
 	// AttrCustomID the key to retrieve the flag that indicates if the element ID is custom or generated
 	// AttrCustomID = "@customID"
+	// AttrReftext the key to retrieve the reference text (xreflabel) for cross-references
+	AttrReftext = "reftext"
 	// AttrTitle the key to retrieve the title
 	AttrTitle = "title"
 	// AttrAuthors the key to the authors declared after the section level 0 (at the beginning of the doc)
@@ -212,6 +214,7 @@ func NewAttributes(attributes ...interface{}) (Attributes, error) {
 	return result, nil
 }
 
+// Clone returns a shallow copy of the attributes map.
 func (a Attributes) Clone() Attributes {
 	result := Attributes{}
 	for k, v := range a {
@@ -219,6 +222,8 @@ func (a Attributes) Clone() Attributes {
 	}
 	return result
 }
+
+// MergeAttributes merges multiple Attribute or Attributes values into a single Attributes map.
 func MergeAttributes(attributes ...interface{}) (Attributes, error) {
 	if len(attributes) == 0 {
 		return nil, nil
@@ -237,7 +242,8 @@ func MergeAttributes(attributes ...interface{}) (Attributes, error) {
 	return result, nil
 }
 
-// NilIfEmpty returns `nil` if this `attributes` is empty
+// AddAll merges all entries from others into a and returns the result.
+// If a is nil a new Attributes map is allocated. If others is nil, a is returned unchanged.
 func (a Attributes) AddAll(others Attributes) Attributes {
 	if others == nil {
 		return a
@@ -347,7 +353,8 @@ func (a *PositionalAttribute) Key() string {
 	return AttrPositionalIndex + strconv.Itoa(a.Index)
 }
 
-type Options []interface{} // more explicit than `[]interface{}`, and to bypass the `Reduce` func that would merge all roles into a single string :/
+// Options is a typed slice for element options, preventing reduction into a single string during processing.
+type Options []interface{}
 
 // NewOptionAttribute sets a boolean option.
 func NewOptionAttribute(option interface{}) (*Attribute, error) {
@@ -384,11 +391,32 @@ func NewRoleAttribute(value interface{}) (*Attribute, error) {
 	return NewNamedAttribute(AttrRole, value)
 }
 
-type Roles []interface{} // more explicit than `[]interface{}`, and to bypass the `Reduce` func that would merge all roles into a single string :/
+// Roles is a typed slice for element roles, preventing reduction into a single string during processing.
+type Roles []interface{}
 
 // NewIDAttribute initializes a new attribute map with a single entry for the ID using the given value
 func NewIDAttribute(value interface{}) (*Attribute, error) {
 	return NewNamedAttribute(AttrID, value)
+}
+
+// NewLegacyIDAttribute handles the [[id]] and [[id,reftext]] syntax.
+// When the value contains a comma, it splits on the first comma to separate
+// the ID from the optional reference text (xreflabel).
+func NewLegacyIDAttribute(value interface{}) (Attributes, error) {
+	str, ok := value.(string)
+	if !ok {
+		return Attributes{AttrID: value}, nil
+	}
+	if idx := strings.Index(str, ","); idx >= 0 {
+		id := strings.TrimSpace(str[:idx])
+		reftext := strings.TrimSpace(str[idx+1:])
+		attrs := Attributes{AttrID: id}
+		if reftext != "" {
+			attrs[AttrReftext] = reftext
+		}
+		return attrs, nil
+	}
+	return Attributes{AttrID: str}, nil
 }
 
 // Set adds the given attribute to the current ones
@@ -416,7 +444,7 @@ func (a Attributes) Set(key string, value interface{}) Attributes {
 			if roles, ok := a[AttrRoles].(Roles); ok {
 				a[AttrRoles] = append(roles, r...)
 			} else {
-				a[AttrRoles] = Roles(r)
+				a[AttrRoles] = r
 			}
 		}
 	case AttrOption: // move into `options`

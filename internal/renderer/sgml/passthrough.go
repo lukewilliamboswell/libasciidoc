@@ -1,11 +1,11 @@
 package sgml
 
 import (
+	"fmt"
 	htmltemplate "html/template"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 )
 
 func (r *sgmlRenderer) renderPassthroughParagraph(ctx *context, p *types.Paragraph) (string, error) {
@@ -19,7 +19,7 @@ func (r *sgmlRenderer) renderPassthroughParagraph(ctx *context, p *types.Paragra
 func (r *sgmlRenderer) renderInlinePassthrough(ctx *context, p *types.InlinePassthrough) (string, error) {
 	renderedContent, err := r.renderPassthroughContent(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render passthrough")
+		return "", fmt.Errorf("unable to render passthrough: %w", err)
 	}
 	switch p.Kind {
 	case types.SinglePlusPassthrough:

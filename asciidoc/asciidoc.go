@@ -2,6 +2,7 @@
 package asciidoc
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/lukewilliamboswell/libasciidoc/internal/validator"
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,13 +23,13 @@ import (
 func ConvertFile(output io.Writer, config *configuration.Configuration) (types.Metadata, error) {
 	file, err := os.Open(config.Filename)
 	if err != nil {
-		return types.Metadata{}, errors.Wrapf(err, "error opening %s", config.Filename)
+		return types.Metadata{}, fmt.Errorf("error opening %s: %w", config.Filename, err)
 	}
 	defer file.Close()
 	// use the file mtime as the `last updated` value
 	stat, err := os.Stat(config.Filename)
 	if err != nil {
-		return types.Metadata{}, errors.Wrapf(err, "error opening %s", config.Filename)
+		return types.Metadata{}, fmt.Errorf("error opening %s: %w", config.Filename, err)
 	}
 	config.LastUpdated = stat.ModTime()
 	return Convert(file, output, config)

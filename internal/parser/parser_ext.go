@@ -8,9 +8,10 @@ import (
 	"unicode"
 
 	"github.com/davecgh/go-spew/spew"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func parseContent(content []byte, opts ...Option) ([]interface{}, error) {

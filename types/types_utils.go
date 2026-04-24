@@ -197,6 +197,7 @@ func Append(elements ...interface{}) ([]interface{}, error) {
 	return result, nil
 }
 
+// SplitElementsPerLine splits a flat slice of inline elements into groups separated by newlines.
 func SplitElementsPerLine(elements []interface{}) [][]interface{} {
 	lines := make([][]interface{}, 0, len(elements))
 	line := make([]interface{}, 0, len(elements))

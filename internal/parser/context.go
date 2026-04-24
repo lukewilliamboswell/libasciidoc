@@ -4,9 +4,10 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lukewilliamboswell/libasciidoc/configuration"
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type ParseContext struct {

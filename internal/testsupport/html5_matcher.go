@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 )
 
 // ------------------------------------------------------
@@ -31,7 +30,7 @@ type htmlMatcher struct {
 
 func (m *htmlMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.(string); !ok {
-		return false, errors.Errorf("MatchHTML matcher expects a string (actual: %T)", actual)
+		return false, fmt.Errorf("MatchHTML matcher expects a string (actual: %T)", actual)
 	}
 	if m.expected != actual {
 		ginkgo.GinkgoT().Logf("actual HTML:\n'%s'", actual)
@@ -73,7 +72,7 @@ func (m *htmlFileMatcher) Match(actual interface{}) (success bool, err error) {
 		return false, err
 	}
 	if _, ok := actual.(string); !ok {
-		return false, errors.Errorf("MatchHTMLFromFile matcher expects a string (actual: %T)", actual)
+		return false, fmt.Errorf("MatchHTMLFromFile matcher expects a string (actual: %T)", actual)
 	}
 	expected = bytes.ReplaceAll(expected, []byte{'\r'}, []byte{})
 	if string(expected) != actual {
@@ -115,9 +114,9 @@ type htmlTemplateMatcher struct {
 
 func (m *htmlTemplateMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.(string); !ok {
-		return false, errors.Errorf("MatchHTMLTemplate matcher expects a string (actual: %T)", actual)
+		return false, fmt.Errorf("MatchHTMLTemplate matcher expects a string (actual: %T)", actual)
 	}
-	expectedTmpl, err := texttemplate.New("test").Parse(string(m.expectedTmpl))
+	expectedTmpl, err := texttemplate.New("test").Parse(m.expectedTmpl)
 	if err != nil {
 		return false, err
 	}
@@ -163,7 +162,7 @@ type htmlTemplateFileMatcher struct {
 
 func (m *htmlTemplateFileMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.(string); !ok {
-		return false, errors.Errorf("MatchHTMLTemplate matcher expects a 'string' (actual: %T)", actual)
+		return false, fmt.Errorf("MatchHTMLTemplate matcher expects a 'string' (actual: %T)", actual)
 	}
 
 	expected, err := os.ReadFile(m.filename)

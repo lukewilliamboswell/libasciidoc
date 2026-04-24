@@ -1,11 +1,12 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func (r *sgmlRenderer) renderParagraph(ctx *context, p *types.Paragraph) (string, error) {
@@ -42,15 +43,15 @@ func (r *sgmlRenderer) renderRegularParagraph(ctx *context, p *types.Paragraph) 
 	log.Debug("rendering a regular paragraph")
 	content, err := r.renderParagraphElements(ctx, p)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render paragraph content")
+		return "", fmt.Errorf("unable to render paragraph content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render paragraph roles")
+		return "", fmt.Errorf("unable to render paragraph roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render paragraph roles")
+		return "", fmt.Errorf("unable to render paragraph roles: %w", err)
 	}
 	return r.execute(r.paragraph, struct {
 		Context *context
@@ -63,7 +64,7 @@ func (r *sgmlRenderer) renderRegularParagraph(ctx *context, p *types.Paragraph) 
 		ID:      r.renderElementID(p.Attributes),
 		Title:   title,
 		Roles:   roles,
-		Content: strings.Trim(string(content), "\n"),
+		Content: strings.Trim(content, "\n"),
 	})
 }
 
@@ -71,21 +72,21 @@ func (r *sgmlRenderer) renderManpageNameParagraph(ctx *context, p *types.Paragra
 	log.Debug("rendering name section paragraph in manpage...")
 	content, err := r.renderElements(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render manpage 'NAME' paragraph content")
+		return "", fmt.Errorf("unable to render manpage 'NAME' paragraph content: %w", err)
 	}
 	return r.execute(r.manpageNameParagraph, struct {
 		Context *context
 		Content string
 	}{
 		Context: ctx,
-		Content: string(content),
+		Content: content,
 	})
 }
 
 func (r *sgmlRenderer) renderEmbeddedParagraph(ctx *context, p *types.Paragraph, class string) (string, error) {
 	content, err := r.renderElements(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render embedded paragraph content")
+		return "", fmt.Errorf("unable to render embedded paragraph content: %w", err)
 	}
 	return r.execute(r.embeddedParagraph, struct {
 		Context    *context
@@ -142,7 +143,7 @@ func (r *sgmlRenderer) renderElementTitle(ctx *context, attrs types.Attributes) 
 	case []interface{}:
 		return r.renderElements(ctx, title)
 	default:
-		return "", errors.Errorf("unable to render title of type '%T'", title)
+		return "", fmt.Errorf("unable to render title of type '%T'", title)
 	}
 }
 
@@ -152,10 +153,10 @@ func (r *sgmlRenderer) renderParagraphElements(ctx *context, p *types.Paragraph)
 	for _, e := range p.Elements {
 		renderedElement, err := r.renderElement(ctx, e)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to render paragraph elements")
+			return "", fmt.Errorf("unable to render paragraph elements: %w", err)
 		}
 		if _, err := buf.WriteString(renderedElement); err != nil {
-			return "", errors.Wrap(err, "unable to render paragraph elements")
+			return "", fmt.Errorf("unable to render paragraph elements: %w", err)
 		}
 	}
 	result := buf.String()
@@ -163,10 +164,10 @@ func (r *sgmlRenderer) renderParagraphElements(ctx *context, p *types.Paragraph)
 		linebreak := &strings.Builder{}
 		tmpl, err := r.lineBreak()
 		if err != nil {
-			return "", errors.Wrap(err, "unable to load line break template")
+			return "", fmt.Errorf("unable to load line break template: %w", err)
 		}
 		if err := tmpl.Execute(linebreak, nil); err != nil {
-			return "", errors.Wrap(err, "unable to render line break")
+			return "", fmt.Errorf("unable to render line break: %w", err)
 		}
 		result = strings.ReplaceAll(result, "\n", linebreak.String()+"\n")
 	}

@@ -1,12 +1,13 @@
 package parser
 
 import (
+	"fmt"
 	"io"
 	"time"
 
-	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 // Parses the content of the conplex elements in the incoming fragments
@@ -148,7 +149,7 @@ func reparseElements(elements []interface{}, opts ...Option) ([]interface{}, err
 	}
 	elmts, err := Parse("", content, opts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse elements") // ignore error (malformed content)
+		return nil, fmt.Errorf("unable to parse elements: %w", err) // ignore error (malformed content)
 	}
 	switch elmts := elmts.(type) {
 	case []interface{}:
@@ -163,6 +164,6 @@ func reparseElements(elements []interface{}, opts ...Option) ([]interface{}, err
 		}
 		return placeholders.restore(elmts)
 	default:
-		return nil, errors.Errorf("unexpected type of result after parsing elements: '%T'", elmts)
+		return nil, fmt.Errorf("unexpected type of result after parsing elements: '%T'", elmts)
 	}
 }

@@ -1,10 +1,10 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 )
 
 func (r *sgmlRenderer) renderListingBlock(ctx *context, b *types.DelimitedBlock) (string, error) {
@@ -18,15 +18,15 @@ func (r *sgmlRenderer) renderListingBlock(ctx *context, b *types.DelimitedBlock)
 	ctx.withinDelimitedBlock = true
 	content, err := r.renderElements(ctx, b.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing block content")
+		return "", fmt.Errorf("unable to render listing block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing block roles")
+		return "", fmt.Errorf("unable to render listing block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, b.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing block title")
+		return "", fmt.Errorf("unable to render listing block title: %w", err)
 	}
 	return r.execute(r.listingBlock, struct {
 		Context *context
@@ -46,15 +46,15 @@ func (r *sgmlRenderer) renderListingBlock(ctx *context, b *types.DelimitedBlock)
 func (r *sgmlRenderer) renderListingParagraph(ctx *context, p *types.Paragraph) (string, error) {
 	content, err := r.renderElements(ctx, p.Elements)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing block content")
+		return "", fmt.Errorf("unable to render listing block content: %w", err)
 	}
 	roles, err := r.renderElementRoles(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing block roles")
+		return "", fmt.Errorf("unable to render listing block roles: %w", err)
 	}
 	title, err := r.renderElementTitle(ctx, p.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render listing paragraph roles")
+		return "", fmt.Errorf("unable to render listing paragraph roles: %w", err)
 	}
 	return r.execute(r.listingBlock, struct {
 		Context *context

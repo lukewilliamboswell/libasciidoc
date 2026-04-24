@@ -1,9 +1,10 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/lukewilliamboswell/libasciidoc/types"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,6 +59,31 @@ func arrangeListElements(elements []interface{}) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, e)
+		case *types.Table:
+			log.Debug("checking elements in Table cells")
+			var err error
+			if e.Header != nil {
+				for _, cell := range e.Header.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			for _, row := range e.Rows {
+				for _, cell := range row.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			if e.Footer != nil {
+				for _, cell := range e.Footer.Cells {
+					if cell.Elements, err = arrangeListElements(cell.Elements); err != nil {
+						return nil, err
+					}
+				}
+			}
+			result = append(result, e)
 		case *types.ListElements:
 			log.Debug("arranging list elements in ListElements")
 			l, err := doArrangeListElements(e.Elements)
@@ -86,7 +112,7 @@ content:
 		// lookup the parent block which can add the given element
 		if parentBlock := lists.parentFor(element); parentBlock != nil {
 			if err := parentBlock.AddElement(element); err != nil {
-				return nil, errors.Wrap(err, "unable to assemble list elements")
+				return nil, fmt.Errorf("unable to assemble list elements: %w", err)
 			}
 			continue content
 		}
@@ -97,14 +123,14 @@ content:
 			e.AdjustStyle(lists.get())
 			list, err := types.NewList(e)
 			if err != nil {
-				return nil, errors.Wrap(err, "unable to assemble list elements")
+				return nil, fmt.Errorf("unable to assemble list elements: %w", err)
 			}
 			log.Debugf("adding a new list of kind '%s'", list.Kind)
 			if err := lists.push(list); err != nil {
-				return nil, errors.Wrap(err, "unable to assemble list elements")
+				return nil, fmt.Errorf("unable to assemble list elements: %w", err)
 			}
 		default:
-			return nil, errors.Errorf("unable to process element of type '%T' in the list", element)
+			return nil, fmt.Errorf("unable to process element of type '%T' in the list", element)
 		}
 	}
 	return lists.root(), nil

@@ -26,3 +26,17 @@ after`
 		Expect(RenderHTML(source)).To(MatchHTML(expected))
 	})
 })
+
+var _ = Describe("page breaks", func() {
+
+	It("renders <<< as a page break div", func() {
+		source := `before
+
+<<<
+
+after`
+		result, err := RenderHTML(source)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(ContainSubstring("break-after:page"))
+	})
+})

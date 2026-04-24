@@ -1,10 +1,10 @@
 package sgml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lukewilliamboswell/libasciidoc/types"
-	"github.com/pkg/errors"
 )
 
 func (r *sgmlRenderer) renderLink(ctx *context, l *types.InlineLink) (string, error) {
@@ -13,7 +13,7 @@ func (r *sgmlRenderer) renderLink(ctx *context, l *types.InlineLink) (string, er
 	id := l.Attributes.GetAsStringWithDefault(types.AttrID, "")
 	roles, err := r.renderElementRoles(ctx, l.Attributes)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to render link")
+		return "", fmt.Errorf("unable to render link: %w", err)
 	}
 	// TODO; support `mailto:` positional attributes
 	if t, exists := l.Attributes[types.AttrInlineLinkText]; exists {
@@ -23,7 +23,7 @@ func (r *sgmlRenderer) renderLink(ctx *context, l *types.InlineLink) (string, er
 		case []interface{}:
 			var err error
 			if text, err = r.renderInlineElements(ctx, t); err != nil {
-				return "", errors.Wrap(err, "unable to render link")
+				return "", fmt.Errorf("unable to render link: %w", err)
 			}
 		}
 		class = roles // can be empty (and it's fine)

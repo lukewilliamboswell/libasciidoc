@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/lukewilliamboswell/libasciidoc/types"
-
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
+
+	"github.com/lukewilliamboswell/libasciidoc/types"
 )
 
 func MatchMetadata(expected types.Metadata) gomegatypes.GomegaMatcher {
@@ -26,7 +25,7 @@ type metadataMatcher struct {
 
 func (m *metadataMatcher) Match(actual interface{}) (success bool, err error) {
 	if _, ok := actual.(types.Metadata); !ok {
-		return false, errors.Errorf("MatchMetadata matcher expects a 'types.Metadata' (actual: %T)", actual)
+		return false, fmt.Errorf("MatchMetadata matcher expects a 'types.Metadata' (actual: %T)", actual)
 	}
 	if !reflect.DeepEqual(m.expected, actual) {
 		ginkgo.GinkgoT().Logf("actual HTML:\n'%s'", actual)
