@@ -3,6 +3,7 @@ package site_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/lukewilliamboswell/libasciidoc/internal/site"
@@ -92,6 +93,9 @@ func TestBuild_RenderPageError(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("cannot test permission errors as root")
 	}
+	if runtime.GOOS == "windows" {
+		t.Skip("include error behaviour differs on Windows")
+	}
 
 	src := mustMkdirTemp(t, "src-*")
 	out := mustMkdirTemp(t, "out-*")
@@ -143,8 +147,8 @@ func TestWalkSource_HiddenDirSkipped(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCopyFile_CannotCreateDestDir(t *testing.T) {
-	if os.Getuid() == 0 {
-		t.Skip("cannot test permission errors as root")
+	if os.Getuid() == 0 || runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on this platform")
 	}
 
 	src := mustMkdirTemp(t, "src-*")
@@ -174,8 +178,8 @@ func TestCopyFile_CannotCreateDestDir(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCopyFile_SourceUnreadable(t *testing.T) {
-	if os.Getuid() == 0 {
-		t.Skip("cannot test permission errors as root")
+	if os.Getuid() == 0 || runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on this platform")
 	}
 
 	src := mustMkdirTemp(t, "src-*")
