@@ -183,7 +183,7 @@ var conformanceMatrix = []conformanceEntry{
 			Expect(p).ToNot(BeNil())
 			def := doc.findNumberingDef(p.NumID)
 			Expect(def).ToNot(BeNil())
-			Expect(def.Levels[0].Start).To(Equal("5"))
+			Expect(def.Levels[0].StartOverride).To(Equal("5"))
 		},
 	},
 	{
