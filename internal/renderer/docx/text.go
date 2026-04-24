@@ -14,6 +14,8 @@ func (r *docxRenderer) renderPlainText(element interface{}) (string, error) {
 	switch e := element.(type) {
 	case nil:
 		return "", nil
+	case string:
+		return e, nil
 	case []interface{}:
 		buf := &strings.Builder{}
 		for _, child := range e {
@@ -97,7 +99,7 @@ func (r *docxRenderer) renderInternalCrossRefPlainText(e *types.InternalCrossRef
 		if target, found := r.ctx.elementReferences[id]; found {
 			return r.renderPlainText(target)
 		}
-		return "[" + id + "]", nil
+		return id, nil
 	}
 	return r.renderPlainText(e.ID)
 }

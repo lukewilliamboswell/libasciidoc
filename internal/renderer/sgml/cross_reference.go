@@ -50,7 +50,7 @@ func (r *sgmlRenderer) renderInternalCrossReference(ctx *context, xref *types.In
 			return "", fmt.Errorf("unable to process internal cross reference to element of type %T", target)
 		}
 	} else {
-		label = "[" + xrefID + "]"
+		label = xrefID
 	}
 	return r.execute(r.internalCrossReference, struct {
 		Href  string

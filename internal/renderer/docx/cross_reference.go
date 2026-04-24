@@ -30,7 +30,7 @@ func (r *docxRenderer) renderCrossReference(para *paragraphBuilder, ref *types.I
 		if title, found := r.ctx.elementReferences[canonicalID]; found {
 			label = title
 		} else {
-			label = "[" + refID + "]"
+			label = refID
 		}
 	}
 	if canonicalID == "" {

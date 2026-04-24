@@ -131,7 +131,7 @@ with some content linked to <<thewrongtitle>>!`
 <h2 id="thetitle">a title</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>with some content linked to <a href="#thewrongtitle">[thewrongtitle]</a>!</p>
+<p>with some content linked to <a href="#thewrongtitle">thewrongtitle</a>!</p>
 </div>
 </div>
 </div>

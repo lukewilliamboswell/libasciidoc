@@ -890,9 +890,12 @@ var _ Referencable = &List{}
 
 func (l *List) Reference(refs ElementReferences) {
 	id := l.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := l.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := l.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := l.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 	// also, visit elements
 	for _, e := range l.Elements {
@@ -1104,9 +1107,12 @@ var _ Referencable = &CalloutListElement{}
 
 func (e *CalloutListElement) Reference(refs ElementReferences) {
 	id := e.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := e.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := e.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := e.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 	// also, visit elements
 	for _, e := range e.Elements {
@@ -1225,9 +1231,12 @@ var _ Referencable = &OrderedListElement{}
 
 func (e *OrderedListElement) Reference(refs ElementReferences) {
 	id := e.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := e.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := e.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := e.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 	// also, visit elements
 	for _, e := range e.Elements {
@@ -1367,9 +1376,12 @@ var _ Referencable = &UnorderedListElement{}
 
 func (e *UnorderedListElement) Reference(refs ElementReferences) {
 	id := e.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := e.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := e.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := e.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 	// also, visit elements
 	for _, e := range e.Elements {
@@ -1646,9 +1658,12 @@ var _ Referencable = &LabeledListElement{}
 
 func (e *LabeledListElement) Reference(refs ElementReferences) {
 	id := e.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := e.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := e.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := e.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 	// also, visit the term
 	if len(e.Term) > 0 {
@@ -1846,9 +1861,12 @@ var _ Referencable = &Paragraph{}
 
 func (p *Paragraph) Reference(refs ElementReferences) {
 	id := p.Attributes.GetAsStringWithDefault(AttrID, "")
-	title := p.Attributes[AttrTitle]
-	if id != "" && title != nil {
-		refs[id] = title
+	if id != "" {
+		if reftext := p.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+			refs[id] = reftext
+		} else if title := p.Attributes[AttrTitle]; title != nil {
+			refs[id] = title
+		}
 	}
 }
 
@@ -2520,13 +2538,15 @@ func (s *Section) SetTitle(title []interface{}) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debugf("setting section title: %s", spew.Sdump(title))
 	}
-	// inline ID attribute foud at the end is *moved* at the attributes level of the section
+	// inline ID attribute found at the end is *moved* at the attributes level of the section
 	if id, ok := title[len(title)-1].(*Attribute); ok {
 		sectionID := stringify(id.Value)
 		s.AddAttributes(Attributes{
 			AttrID: sectionID,
-			// AttrCustomID: true,
 		})
+		title = title[:len(title)-1]
+	} else if attrs, ok := title[len(title)-1].(Attributes); ok {
+		s.AddAttributes(attrs)
 		title = title[:len(title)-1]
 	}
 	s.Title = TrimTrailingSpaces(title)
@@ -2602,7 +2622,13 @@ var _ Referencable = &Section{}
 
 func (s *Section) Reference(refs ElementReferences) {
 	id := s.Attributes.GetAsStringWithDefault(AttrID, "")
-	if id != "" && s.Title != nil {
+	if id == "" {
+		return
+	}
+	// reftext takes priority over the section title for cross-reference display text
+	if reftext := s.Attributes.GetAsStringWithDefault(AttrReftext, ""); reftext != "" {
+		refs[id] = reftext
+	} else if s.Title != nil {
 		refs[id] = s.Title
 	}
 }
@@ -2945,6 +2971,17 @@ func NewInlineAnchor(id string) (*InlineLink, error) {
 		Attributes: Attributes{
 			AttrID: id,
 		},
+	}, nil
+}
+
+// NewInlineAnchorWithReftext creates an inline anchor with both an ID and reference text
+func NewInlineAnchorWithReftext(id, reftext string) (*InlineLink, error) {
+	attrs := Attributes{AttrID: id}
+	if reftext != "" {
+		attrs[AttrReftext] = reftext
+	}
+	return &InlineLink{
+		Attributes: attrs,
 	}, nil
 }
 

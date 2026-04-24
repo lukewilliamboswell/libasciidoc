@@ -54,6 +54,8 @@ const (
 	AttrNoFooter = "nofooter"
 	// AttrCustomID the key to retrieve the flag that indicates if the element ID is custom or generated
 	// AttrCustomID = "@customID"
+	// AttrReftext the key to retrieve the reference text (xreflabel) for cross-references
+	AttrReftext = "reftext"
 	// AttrTitle the key to retrieve the title
 	AttrTitle = "title"
 	// AttrAuthors the key to the authors declared after the section level 0 (at the beginning of the doc)
@@ -395,6 +397,26 @@ type Roles []interface{}
 // NewIDAttribute initializes a new attribute map with a single entry for the ID using the given value
 func NewIDAttribute(value interface{}) (*Attribute, error) {
 	return NewNamedAttribute(AttrID, value)
+}
+
+// NewLegacyIDAttribute handles the [[id]] and [[id,reftext]] syntax.
+// When the value contains a comma, it splits on the first comma to separate
+// the ID from the optional reference text (xreflabel).
+func NewLegacyIDAttribute(value interface{}) (Attributes, error) {
+	str, ok := value.(string)
+	if !ok {
+		return Attributes{AttrID: value}, nil
+	}
+	if idx := strings.Index(str, ","); idx >= 0 {
+		id := strings.TrimSpace(str[:idx])
+		reftext := strings.TrimSpace(str[idx+1:])
+		attrs := Attributes{AttrID: id}
+		if reftext != "" {
+			attrs[AttrReftext] = reftext
+		}
+		return attrs, nil
+	}
+	return Attributes{AttrID: str}, nil
 }
 
 // Set adds the given attribute to the current ones

@@ -400,9 +400,9 @@ InlineAttributes <-
         return types.NewAttributes(attributes.([]interface{})...)
     }
 
-// shorthand syntax for anchors. Eg: `[[An ID]]`
+// shorthand syntax for anchors. Eg: `[[An ID]]` or `[[An ID,reftext]]`
 LegacyElementID <-
-    "[[" 
+    "[["
     id:(
         elements:(
             ([^=\r\n\uFFFD{\]]+ { // spaces, commas and dots are allowed in this syntax
@@ -410,14 +410,14 @@ LegacyElementID <-
             })
             / ElementPlaceHolder
             / AttributeReference
-            / ("{" { 
+            / ("{" {
                 return types.NewStringElement(string(c.text))
             }))+ {
                 return types.Reduce(elements, strings.TrimSpace), nil
             }
         )
     "]]" {
-        return types.NewIDAttribute(id)
+        return types.NewLegacyIDAttribute(id)
     }
 
 // shorthand syntax for titles. Eg: `.a title`
@@ -1249,7 +1249,7 @@ FrontMatterLine <- (.)* {
 // -------------------------------------------------------------------------------------
 // Inline Anchor 
 // -------------------------------------------------------------------------------------
-InlineAnchor <- 
+InlineAnchor <-
     // escaped
     `\` "[[" id:(Id) "]]" {
         return types.NewStringElement(strings.TrimPrefix(string(c.text), `\`))
@@ -1485,15 +1485,21 @@ ExtraListElements <- elements:(ExtraListElement)* {
 }
 
 ExtraListElement <- // other elements can be separated by blankline WITHOUT attributes, or can have attributes but NO blankline before
-    NotEOF 
+    NotEOF
     element:(
-        (   BlankLine* 
-            element:(OrderedListElement / UnorderedListElement / CalloutListElement / LabeledListElement) { 
+        (   BlankLine*
+            element:(OrderedListElement / UnorderedListElement / CalloutListElement / LabeledListElement) {
                 return element, nil
             })
-        / ( attributes:(BlockAttributes)+ 
-            element:(OrderedListElement / UnorderedListElement / CalloutListElement / LabeledListElement) { 
+        / ( attributes:(BlockAttributes)+
+            element:(OrderedListElement / UnorderedListElement / CalloutListElement / LabeledListElement) {
                 return append(attributes.([]interface{}), element), nil
+            })
+        // [[id]] or [[id,reftext]] anchors after blank lines continue the list (they set the ID on the next item)
+        / ( BlankLine+
+            anchor:(LegacyElementID) Space* EOL BlankLine*
+            element:(OrderedListElement / UnorderedListElement / CalloutListElement / LabeledListElement) {
+                return []interface{}{anchor, element}, nil
             })
         / ListContinuation
         / SinglelineComment // must be attached, i.e., no intermediate blankline allowed

@@ -700,7 +700,8 @@ var _ = DescribeTable("valid block attributes",
 
 	Entry(`[[here, an id]]`, `[[here, an id]]`,
 		types.Attributes{
-			types.AttrID: `here, an id`,
+			types.AttrID:      `here`,
+			types.AttrReftext: `an id`,
 		},
 	),
 	Entry(`[[another id.not_a_role]]`, `[[another id.not_a_role]]`,
