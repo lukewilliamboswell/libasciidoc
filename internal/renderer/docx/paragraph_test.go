@@ -120,4 +120,37 @@ second paragraph`)
 		}
 		Expect(hasBreak).To(BeTrue())
 	})
+
+	It("should merge adjacent plain-text runs into a single w:r", func() {
+		// paragraphBuilder (Change 1) merges consecutive inline elements that share
+		// the same runStyle. A paragraph like "Hello world" must produce one run,
+		// not two, since both words have identical (default) styling.
+		doc := renderDocx("Hello world")
+
+		p := doc.findParagraph("Hello world")
+		Expect(p).ToNot(BeNil())
+		// All text must be present
+		Expect(p.text()).To(Equal("Hello world"))
+		// The entire text should be in a single run, not split across two
+		Expect(p.Runs).To(HaveLen(1),
+			"adjacent plain text should be merged into one w:r by paragraphBuilder")
+		Expect(p.Runs[0].Text).To(Equal("Hello world"))
+	})
+
+	It("should not merge a bold run with adjacent plain runs", func() {
+		// Bold and plain runs have different runStyles, so they must remain separate.
+		doc := renderDocx("before *bold* after")
+
+		p := doc.findParagraph("before")
+		Expect(p).ToNot(BeNil())
+
+		// Exactly three runs: plain, bold, plain
+		Expect(p.Runs).To(HaveLen(3),
+			"plain+bold+plain must produce exactly 3 runs — merging must not cross style boundaries")
+
+		Expect(p.Runs[0].Bold).To(BeFalse())
+		Expect(p.Runs[1].Bold).To(BeTrue())
+		Expect(p.Runs[1].Text).To(ContainSubstring("bold"))
+		Expect(p.Runs[2].Bold).To(BeFalse())
+	})
 })

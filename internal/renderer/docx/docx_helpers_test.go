@@ -126,6 +126,12 @@ type parsedParagraph struct {
 	NumLevel   string // w:ilvl val (from w:numPr)
 	KeepNext   bool   // true when w:keepNext is present in w:pPr
 	IndentLeft int    // w:ind w:left value in twips (0 if absent)
+	// ECMA-376 §17.3.1 paragraph properties
+	Alignment         string // w:jc val: "left"|"center"|"right"|"both"
+	SpaceBefore       string // w:spacing w:before (twips)
+	SpaceAfter        string // w:spacing w:after (twips)
+	LineSpacing       string // w:spacing w:line
+	ContextualSpacing bool   // true when w:contextualSpacing is present
 	// Children preserves the document order of runs and hyperlinks
 	Children []interface{} // parsedRun or parsedHyperlink
 	// Convenience accessors (also available via Children)
@@ -191,6 +197,13 @@ type parsedTableRow struct {
 
 type parsedTableCell struct {
 	Paragraphs []parsedParagraph
+	// ECMA-376 §17.4 table cell properties
+	GridSpan    string // w:gridSpan w:val (column span count)
+	VMerge      string // w:vMerge w:val: "restart" for first merged cell, "" for continuation
+	VAlign      string // w:vAlign w:val: "top"|"center"|"bottom"
+	ShadingFill string // w:shd w:fill (background colour hex)
+	Width       string // w:tcW w:w
+	WidthType   string // w:tcW w:type: "dxa"|"pct"|"auto"
 }
 
 // parseParagraphs extracts all top-level w:p elements from document.xml.
@@ -439,6 +452,25 @@ func parseParagraphProperties(decoder *xml.Decoder, p *parsedParagraph) {
 				}
 			case "keepNext":
 				p.KeepNext = true
+			case "contextualSpacing":
+				p.ContextualSpacing = true
+			case "jc":
+				for _, a := range t.Attr {
+					if a.Name.Local == "val" {
+						p.Alignment = a.Value
+					}
+				}
+			case "spacing":
+				for _, a := range t.Attr {
+					switch a.Name.Local {
+					case "before":
+						p.SpaceBefore = a.Value
+					case "after":
+						p.SpaceAfter = a.Value
+					case "line":
+						p.LineSpacing = a.Value
+					}
+				}
 			case "ind":
 				for _, a := range t.Attr {
 					if a.Name.Local == "left" {
@@ -704,7 +736,11 @@ func parseTableCellElement(decoder *xml.Decoder) parsedTableCell {
 		switch t := token.(type) {
 		case xml.StartElement:
 			depth++
-			if t.Name.Local == "p" && t.Name.Space == nsMl {
+			switch {
+			case t.Name.Local == "tcPr" && t.Name.Space == nsMl:
+				parseTableCellProperties(decoder, &cell)
+				depth--
+			case t.Name.Local == "p" && t.Name.Space == nsMl:
 				p := parseParagraphElement(decoder)
 				cell.Paragraphs = append(cell.Paragraphs, p)
 				depth--
@@ -716,6 +752,60 @@ func parseTableCellElement(decoder *xml.Decoder) parsedTableCell {
 	return cell
 }
 
+// parseTableCellProperties extracts ECMA-376 §17.4 w:tcPr attributes into a parsedTableCell.
+func parseTableCellProperties(decoder *xml.Decoder, cell *parsedTableCell) {
+	depth := 1
+	for depth > 0 {
+		token, ok := nextToken(decoder)
+		if !ok {
+			break
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			depth++
+			switch t.Name.Local {
+			case "gridSpan":
+				for _, a := range t.Attr {
+					if a.Name.Local == "val" {
+						cell.GridSpan = a.Value
+					}
+				}
+			case "vMerge":
+				// w:vMerge with no val attribute means "continuation"; val="restart" starts a merge
+				cell.VMerge = "continuation" // default when element is present without val
+				for _, a := range t.Attr {
+					if a.Name.Local == "val" {
+						cell.VMerge = a.Value
+					}
+				}
+			case "vAlign":
+				for _, a := range t.Attr {
+					if a.Name.Local == "val" {
+						cell.VAlign = a.Value
+					}
+				}
+			case "shd":
+				for _, a := range t.Attr {
+					if a.Name.Local == "fill" {
+						cell.ShadingFill = a.Value
+					}
+				}
+			case "tcW":
+				for _, a := range t.Attr {
+					switch a.Name.Local {
+					case "w":
+						cell.Width = a.Value
+					case "type":
+						cell.WidthType = a.Value
+					}
+				}
+			}
+		case xml.EndElement:
+			depth--
+		}
+	}
+}
+
 // parseNumberingDefs parses numbering.xml to extract abstractNum definitions.
 type parsedNumberingDef struct {
 	AbstractID     string
@@ -725,12 +815,13 @@ type parsedNumberingDef struct {
 }
 
 type parsedNumberingLevel struct {
-	Level      string // w:ilvl
-	Format     string // w:numFmt val
-	Start      string // w:start val
-	LvlText    string // w:lvlText val
-	LvlRestart string // w:lvlRestart val (empty if not set)
-	Indent     string // w:ind w:left val (from w:pPr)
+	Level         string // w:ilvl
+	Format        string // w:numFmt val
+	Start         string // w:start val (from abstractNum)
+	StartOverride string // w:startOverride val (from w:num/w:lvlOverride — ECMA-376 §17.9.7)
+	LvlText       string // w:lvlText val
+	LvlRestart    string // w:lvlRestart val (empty if not set)
+	Indent        string // w:ind w:left val (from w:pPr)
 }
 
 func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
@@ -771,9 +862,17 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 	type xmlAbstractNumIDRef struct {
 		Val string `xml:"val,attr"`
 	}
+	type xmlStartOverride struct {
+		Val string `xml:"val,attr"`
+	}
+	type xmlLvlOverride struct {
+		Ilvl          string            `xml:"ilvl,attr"`
+		StartOverride *xmlStartOverride `xml:"startOverride"`
+	}
 	type xmlNum struct {
-		NumID       string              `xml:"numId,attr"`
-		AbstractRef xmlAbstractNumIDRef `xml:"abstractNumId"`
+		NumID        string              `xml:"numId,attr"`
+		AbstractRef  xmlAbstractNumIDRef `xml:"abstractNumId"`
+		LvlOverrides []xmlLvlOverride    `xml:"lvlOverride"`
 	}
 	type xmlNumbering struct {
 		AbstractNums []xmlAbstractNum `xml:"abstractNum"`
@@ -819,11 +918,26 @@ func (d renderedDocx) parseNumberingDefs() []parsedNumberingDef {
 	var result []parsedNumberingDef
 	for _, num := range numbering.Nums {
 		info := absMap[num.AbstractRef.Val]
+		// Copy levels so we can apply per-num overrides without mutating the absMap entry.
+		levels := make([]parsedNumberingLevel, len(info.levels))
+		copy(levels, info.levels)
+		// Apply w:lvlOverride/w:startOverride (ECMA-376 §17.9.7) from this w:num instance.
+		for _, override := range num.LvlOverrides {
+			if override.StartOverride == nil {
+				continue
+			}
+			for i := range levels {
+				if levels[i].Level == override.Ilvl {
+					levels[i].StartOverride = override.StartOverride.Val
+					break
+				}
+			}
+		}
 		def := parsedNumberingDef{
 			NumID:          num.NumID,
 			AbstractID:     num.AbstractRef.Val,
 			MultiLevelType: info.multiLevelType,
-			Levels:         info.levels,
+			Levels:         levels,
 		}
 		result = append(result, def)
 	}
