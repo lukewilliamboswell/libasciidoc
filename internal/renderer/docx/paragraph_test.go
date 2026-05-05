@@ -153,4 +153,124 @@ second paragraph`)
 		Expect(p.Runs[1].Text).To(ContainSubstring("bold"))
 		Expect(p.Runs[2].Bold).To(BeFalse())
 	})
+
+	Describe("OOXML hygiene: empty <w:br/>-only paragraphs", func() {
+		// A paragraph whose inline elements collapse to line breaks plus empty
+		// text (e.g. stacked `{empty} +` whitespace lines used in the MSA
+		// signature blocks, or stray hard breaks at the head/tail of an
+		// otherwise empty paragraph) must render as a clean empty `<w:p></w:p>`
+		// rather than `<w:p><w:r><w:br/></w:r>...</w:p>`. A hard line break
+		// inside prose (`text +\nmore`) must still emit `<w:r><w:br/></w:r>`
+		// between the surrounding text runs.
+
+		// nonBreakText returns the paragraph text with `\n` chars stripped —
+		// `<w:br/>` runs are surfaced by parseRunElement as "\n", but for this
+		// hygiene check we want only the actual `<w:t>` content.
+		nonBreakText := func(p parsedParagraph) string {
+			t := p.text()
+			return strings.ReplaceAll(t, "\n", "")
+		}
+
+		expectNoEmptyBreakOnlyParagraph := func(doc renderedDocx) {
+			for _, p := range doc.parseParagraphs() {
+				if nonBreakText(p) != "" {
+					continue
+				}
+				if len(p.Bookmarks) > 0 {
+					continue
+				}
+				hasBreakRun := false
+				hasDrawing := false
+				hasFootnoteRef := false
+				for _, r := range p.Runs {
+					if strings.Contains(r.Text, "\n") {
+						hasBreakRun = true
+					}
+					if r.HasDrawing {
+						hasDrawing = true
+					}
+					if r.FootnoteRef {
+						hasFootnoteRef = true
+					}
+				}
+				if hasDrawing || hasFootnoteRef {
+					continue
+				}
+				Expect(hasBreakRun).To(BeFalse(),
+					"found an empty paragraph containing only <w:br/> runs — collapse-to-line-breaks paragraphs must render as empty <w:p></w:p>")
+			}
+		}
+
+		It("should not emit empty <w:br/>-only paragraphs for a list with continuation across two blocks", func() {
+			doc := renderDocx(`. First item with prose
++
+[loweralpha]
+.. nested item
++
+some continuation prose
+
+. Second item`)
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+
+		It("should preserve a hard line break inside prose as a w:br within a single paragraph", func() {
+			doc := renderDocx("first +\nsecond")
+
+			p := doc.findParagraph("first")
+			Expect(p).ToNot(BeNil())
+			Expect(p.text()).To(ContainSubstring("first"))
+			Expect(p.text()).To(ContainSubstring("second"))
+			hasBreak := false
+			for _, r := range p.Runs {
+				if strings.Contains(r.Text, "\n") {
+					hasBreak = true
+				}
+			}
+			Expect(hasBreak).To(BeTrue(), "hard line break in prose must still emit <w:br/> between runs")
+		})
+
+		It("should not emit empty <w:br/> paragraphs when a list item has a nested-list continuation", func() {
+			doc := renderDocx(`. parent item
++
+.. nested item
+
+. next parent`)
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+
+		It("should not emit empty <w:br/> paragraphs when a list item has a code-block continuation", func() {
+			doc := renderDocx(". item\n+\n----\ncode line\n----\n\n. next item")
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+
+		It("should not emit empty <w:br/> paragraphs across multi-block continuations on a single item", func() {
+			doc := renderDocx(`. parent item
++
+first continuation paragraph
++
+second continuation paragraph
+
+. next parent`)
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+
+		It("should not emit empty <w:br/> paragraphs when a list item has a blockquote continuation", func() {
+			doc := renderDocx(". item\n+\n____\nquoted prose\n____\n\n. next")
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+
+		It("should not emit an empty paragraph for stacked `{empty} +` whitespace lines", func() {
+			// MSA signature blocks use `{empty} +` lines to inject vertical
+			// whitespace; the resulting paragraph elements collapse to nothing
+			// but a sequence of LineBreak inline nodes. The renderer must not
+			// emit a `<w:p>` consisting solely of `<w:br/>` runs.
+			doc := renderDocx(`Before signature.
+
+{empty} +
+{empty} +
+
+After signature.`)
+			expectNoEmptyBreakOnlyParagraph(doc)
+		})
+	})
 })

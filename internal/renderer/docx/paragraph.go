@@ -27,15 +27,44 @@ func (r *docxRenderer) renderParagraph(p *types.Paragraph) error {
 }
 
 func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
+	// Inline elements that resolve to nothing but line breaks (e.g. `{empty} +`
+	// stacks used for vertical whitespace, or stray hard breaks at the head or
+	// tail of a paragraph) would otherwise emit a `<w:p>` containing only
+	// `<w:r><w:br/></w:r>` runs — valid OOXML but ugly hygiene that adds
+	// surprise vertical extent in Word. Render them as a single empty paragraph
+	// so the paragraph break is preserved without the bare break runs.
+	blank, err := r.paragraphIsBlankModuloLineBreaks(p)
+	if err != nil {
+		return err
+	}
 	para := r.startParagraph(paragraphOptions{indentLeft: r.effectiveBodyIndent()})
 	if err := r.renderCheckPrefix(para, p); err != nil {
 		return err
 	}
-	if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {
-		return err
+	if !blank {
+		if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {
+			return err
+		}
 	}
 	r.endParagraph(para)
 	return nil
+}
+
+// paragraphIsBlankModuloLineBreaks reports whether the paragraph's inline
+// elements collapse to nothing more than line breaks and empty-text runs.
+// Used to suppress emission of `<w:r><w:br/></w:r>`-only paragraphs.
+func (r *docxRenderer) paragraphIsBlankModuloLineBreaks(p *types.Paragraph) (bool, error) {
+	if len(p.Elements) == 0 {
+		return false, nil
+	}
+	if p.Attributes[types.AttrCheckStyle] != nil {
+		return false, nil
+	}
+	text, err := r.renderPlainText(p.Elements)
+	if err != nil {
+		return false, err
+	}
+	return strings.ReplaceAll(text, "\n", "") == "", nil
 }
 
 func (r *docxRenderer) renderRoleParagraph(p *types.Paragraph, styleID string) error {
