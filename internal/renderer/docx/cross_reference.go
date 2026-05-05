@@ -63,6 +63,24 @@ func (r *docxRenderer) resolveElementReferenceID(id string) string {
 	return id
 }
 
+// lookupElementReference returns the registered display text for an
+// element reference id (e.g. a section title for a section anchor),
+// matching case-insensitively to mirror resolveElementReferenceID.
+func (r *docxRenderer) lookupElementReference(id string) (interface{}, bool) {
+	if id == "" {
+		return nil, false
+	}
+	if v, found := r.ctx.elementReferences[id]; found {
+		return v, true
+	}
+	for k, v := range r.ctx.elementReferences {
+		if strings.EqualFold(k, id) {
+			return v, true
+		}
+	}
+	return nil, false
+}
+
 func (r *docxRenderer) renderFootnoteRef(para *paragraphBuilder, ref *types.FootnoteReference, style runStyle) error {
 	if ref.ID == types.InvalidFootnoteReference {
 		r.writeTextRun(para, "[missing footnote: "+ref.Ref+"]", style)

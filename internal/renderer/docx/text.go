@@ -3,6 +3,7 @@ package docx
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -107,6 +108,14 @@ func (r *docxRenderer) renderInternalCrossRefPlainText(e *types.InternalCrossRef
 func (r *docxRenderer) renderExternalCrossRefPlainText(e *types.ExternalCrossReference) (string, error) {
 	if label, ok := e.Attributes[types.AttrXRefLabel]; ok {
 		return r.renderPlainText(label)
+	}
+	if e.Location != nil {
+		loc := e.Location.ToDisplayString()
+		if filepath.Ext(loc) == "" {
+			if title, found := r.lookupElementReference(loc); found {
+				return r.renderPlainText(title)
+			}
+		}
 	}
 	return defaultCrossReferenceLabel(e), nil
 }

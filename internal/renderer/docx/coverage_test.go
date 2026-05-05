@@ -378,6 +378,28 @@ var _ = Describe("renderLabelInline edge cases", func() {
 		Expect(doc.text()).ToNot(BeEmpty())
 	})
 
+	It("should render xref:anchor[] with empty brackets using the section title", func() {
+		// xref:clause-7[] should resolve to the linked heading's title,
+		// not the literal "[clause-7]" form produced by defaultCrossReferenceLabel.
+		doc := renderDocx(`= Document
+
+[[clause-7]]
+== Change Control Procedure
+
+See xref:clause-7[].`)
+
+		refPara := doc.findParagraph("See")
+		Expect(refPara).ToNot(BeNil())
+		Expect(refPara.Links).ToNot(BeEmpty())
+
+		linkText := ""
+		for _, r := range refPara.Links[0].Runs {
+			linkText += r.Text
+		}
+		Expect(linkText).To(Equal("Change Control Procedure"))
+		Expect(linkText).ToNot(ContainSubstring("["))
+	})
+
 	It("should render external xref with .adoc extension as .html target", func() {
 		// crossReferenceLocation: .adoc extension → target.html
 		doc := renderDocx(`xref:other.adoc[See Other]`)

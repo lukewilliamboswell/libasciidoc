@@ -24,12 +24,20 @@ func (r *docxRenderer) renderLink(para *paragraphBuilder, l *types.InlineLink) e
 
 func (r *docxRenderer) renderExternalCrossReference(para *paragraphBuilder, xref *types.ExternalCrossReference, style runStyle) error {
 	label := xref.Attributes[types.AttrXRefLabel]
-	if label == nil {
-		label = defaultCrossReferenceLabel(xref)
-	}
 	target := crossReferenceLocation(xref)
 	if strings.HasPrefix(target, "#") {
-		return r.renderInternalHyperlink(para, strings.TrimPrefix(target, "#"), label, style)
+		anchor := strings.TrimPrefix(target, "#")
+		if label == nil {
+			if title, found := r.lookupElementReference(anchor); found {
+				label = title
+			} else {
+				label = defaultCrossReferenceLabel(xref)
+			}
+		}
+		return r.renderInternalHyperlink(para, anchor, label, style)
+	}
+	if label == nil {
+		label = defaultCrossReferenceLabel(xref)
 	}
 	return r.renderExternalHyperlink(para, target, label, style)
 }
