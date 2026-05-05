@@ -3,6 +3,7 @@ package docx
 import (
 	"math"
 	"strconv"
+	"strings"
 )
 
 // DocxTheme holds styling properties for DOCX rendering.
@@ -26,6 +27,7 @@ type DocxTheme struct {
 	DescriptionList DescriptionListTheme
 	RunningHeader   RunningHFTheme
 	RunningFooter   RunningHFTheme
+	Roles           RoleThemes
 }
 
 // PageTheme controls page dimensions and margins.
@@ -171,13 +173,15 @@ type QuoteTheme struct {
 
 // AdmonitionTheme controls tip/note/warning/caution/important styling.
 type AdmonitionTheme struct {
-	FontColor       string
-	FontSize        float64
-	BackgroundColor string
-	BorderColor     string
-	BorderWidth     float64
-	LabelFontStyle  string // "bold", "italic", "bold_italic"
-	LabelFontColor  string
+	FontColor          string
+	FontSize           float64
+	BackgroundColor    string
+	BorderColor        string
+	BorderWidth        float64
+	LabelFontStyle     string  // "bold", "italic", "bold_italic"
+	LabelFontColor     string
+	LabelFontSize      float64 // in pt; 0 means inherit body size
+	LabelTextTransform string  // "uppercase" | "" (only "uppercase" is honoured)
 }
 
 // SidebarTheme controls sidebar block styling.
@@ -217,12 +221,56 @@ type DescriptionListTheme struct {
 
 // RunningHFTheme controls running header or footer content.
 type RunningHFTheme struct {
-	Content    string  // template string, e.g. "{page-number}" or custom text
+	Content    string  // legacy flat template string, used when no per-position content set
 	FontSize   float64 // in pt
 	FontColor  string
 	FontFamily string
 	FontStyle  string  // "bold", "italic", "bold_italic"
 	Height     float64 // in mm (defaults from page margin header/footer distance)
+	Recto      RunningHFSide
+	Verso      RunningHFSide
+}
+
+// RunningHFSide holds the three positional slots for one side of a running
+// header or footer (recto = odd / right-hand pages, verso = even / left-hand).
+type RunningHFSide struct {
+	Left   RunningHFSlot
+	Center RunningHFSlot
+	Right  RunningHFSlot
+}
+
+// IsSet reports whether any position on this side carries content.
+func (s RunningHFSide) IsSet() bool {
+	return s.Left.IsSet() || s.Center.IsSet() || s.Right.IsSet()
+}
+
+// RunningHFSlot represents a single positional content cell. Modeled as a
+// struct with an explicit set bit so that "absent" is distinct from "present
+// but empty" — important because applying a partial side over defaults must
+// not silently clear earlier content.
+type RunningHFSlot struct {
+	text string
+	set  bool
+}
+
+// NewRunningHFSlot constructs a slot with the given text marked as present.
+func NewRunningHFSlot(text string) RunningHFSlot { return RunningHFSlot{text: text, set: true} }
+
+// Text returns the slot's template string.
+func (s RunningHFSlot) Text() string { return s.text }
+
+// IsSet reports whether the slot was supplied in the source theme.
+func (s RunningHFSlot) IsSet() bool { return s.set }
+
+// HasPositions reports whether any per-position slot on either side is set.
+func (t RunningHFTheme) HasPositions() bool {
+	return t.Recto.IsSet() || t.Verso.IsSet()
+}
+
+// IsActive reports whether the running region should be emitted at all —
+// either the legacy flat content or any per-position slot is present.
+func (t RunningHFTheme) IsActive() bool {
+	return t.Content != "" || t.HasPositions()
 }
 
 // DefaultTheme returns a theme matching the previously hardcoded values,
@@ -282,6 +330,7 @@ func DefaultTheme() *DocxTheme {
 		DescriptionList: DescriptionListTheme{
 			TermFontStyle: "bold",
 		},
+		Roles: NewRoleThemes(),
 	}
 }
 
@@ -512,4 +561,137 @@ func fontStyleBoldItalic(style string) (bold, italic bool) {
 	bold = style == "bold" || style == "bold_italic"
 	italic = style == "italic" || style == "bold_italic"
 	return bold, italic
+}
+
+// RoleTheme is a normalised, validated set of paragraph-style overrides that
+// apply when an AsciiDoc block carries the matching role attribute. Fields
+// use IsSet-bearing types so that "absent" is distinct from an explicit zero.
+type RoleTheme struct {
+	Name            string // canonical (lower-case) role name
+	StyleID         string // OOXML style id (e.g. "RolePlaceholder")
+	StyleName       string // OOXML style display name
+	FontFamily      string
+	FontColor       string  // 6-hex RRGGBB; empty means inherit
+	FontSize        float64 // pt; 0 means inherit
+	FontStyle       string  // "bold" | "italic" | "bold_italic" | "normal" | ""
+	BackgroundColor string  // 6-hex RRGGBB shading; empty means none
+	BorderColor     string
+	BorderWidth     float64 // pt
+	PaddingTop      float64 // pt -> w:spacing/before
+	PaddingRight    float64 // pt -> w:ind/right
+	PaddingBottom   float64 // pt -> w:spacing/after
+	PaddingLeft     float64 // pt -> w:ind/left
+	MarginTop       float64 // pt; merges with PaddingTop additively at emission
+	MarginBottom    float64 // pt; merges with PaddingBottom additively at emission
+	TextAlign       string
+	TextTransform   string // "uppercase" | "lowercase" | "" (none)
+}
+
+// RoleThemes is an ordered, case-insensitively-keyed collection of RoleTheme
+// entries. The order is the order roles appear in the source YAML so that
+// styles.xml emission is deterministic.
+type RoleThemes struct {
+	order   []string // canonical names in insertion order
+	byName  map[string]RoleTheme
+}
+
+// NewRoleThemes returns an empty, ready-to-populate RoleThemes.
+func NewRoleThemes() RoleThemes {
+	return RoleThemes{byName: map[string]RoleTheme{}}
+}
+
+// canonicaliseRoleName lower-cases the role name; AsciiDoc role names are
+// conventionally lower-kebab-case and `[.Foo]` is treated as the same role
+// as `[.foo]`. Hyphens and underscores are preserved as written.
+func canonicaliseRoleName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+// Set inserts or replaces a role definition. The role's Name field is
+// canonicalised; StyleID / StyleName are derived if empty.
+func (r *RoleThemes) Set(role RoleTheme) {
+	if r.byName == nil {
+		r.byName = map[string]RoleTheme{}
+	}
+	canon := canonicaliseRoleName(role.Name)
+	if canon == "" {
+		return
+	}
+	role.Name = canon
+	if role.StyleID == "" {
+		role.StyleID = roleStyleID(canon)
+	}
+	if role.StyleName == "" {
+		role.StyleName = "Role " + canon
+	}
+	if _, exists := r.byName[canon]; !exists {
+		r.order = append(r.order, canon)
+	}
+	r.byName[canon] = role
+}
+
+// Get looks up a role by name (case-insensitive). Returns the resolved role
+// and true if defined.
+func (r RoleThemes) Get(name string) (RoleTheme, bool) {
+	if r.byName == nil {
+		return RoleTheme{}, false
+	}
+	role, ok := r.byName[canonicaliseRoleName(name)]
+	return role, ok
+}
+
+// Each iterates roles in insertion order (deterministic for emission).
+func (r RoleThemes) Each(fn func(RoleTheme)) {
+	for _, name := range r.order {
+		fn(r.byName[name])
+	}
+}
+
+// Len reports the number of roles defined.
+func (r RoleThemes) Len() int { return len(r.order) }
+
+// FirstDefined returns the first role from the candidate slice that has a
+// matching definition. Used to implement "multiple roles, first wins" when
+// a block carries `[.foo.bar]` — we keep AsciiDoc's source order.
+func (r RoleThemes) FirstDefined(candidates []string) (RoleTheme, bool) {
+	for _, c := range candidates {
+		if role, ok := r.Get(c); ok {
+			return role, true
+		}
+	}
+	return RoleTheme{}, false
+}
+
+// roleStyleID builds the OOXML style id from a canonicalised role name.
+// Scheme: "Role" + UpperCamelCase(name) with non-alphanumerics treated as
+// word separators. `placeholder` -> `RolePlaceholder`; `legal-note` ->
+// `RoleLegalNote`. Stable across invocations.
+func roleStyleID(canon string) string {
+	var b strings.Builder
+	b.WriteString("Role")
+	upper := true
+	for _, r := range canon {
+		switch {
+		case r >= 'a' && r <= 'z':
+			if upper {
+				b.WriteRune(r - 32)
+				upper = false
+			} else {
+				b.WriteRune(r)
+			}
+		case r >= 'A' && r <= 'Z':
+			if upper {
+				b.WriteRune(r)
+				upper = false
+			} else {
+				b.WriteRune(r + 32)
+			}
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+			upper = false
+		default:
+			upper = true
+		}
+	}
+	return b.String()
 }

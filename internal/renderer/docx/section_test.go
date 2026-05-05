@@ -93,6 +93,38 @@ Content in subsection.`)
 		Expect(h3.KeepNext).To(BeTrue())
 	})
 
+	It("should emit w:outlineLvl only on Heading1-Heading9 styles", func() {
+		// Regression: before the outlineLevel-typed fix, every paragraph
+		// style left the int-sentinel field at its zero value and emitted
+		// <w:outlineLvl w:val="0"/>, which made Word's Navigation Pane
+		// treat every paragraph as a Heading 1.
+		doc := renderDocx(`= Doc
+
+== H2`)
+
+		// Positive: Heading1..Heading9 each declare the matching level.
+		for i := 1; i <= 9; i++ {
+			id := "Heading" + string(rune('0'+i))
+			s := doc.findStyle(id)
+			Expect(s).ToNot(BeNil(), "%s style must be defined", id)
+			Expect(s.OutlineLevel).To(Equal(string(rune('0'+(i-1)))),
+				"%s must declare w:outlineLvl=%d", id, i-1)
+		}
+
+		// Negative: no other paragraph style carries an outline level.
+		bodyStyles := []string{
+			"Normal", "Title", "Subtitle", "Quote", "Admonition",
+			"Caption", "CodeBlock", "Sidebar", "Example", "ListParagraph",
+			"TOCEntry1", "TOCEntry2", "TOCEntry3", "FootnoteText",
+		}
+		for _, id := range bodyStyles {
+			s := doc.findStyle(id)
+			Expect(s).ToNot(BeNil(), "%s style must be defined", id)
+			Expect(s.OutlineLevel).To(BeEmpty(),
+				"%s must not declare w:outlineLvl (body paragraphs are not navigation entries)", id)
+		}
+	})
+
 	It("should deduplicate bookmark names when the same heading text appears multiple times", func() {
 		doc := renderDocx(`= Doc
 

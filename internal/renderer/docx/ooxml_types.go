@@ -163,6 +163,9 @@ type sectionProps struct {
 	marginTop, marginRight, marginBottom, marginLeft int // twips
 	headerRelID                                      string
 	footerRelID                                      string
+	headerEvenRelID                                  string
+	footerEvenRelID                                  string
+	titlePg                                          bool
 }
 
 func (sp sectionProps) xml(w *strings.Builder) {
@@ -172,9 +175,19 @@ func (sp sectionProps) xml(w *strings.Builder) {
 		w.WriteString(sp.headerRelID)
 		w.WriteString(`"/>`)
 	}
+	if sp.headerEvenRelID != "" {
+		w.WriteString(`<w:headerReference w:type="even" r:id="`)
+		w.WriteString(sp.headerEvenRelID)
+		w.WriteString(`"/>`)
+	}
 	if sp.footerRelID != "" {
 		w.WriteString(`<w:footerReference w:type="default" r:id="`)
 		w.WriteString(sp.footerRelID)
+		w.WriteString(`"/>`)
+	}
+	if sp.footerEvenRelID != "" {
+		w.WriteString(`<w:footerReference w:type="even" r:id="`)
+		w.WriteString(sp.footerEvenRelID)
 		w.WriteString(`"/>`)
 	}
 	w.WriteString(`<w:pgSz w:w="`)
@@ -191,6 +204,9 @@ func (sp sectionProps) xml(w *strings.Builder) {
 	w.WriteString(`" w:left="`)
 	w.WriteString(itoa(sp.marginLeft))
 	w.WriteString(`" w:header="709" w:footer="709" w:gutter="0"/>`)
+	if sp.titlePg {
+		w.WriteString(`<w:titlePg/>`)
+	}
 	w.WriteString(`</w:sectPr>`)
 }
 
@@ -236,28 +252,39 @@ type charStyle struct {
 	id        string
 	name      string
 	color     string
+	size      int // half-points; 0 = omit
 	bold      bool
 	italic    bool
+	caps      bool
 	underline bool
 	vertAlign string // "superscript", "subscript", or ""
 }
 
+// rPr child order follows ECMA-376 §17.3.2.28 CT_RPr: rFonts, b, i, caps, sz, color, u, vertAlign.
 func (cs charStyle) xml(w *strings.Builder) {
 	w.WriteString(`<w:style w:type="character" w:styleId="`)
 	w.WriteString(xmlAttr(cs.id))
 	w.WriteString(`"><w:name w:val="`)
 	w.WriteString(xmlAttr(cs.name))
 	w.WriteString(`"/><w:rPr>`)
-	if cs.color != "" {
-		w.WriteString(`<w:color w:val="`)
-		w.WriteString(xmlAttr(cs.color))
-		w.WriteString(`"/>`)
-	}
 	if cs.bold {
 		w.WriteString(`<w:b/>`)
 	}
 	if cs.italic {
 		w.WriteString(`<w:i/>`)
+	}
+	if cs.caps {
+		w.WriteString(`<w:caps/>`)
+	}
+	if cs.size > 0 {
+		w.WriteString(`<w:sz w:val="`)
+		w.WriteString(itoa(cs.size))
+		w.WriteString(`"/>`)
+	}
+	if cs.color != "" {
+		w.WriteString(`<w:color w:val="`)
+		w.WriteString(xmlAttr(cs.color))
+		w.WriteString(`"/>`)
 	}
 	if cs.underline {
 		w.WriteString(`<w:u w:val="single"/>`)

@@ -1126,8 +1126,231 @@ base:
 			_, err := testsupportRenderDOCXWithTheme(`Hello`, themePath)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("should fail with an undefined theme variable", func() {
+			_, err := testsupportRenderDOCXWithThemeYAML(`
+base:
+  font_size: $never_defined
+`)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("undefined theme variable"))
+		})
+
+		It("should fail with a malformed length", func() {
+			_, err := testsupportRenderDOCXWithThemeYAML(`
+footer:
+  height: 16furlongs
+`)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid length"))
+		})
+	})
+
+	Context("length values with unit suffixes", func() {
+
+		It("should accept mm-suffixed footer height", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+footer:
+  height: 16mm
+`)
+			// Smoke test — successful render means the unit parsed without error.
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+
+		It("should accept in-suffixed footer height", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+footer:
+  height: 0.5in
+`)
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+
+		It("should accept pt-suffixed footer height", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+footer:
+  height: 36pt
+`)
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+
+		It("should accept a bare number as points", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+footer:
+  height: 36
+`)
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+	})
+
+	Context("variable interpolation and arithmetic", func() {
+
+		It("should resolve a single $variable reference to another scalar", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+base:
+  font_color: "#3A3A3A"
+heading:
+  font_color: $base_font_color
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Color).To(Equal("3A3A3A"))
+		})
+
+		It("should evaluate a division expression with two $variable operands", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+base:
+  line_height_length: 17.5
+  font_size: 11
+  line_height: $base_line_height_length / $base_font_size
+`)
+			// Successful render means $base_line_height_length / $base_font_size
+			// reached the LineHeight field as a numeric value, not a string.
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+
+		It("should respect operator precedence in nested arithmetic", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+base:
+  font_size: 12
+heading:
+  h1:
+    font_size: $base_font_size + 2 * 3
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			// 12 + 2*3 = 18 → 36 half-points
+			Expect(h1.Size).To(Equal("36"))
+		})
+
+		It("should resolve chained references to a fixed point", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+base:
+  font_size: 11
+table:
+  font_size: $base_font_size
+caption:
+  font_size: $table_font_size
+`)
+			// Successful parse means the chain resolved.
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+
+		It("should accept unit-suffixed font size and convert to pt", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  h1:
+    font_size: 18pt
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Size).To(Equal("36")) // 18pt = 36 half-points
+		})
+
+		It("should accept inch-suffixed font size and convert to pt", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  h1:
+    font_size: 0.25in
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Size).To(Equal("36")) // 0.25in = 18pt = 36 half-points
+		})
+
+		It("should accept mm-suffixed border width", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+table:
+  border_width: 1mm
+`)
+			// Smoke test — successful render means the unit parsed.
+			Expect(doc.findStyle("Normal")).ToNot(BeNil())
+		})
+	})
+
+	Context("hex colour normalisation", func() {
+
+		It("should strip a leading '#' from a colour value", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  font_color: "#1A2B3C"
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Color).To(Equal("1A2B3C"))
+		})
+
+		It("should accept bare 6-hex colour values unchanged", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  font_color: "1A2B3C"
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Color).To(Equal("1A2B3C"))
+		})
+
+		It("should upper-case lower-case hex values for diff stability", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  font_color: "#abcdef"
+`)
+			h1 := doc.findStyle("Heading1")
+			Expect(h1).ToNot(BeNil())
+			Expect(h1.Color).To(Equal("ABCDEF"))
+		})
+
+		It("should accept the literal 'auto' colour", func() {
+			doc := renderDocxWithTheme(`|===
+| A | B
+|===`, `
+table:
+  border_color: auto
+  border_width: 1
+`)
+			docXML := doc.documentXML()
+			Expect(docXML).To(ContainSubstring(`w:color="auto"`))
+		})
+
+		It("should reject named colours like 'maroon'", func() {
+			_, err := testsupportRenderDOCXWithThemeYAML(`
+base:
+  font_color: maroon
+`)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid colour"))
+		})
+
+		It("should reject short-form '#abc' hex", func() {
+			_, err := testsupportRenderDOCXWithThemeYAML(`
+base:
+  font_color: "#abc"
+`)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid colour"))
+		})
+
+		It("should emit bare hex (no '#') in styles.xml", func() {
+			doc := renderDocxWithTheme(`Hello`, `
+heading:
+  font_color: "#1A2B3C"
+`)
+			styles := string(doc.files["word/styles.xml"])
+			Expect(styles).To(ContainSubstring(`w:val="1A2B3C"`))
+			Expect(styles).ToNot(ContainSubstring(`w:val="#`))
+		})
 	})
 })
+
+// testsupportRenderDOCXWithThemeYAML writes the YAML to a temp file and
+// returns the raw render result so the test can inspect any error.
+func testsupportRenderDOCXWithThemeYAML(themeYAML string) ([]byte, error) {
+	tmpDir := GinkgoT().TempDir()
+	themePath := tmpDir + "/test-theme.yml"
+	if err := os.WriteFile(themePath, []byte(strings.TrimSpace(themeYAML)), 0644); err != nil {
+		return nil, err
+	}
+	return testsupport.RenderDOCX(`Hello`, configuration.WithThemePath(themePath))
+}
 
 // renderDocxWithTheme renders AsciiDoc source with an inline theme YAML.
 func renderDocxWithTheme(source, themeYAML string) renderedDocx {

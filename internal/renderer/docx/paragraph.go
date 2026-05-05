@@ -9,6 +9,13 @@ import (
 func (r *docxRenderer) renderParagraph(p *types.Paragraph) error {
 	style, _ := p.Attributes.GetAsString(types.AttrStyle)
 
+	// Theme-defined block roles take precedence over the inherent style so an
+	// author who applies `[.placeholder]` to e.g. a quote gets the placeholder
+	// styling. Undefined roles fall through to the inherent style.
+	if roleStyle, ok := r.resolveRoleStyleID(p.Attributes); ok {
+		return r.renderRoleParagraph(p, roleStyle)
+	}
+
 	switch style {
 	case types.Tip, types.Note, types.Important, types.Warning, types.Caution:
 		return r.renderAdmonitionParagraph(p, style)
@@ -29,6 +36,63 @@ func (r *docxRenderer) renderRegularParagraph(p *types.Paragraph) error {
 	}
 	r.endParagraph(para)
 	return nil
+}
+
+func (r *docxRenderer) renderRoleParagraph(p *types.Paragraph, styleID string) error {
+	para := r.startParagraph(paragraphOptions{style: styleID, indentLeft: r.effectiveBodyIndent()})
+	if err := r.renderCheckPrefix(para, p); err != nil {
+		return err
+	}
+	if err := r.renderInlineElements(para, p.Elements, runStyle{}); err != nil {
+		return err
+	}
+	r.endParagraph(para)
+	return nil
+}
+
+// resolveRoleStyleID looks at the block's roles in source order and returns
+// the OOXML style id of the first role that has a matching theme entry.
+// Roles undefined in the theme are silently skipped (AsciiDoc allows
+// arbitrary role names).
+func (r *docxRenderer) resolveRoleStyleID(attrs types.Attributes) (string, bool) {
+	names := blockRoleNames(attrs)
+	if len(names) == 0 {
+		return "", false
+	}
+	role, ok := r.ctx.theme.Roles.FirstDefined(names)
+	if !ok {
+		return "", false
+	}
+	return role.StyleID, true
+}
+
+// blockRoleNames returns the role names attached to a block, in source order.
+// Returns nil if no roles are present.
+func blockRoleNames(attrs types.Attributes) []string {
+	raw, ok := attrs[types.AttrRoles]
+	if !ok {
+		return nil
+	}
+	var out []string
+	switch v := raw.(type) {
+	case types.Roles:
+		for _, r := range v {
+			if s, ok := r.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+	case []interface{}:
+		for _, r := range v {
+			if s, ok := r.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+	case string:
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 func (r *docxRenderer) renderCodeParagraph(p *types.Paragraph) error {
@@ -127,7 +191,12 @@ func (r *docxRenderer) renderAdmonitionBlock(b *types.DelimitedBlock, kind strin
 func (r *docxRenderer) admonitionLabelStyle() runStyle {
 	adm := r.ctx.theme.Admonition
 	bold, italic := fontStyleBoldItalic(adm.LabelFontStyle)
-	return runStyle{bold: bold, italic: italic, color: adm.LabelFontColor}
+	return runStyle{
+		charStyle: "AdmonitionLabel",
+		bold:      bold,
+		italic:    italic,
+		color:     adm.LabelFontColor,
+	}
 }
 
 func isAdmonitionStyle(style string) bool {

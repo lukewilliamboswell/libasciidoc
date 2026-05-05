@@ -107,29 +107,18 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 
 	cols, _ := t.Columns()
 	textWidth := r.doc.textWidthTwips()
-	var colWidths []int
-	if len(cols) > 0 && len(cols) == colCount {
-		totalWeight := 0
-		for _, c := range cols {
-			totalWeight += c.Weight
-		}
-		if totalWeight <= 0 {
-			totalWeight = len(cols)
-		}
-		for _, c := range cols {
-			w := c.Weight * textWidth / totalWeight
-			if w <= 0 {
-				w = textWidth / len(cols)
-			}
-			colWidths = append(colWidths, w)
+	weights := make([]int, colCount)
+	useWeights := len(cols) > 0 && len(cols) == colCount
+	if useWeights {
+		for i, c := range cols {
+			weights[i] = c.Weight
 		}
 	} else {
-		colW := textWidth / colCount
-		colWidths = make([]int, colCount)
-		for i := range colWidths {
-			colWidths[i] = colW
+		for i := range weights {
+			weights[i] = 1
 		}
 	}
+	colWidths := distributeWidths(textWidth, weights)
 
 	r.writer.WriteString("<w:tbl>")
 	props.xml(r.writer)
@@ -138,7 +127,7 @@ func (r *docxRenderer) renderTable(t *types.Table) error {
 	for i, row := range rows {
 		bold, italic, bgColor := r.tableRowStyle(t, theme, i, len(rows))
 		isHeader := t.Header != nil && i == 0
-		if err := r.renderTableRow(row, colCount, bold, italic, bgColor, isHeader, vmerge); err != nil {
+		if err := r.renderTableRow(row, colCount, bold, italic, bgColor, isHeader, vmerge, colWidths); err != nil {
 			return err
 		}
 	}
@@ -187,7 +176,7 @@ func (r *docxRenderer) tableRowStyle(t *types.Table, theme TableTheme, i int, to
 	return
 }
 
-func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string, isHeader bool, vmerge []int) error {
+func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, italic bool, bgColor string, isHeader bool, vmerge []int, colWidths []int) error {
 	r.writer.WriteString("<w:tr>")
 	if isHeader {
 		r.writer.WriteString(`<w:trPr><w:tblHeader/></w:trPr>`)
@@ -197,7 +186,7 @@ func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, i
 		if vmerge[col] > 0 {
 			// Emit vertical merge continuation cell.
 			r.writer.WriteString(`<w:tc>`)
-			tableCellProps{widthW: "0", widthWType: "auto", bgColor: bgColor, vMerge: "continue"}.xml(r.writer)
+			tableCellProps{widthW: strconv.Itoa(colWidths[col]), widthWType: "dxa", bgColor: bgColor, vMerge: "continue"}.xml(r.writer)
 			r.writer.WriteString(`<w:p/></w:tc>`)
 			vmerge[col]--
 			continue
@@ -214,7 +203,15 @@ func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, i
 		if cf.RowSpan > 1 {
 			vmerge[col] = cf.RowSpan - 1
 		}
-		if err := r.renderTableCell(cell, bold, italic, bgColor, cf); err != nil {
+		cellW := 0
+		spanEnd := col + cf.ColSpan
+		if spanEnd > colCount {
+			spanEnd = colCount
+		}
+		for c := col; c < spanEnd; c++ {
+			cellW += colWidths[c]
+		}
+		if err := r.renderTableCell(cell, bold, italic, bgColor, cf, cellW); err != nil {
 			return err
 		}
 		// Skip columns consumed by a column span.
@@ -226,9 +223,9 @@ func (r *docxRenderer) renderTableRow(row *types.TableRow, colCount int, bold, i
 	return nil
 }
 
-func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool, bgColor string, cf cellFormat) error {
+func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool, bgColor string, cf cellFormat, cellWidth int) error {
 	r.writer.WriteString("<w:tc>")
-	tcp := tableCellProps{widthW: "0", widthWType: "auto", bgColor: bgColor}
+	tcp := tableCellProps{widthW: strconv.Itoa(cellWidth), widthWType: "dxa", bgColor: bgColor}
 	if cf.ColSpan > 1 {
 		tcp.gridSpan = cf.ColSpan
 	}
@@ -279,6 +276,40 @@ func (r *docxRenderer) renderTableCell(cell *types.TableCell, bold, italic bool,
 	}
 	r.writer.WriteString(`</w:tc>`)
 	return nil
+}
+
+// distributeWidths splits available twips across the given column weights.
+// The last column absorbs rounding so the totals match available exactly.
+func distributeWidths(available int, weights []int) []int {
+	n := len(weights)
+	widths := make([]int, n)
+	if n == 0 || available <= 0 {
+		return widths
+	}
+	total := 0
+	for _, w := range weights {
+		if w > 0 {
+			total += w
+		}
+	}
+	if total <= 0 {
+		total = n
+		for i := range weights {
+			weights[i] = 1
+		}
+	}
+	assigned := 0
+	for i := 0; i < n-1; i++ {
+		w := weights[i]
+		if w <= 0 {
+			w = 1
+		}
+		col := w * available / total
+		widths[i] = col
+		assigned += col
+	}
+	widths[n-1] = available - assigned
+	return widths
 }
 
 func tableRows(t *types.Table) []*types.TableRow {

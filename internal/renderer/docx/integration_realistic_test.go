@@ -411,8 +411,9 @@ See <<features,the comparison table>> for the detailed feature matrix.
 		total := widths[0] + widths[1] + widths[2] + widths[3]
 		Expect(total).To(BeNumerically(">", 0))
 
-		// Ratios: 2:1:1:3 → col0 = 2/7, col1 = col2 = 1/7, col3 = 3/7
-		// Allow ±2 twip rounding tolerance per column.
+		// Ratios: 2:1:1:3 → col0 = 2/7, col1 = col2 = 1/7, col3 = 3/7.
+		// First three columns floor-divide; last column absorbs the residual,
+		// so allow it a wider tolerance equal to the column count in twips.
 		unit := total / 7
 		Expect(widths[0]).To(BeNumerically("~", 2*unit, 2),
 			"first column (ratio 2) width should be ~2/7 of total")
@@ -420,8 +421,8 @@ See <<features,the comparison table>> for the detailed feature matrix.
 			"second column (ratio 1) width should be ~1/7 of total")
 		Expect(widths[2]).To(BeNumerically("~", unit, 2),
 			"third column (ratio 1) width should be ~1/7 of total")
-		Expect(widths[3]).To(BeNumerically("~", 3*unit, 2),
-			"fourth column (ratio 3) width should be ~3/7 of total")
+		Expect(widths[3]).To(BeNumerically("~", 3*unit, 6),
+			"fourth column (ratio 3) absorbs the rounding residual")
 	})
 
 	It("should render cross-references as internal hyperlinks anchored to section bookmarks", func() {

@@ -1,6 +1,8 @@
 package docx_test
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -270,8 +272,10 @@ a|
 		w0 := tables[0].GridColWidths[0]
 		w1 := tables[0].GridColWidths[1]
 		w2 := tables[0].GridColWidths[2]
-		Expect(w0).To(Equal(w1), "all columns should be equal width")
-		Expect(w1).To(Equal(w2), "all columns should be equal width")
+		// The last column absorbs the integer-division residual so the totals match.
+		Expect(w0).To(Equal(w1), "first two columns should be equal width")
+		Expect(w2).To(BeNumerically("~", w1, 3), "last column within rounding residual")
+		Expect(w0 + w1 + w2).To(Equal(9638), "total equals available content width (A4 - 2x20mm)")
 	})
 
 	It("should apply percentage width from theme", func() {
@@ -284,5 +288,137 @@ table:
 		docXML := doc.documentXML()
 		// 80% = 80 * 50 = 4000 fiftieths-of-a-percent
 		Expect(docXML).To(ContainSubstring(`w:tblW w:w="4000" w:type="pct"`))
+	})
+
+	Describe("column widths emitted as dxa twips", func() {
+		// A4 portrait: 11906 twips wide. Default 20mm margins on each side ≈ 1134 twips.
+		// Available content width = 11906 - 1134 - 1134 = 9638 twips.
+		const a4Available = 9638
+
+		It("emits two equal gridCols and matching tcW values when no cols= is given", func() {
+			doc := renderDocx(`|===
+| A | B
+| 1 | 2
+|===`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			t := tables[0]
+			Expect(t.GridColWidths).To(HaveLen(2))
+			Expect(t.GridColWidths[0]).To(Equal(a4Available / 2))
+			Expect(t.GridColWidths[0] + t.GridColWidths[1]).To(Equal(a4Available))
+			for _, row := range t.Rows {
+				Expect(row.Cells).To(HaveLen(2))
+				for i, cell := range row.Cells {
+					Expect(cell.WidthType).To(Equal("dxa"))
+					Expect(cell.Width).To(Equal(strconv.Itoa(t.GridColWidths[i])))
+				}
+			}
+		})
+
+		It("honours [cols=\"2,5\"] ratio across grid and cell widths", func() {
+			doc := renderDocx(`[cols="2,5"]
+|===
+| A | B
+| 1 | 2
+|===`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			t := tables[0]
+			Expect(t.GridColWidths).To(HaveLen(2))
+			Expect(t.GridColWidths[0]).To(Equal(2 * a4Available / 7))
+			Expect(t.GridColWidths[0] + t.GridColWidths[1]).To(Equal(a4Available))
+			ratio := float64(t.GridColWidths[1]) / float64(t.GridColWidths[0])
+			Expect(ratio).To(BeNumerically("~", 2.5, 0.01))
+			for _, row := range t.Rows {
+				Expect(row.Cells).To(HaveLen(2))
+				for i, cell := range row.Cells {
+					Expect(cell.WidthType).To(Equal("dxa"))
+					Expect(cell.Width).To(Equal(strconv.Itoa(t.GridColWidths[i])))
+				}
+			}
+		})
+
+		It("honours [cols=\"1,1,1\"] as three equal columns", func() {
+			doc := renderDocx(`[cols="1,1,1"]
+|===
+| A | B | C
+| 1 | 2 | 3
+|===`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			t := tables[0]
+			Expect(t.GridColWidths).To(HaveLen(3))
+			Expect(t.GridColWidths[0]).To(Equal(t.GridColWidths[1]))
+			Expect(t.GridColWidths[0] + t.GridColWidths[1] + t.GridColWidths[2]).To(Equal(a4Available))
+		})
+
+		It("recomputes widths against the theme page size (Letter)", func() {
+			// Letter portrait: 12240 twips. With default 20mm margins (1134 each), available = 12240 - 2268 = 9972.
+			doc := renderDocxWithTheme(`[cols="1,1"]
+|===
+| A | B
+|===`, `
+page:
+  size: Letter
+`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			t := tables[0]
+			Expect(t.GridColWidths).To(HaveLen(2))
+			letterAvailable := 12240 - 2*1134
+			Expect(t.GridColWidths[0] + t.GridColWidths[1]).To(Equal(letterAvailable))
+			Expect(t.GridColWidths[0]).To(Equal(letterAvailable / 2))
+		})
+
+		It("recomputes widths against the theme page size (A4 explicit)", func() {
+			doc := renderDocxWithTheme(`[cols="1,1"]
+|===
+| A | B
+|===`, `
+page:
+  size: A4
+`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			Expect(tables[0].GridColWidths[0] + tables[0].GridColWidths[1]).To(Equal(a4Available))
+		})
+
+		It("emits a dxa cell width spanning the merged columns when colspan is used", func() {
+			doc := renderDocx(`[cols="1,1,1"]
+|===
+| A | B | C
+2+| spans-two | last
+|===`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			t := tables[0]
+			Expect(t.GridColWidths).To(HaveLen(3))
+			Expect(t.Rows).To(HaveLen(2))
+
+			spanRow := t.Rows[1]
+			Expect(spanRow.Cells).To(HaveLen(2))
+			Expect(spanRow.Cells[0].GridSpan).To(Equal("2"))
+			Expect(spanRow.Cells[0].WidthType).To(Equal("dxa"))
+			expectedSpanned := t.GridColWidths[0] + t.GridColWidths[1]
+			Expect(spanRow.Cells[0].Width).To(Equal(strconv.Itoa(expectedSpanned)))
+			Expect(spanRow.Cells[1].Width).To(Equal(strconv.Itoa(t.GridColWidths[2])))
+		})
+
+		It("ensures the gridCol total exactly equals available content width", func() {
+			// [cols="2,3,5"] across 9638 twips: 2/10=1927, 3/10=2891, last absorbs residual.
+			doc := renderDocx(`[cols="2,3,5"]
+|===
+| A | B | C
+|===`)
+			tables := doc.parseTables()
+			Expect(tables).To(HaveLen(1))
+			widths := tables[0].GridColWidths
+			Expect(widths).To(HaveLen(3))
+			sum := 0
+			for _, w := range widths {
+				sum += w
+			}
+			Expect(sum).To(Equal(a4Available), "tblGrid widths must sum to available content width exactly")
+		})
 	})
 })

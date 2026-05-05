@@ -18,7 +18,6 @@ func Render(doc *types.Document, config *configuration.Configuration, output io.
 
 	d := newDocxDocument()
 	d.theme = ctx.theme
-	d.setupHeaderFooter()
 	r := &docxRenderer{
 		doc:    d,
 		ctx:    ctx,
@@ -115,12 +114,34 @@ bodyAttributes:
 		return metadata, fmt.Errorf("unable to render docx footnotes: %w", err)
 	}
 
+	// Header/footer parts are wired here, after attribute processing, so
+	// {revnumber}, {supplier-name}, etc. are interpolated against the final
+	// attribute set.
+	d.setupHeaderFooter(headerFooterAttributes(ctx.attributes))
+
 	// Write the document
 	if _, err := d.WriteTo(output); err != nil {
 		return metadata, fmt.Errorf("unable to write docx document: %w", err)
 	}
 
 	return metadata, nil
+}
+
+// headerFooterAttributes flattens the document attribute map into plain
+// strings for template interpolation in running headers and footers. Only
+// scalar values become substitution candidates; structured attribute values
+// have no useful printable representation in a one-line running region.
+func headerFooterAttributes(attrs types.Attributes) map[string]string {
+	out := make(map[string]string, len(attrs))
+	for name, value := range attrs {
+		switch v := value.(type) {
+		case string:
+			out[name] = v
+		case fmt.Stringer:
+			out[name] = v.String()
+		}
+	}
+	return out
 }
 
 func (r *docxRenderer) bodyElementsWithTableOfContents(doc *types.Document) ([]interface{}, error) {

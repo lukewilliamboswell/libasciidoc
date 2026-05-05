@@ -75,8 +75,13 @@ type docxDocument struct {
 	hasFootnotes     bool
 	hasHeader        bool
 	hasFooter        bool
+	hasHeaderEven    bool
+	hasFooterEven    bool
 	headerRelID      string
 	footerRelID      string
+	headerEvenRelID  string
+	footerEvenRelID  string
+	hfAttributes     map[string]string
 	theme            *DocxTheme
 	title            string         // document title for core properties
 	creators         string         // semicolon-joined author names
@@ -247,18 +252,46 @@ func (d *docxDocument) nextDrawingID() int {
 	return id
 }
 
-// setupHeaderFooter creates the header/footer parts if the theme defines them.
-func (d *docxDocument) setupHeaderFooter() {
-	if d.theme.RunningHeader.Content != "" {
+// setupHeaderFooter allocates rel-IDs and emission flags for header/footer
+// parts based on theme content. Per ECMA-376 §17.10.{2,3}, default-type parts
+// cover odd (recto) pages and even-type parts cover verso pages; emit only
+// what the theme actually provides so default users keep producing identical
+// output.
+//
+// Must run after document attributes are processed (so {revnumber}, etc., can
+// be interpolated) and before WriteTo emits the rels and content-types.
+func (d *docxDocument) setupHeaderFooter(attributes map[string]string) {
+	if attributes == nil {
+		attributes = map[string]string{}
+	}
+	d.hfAttributes = attributes
+	if d.theme.RunningHeader.IsActive() {
 		d.hasHeader = true
 		d.headerRelID = "rId" + strconv.Itoa(d.nextRelID)
 		d.nextRelID++
 	}
-	if d.theme.RunningFooter.Content != "" {
+	if d.theme.RunningFooter.IsActive() {
 		d.hasFooter = true
 		d.footerRelID = "rId" + strconv.Itoa(d.nextRelID)
 		d.nextRelID++
 	}
+	if d.theme.RunningHeader.Verso.IsSet() {
+		d.hasHeaderEven = true
+		d.headerEvenRelID = "rId" + strconv.Itoa(d.nextRelID)
+		d.nextRelID++
+	}
+	if d.theme.RunningFooter.Verso.IsSet() {
+		d.hasFooterEven = true
+		d.footerEvenRelID = "rId" + strconv.Itoa(d.nextRelID)
+		d.nextRelID++
+	}
+}
+
+// hasEvenHeaderFooter reports whether evenAndOddHeaders must be enabled in
+// settings.xml. Required when any even-type part is emitted; otherwise Word
+// applies default-type parts to all pages.
+func (d *docxDocument) hasEvenHeaderFooter() bool {
+	return d.hasHeaderEven || d.hasFooterEven
 }
 
 func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
@@ -275,7 +308,7 @@ func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
 		"word/document.xml":            d.documentXML(),
 		"word/styles.xml":              d.stylesXML(),
 		"word/numbering.xml":           d.numberingXML(),
-		"word/settings.xml":            settingsXML(),
+		"word/settings.xml":            d.settingsXML(),
 		"word/fontTable.xml":           d.fontTableXML(),
 		"word/_rels/document.xml.rels": d.documentRelsXML(),
 		"docProps/core.xml":            d.corePropertiesXML(),
@@ -285,10 +318,16 @@ func (d *docxDocument) WriteTo(output io.Writer) (int64, error) {
 		files["word/footnotes.xml"] = d.footnotesXML()
 	}
 	if d.hasHeader {
-		files["word/header1.xml"] = d.headerXML()
+		files["word/header1.xml"] = d.headerXML(d.theme.RunningHeader.Recto, true)
 	}
 	if d.hasFooter {
-		files["word/footer1.xml"] = d.footerXML()
+		files["word/footer1.xml"] = d.footerXML(d.theme.RunningFooter.Recto, true)
+	}
+	if d.hasHeaderEven {
+		files["word/header2.xml"] = d.headerXML(d.theme.RunningHeader.Verso, false)
+	}
+	if d.hasFooterEven {
+		files["word/footer2.xml"] = d.footerXML(d.theme.RunningFooter.Verso, false)
 	}
 
 	names := make([]string, 0, len(files))
@@ -360,6 +399,20 @@ func (d *docxDocument) documentRelsXML() string {
 		b.WriteString(relTypeFooter)
 		b.WriteString(`" Target="footer1.xml"/>`)
 	}
+	if d.hasHeaderEven {
+		b.WriteString(`<Relationship Id="`)
+		b.WriteString(d.headerEvenRelID)
+		b.WriteString(`" Type="`)
+		b.WriteString(relTypeHeader)
+		b.WriteString(`" Target="header2.xml"/>`)
+	}
+	if d.hasFooterEven {
+		b.WriteString(`<Relationship Id="`)
+		b.WriteString(d.footerEvenRelID)
+		b.WriteString(`" Type="`)
+		b.WriteString(relTypeFooter)
+		b.WriteString(`" Target="footer2.xml"/>`)
+	}
 	for _, rel := range d.rels {
 		b.WriteString(`<Relationship Id="`)
 		b.WriteString(xmlAttr(rel.ID))
@@ -406,6 +459,17 @@ func (d *docxDocument) sectionPropertiesXML() string {
 	if d.hasFooter {
 		sp.footerRelID = d.footerRelID
 	}
+	if d.hasHeaderEven {
+		sp.headerEvenRelID = d.headerEvenRelID
+	}
+	if d.hasFooterEven {
+		sp.footerEvenRelID = d.footerEvenRelID
+	}
+	// Title page must not carry running content; the MSA's title page is
+	// template-only, so suppress headers/footers there whenever any are set.
+	if d.hasHeader || d.hasFooter || d.hasHeaderEven || d.hasFooterEven {
+		sp.titlePg = true
+	}
 	b := &strings.Builder{}
 	sp.xml(b)
 	return b.String()
@@ -449,6 +513,12 @@ func (d *docxDocument) contentTypesXML() string {
 	if d.hasFooter {
 		b.WriteString(`<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`)
 	}
+	if d.hasHeaderEven {
+		b.WriteString(`<Override PartName="/word/header2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`)
+	}
+	if d.hasFooterEven {
+		b.WriteString(`<Override PartName="/word/footer2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`)
+	}
 	b.WriteString(`<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>`)
 	b.WriteString(`<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>`)
 	b.WriteString(`<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>`)
@@ -466,110 +536,236 @@ func (d *docxDocument) footnotesXML() string {
 		`</w:footnotes>`
 }
 
-// headerXML generates the word/header1.xml part.
-func (d *docxDocument) headerXML() string {
-	return d.runningHFXML("hdr", &d.theme.RunningHeader)
+// headerXML generates word/header*.xml for the given side.
+func (d *docxDocument) headerXML(side RunningHFSide, recto bool) string {
+	return d.runningHFXML("hdr", &d.theme.RunningHeader, side, recto)
 }
 
-// footerXML generates the word/footer1.xml part.
-func (d *docxDocument) footerXML() string {
-	return d.runningHFXML("ftr", &d.theme.RunningFooter)
+// footerXML generates word/footer*.xml for the given side.
+func (d *docxDocument) footerXML(side RunningHFSide, recto bool) string {
+	return d.runningHFXML("ftr", &d.theme.RunningFooter, side, recto)
 }
 
-// runningHFXML generates the XML for a running header or footer.
-func (d *docxDocument) runningHFXML(tag string, hf *RunningHFTheme) string {
+// runningHFXML generates the XML for a running header or footer part. When
+// the per-position side is set, a three-cell layout (left / centre / right)
+// is rendered with two tab stops; otherwise the legacy flat Content string
+// is rendered centre-aligned.
+func (d *docxDocument) runningHFXML(tag string, hf *RunningHFTheme, side RunningHFSide, recto bool) string {
 	b := &strings.Builder{}
 	b.WriteString(xmlHeader())
 	b.WriteString(`<w:`)
 	b.WriteString(tag)
-	b.WriteString(` xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
-	b.WriteString(`<w:p><w:pPr><w:jc w:val="center"/></w:pPr>`)
+	b.WriteString(` xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"`)
+	b.WriteString(` xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`)
 
-	// Run properties
-	hasRPr := hf.FontFamily != "" || hf.FontSize > 0 || hf.FontColor != "" || hf.FontStyle != ""
-	rprStr := ""
-	if hasRPr {
-		rpr := &strings.Builder{}
-		rpr.WriteString(`<w:rPr>`)
-		if hf.FontFamily != "" {
-			rpr.WriteString(`<w:rFonts w:ascii="`)
-			rpr.WriteString(xmlAttr(hf.FontFamily))
-			rpr.WriteString(`" w:hAnsi="`)
-			rpr.WriteString(xmlAttr(hf.FontFamily))
-			rpr.WriteString(`"/>`)
-		}
-		bold, italic := fontStyleBoldItalic(hf.FontStyle)
-		if bold {
-			rpr.WriteString(`<w:b/>`)
-		}
-		if italic {
-			rpr.WriteString(`<w:i/>`)
-		}
-		if hf.FontColor != "" {
-			rpr.WriteString(`<w:color w:val="`)
-			rpr.WriteString(xmlAttr(hf.FontColor))
-			rpr.WriteString(`"/>`)
-		}
-		if hf.FontSize > 0 {
-			sz := itoa(ptToHalfPt(hf.FontSize))
-			rpr.WriteString(`<w:sz w:val="`)
-			rpr.WriteString(sz)
-			rpr.WriteString(`"/><w:szCs w:val="`)
-			rpr.WriteString(sz)
-			rpr.WriteString(`"/>`)
-		}
-		rpr.WriteString(`</w:rPr>`)
-		rprStr = rpr.String()
-	}
+	rprStr := d.runningHFRunPropsXML(hf)
 
-	// Expand content template: {page-number} becomes a PAGE field
-	content := hf.Content
-	if strings.Contains(content, "{page-number}") {
-		parts := strings.Split(content, "{page-number}")
-		for i, part := range parts {
-			if part != "" {
-				b.WriteString(`<w:r>`)
-				if hasRPr {
-					b.WriteString(rprStr)
-				}
-				b.WriteString(`<w:t xml:space="preserve">`)
-				b.WriteString(xmlText(part))
-				b.WriteString(`</w:t></w:r>`)
-			}
-			if i < len(parts)-1 {
-				// PAGE field
-				b.WriteString(`<w:r>`)
-				if hasRPr {
-					b.WriteString(rprStr)
-				}
-				b.WriteString(`<w:fldChar w:fldCharType="begin"/></w:r>`)
-				b.WriteString(`<w:r>`)
-				if hasRPr {
-					b.WriteString(rprStr)
-				}
-				b.WriteString(`<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>`)
-				b.WriteString(`<w:r>`)
-				if hasRPr {
-					b.WriteString(rprStr)
-				}
-				b.WriteString(`<w:fldChar w:fldCharType="end"/></w:r>`)
-			}
-		}
+	if side.IsSet() {
+		d.writeRunningHFThreePositionParagraph(b, side, rprStr, recto)
 	} else {
-		// Plain text content
-		b.WriteString(`<w:r>`)
-		if hasRPr {
-			b.WriteString(rprStr)
-		}
-		b.WriteString(`<w:t xml:space="preserve">`)
-		b.WriteString(xmlText(content))
-		b.WriteString(`</w:t></w:r>`)
+		d.writeRunningHFFlatParagraph(b, hf.Content, rprStr)
 	}
 
 	b.WriteString(`</w:p></w:`)
 	b.WriteString(tag)
 	b.WriteString(`>`)
 	return b.String()
+}
+
+// runningHFRunPropsXML builds the shared <w:rPr> string for every run in a
+// header/footer paragraph; returns "" when no run properties are set.
+func (d *docxDocument) runningHFRunPropsXML(hf *RunningHFTheme) string {
+	if hf.FontFamily == "" && hf.FontSize == 0 && hf.FontColor == "" && hf.FontStyle == "" {
+		return ""
+	}
+	rpr := &strings.Builder{}
+	rpr.WriteString(`<w:rPr>`)
+	if hf.FontFamily != "" {
+		rpr.WriteString(`<w:rFonts w:ascii="`)
+		rpr.WriteString(xmlAttr(hf.FontFamily))
+		rpr.WriteString(`" w:hAnsi="`)
+		rpr.WriteString(xmlAttr(hf.FontFamily))
+		rpr.WriteString(`"/>`)
+	}
+	bold, italic := fontStyleBoldItalic(hf.FontStyle)
+	if bold {
+		rpr.WriteString(`<w:b/>`)
+	}
+	if italic {
+		rpr.WriteString(`<w:i/>`)
+	}
+	if hf.FontColor != "" {
+		rpr.WriteString(`<w:color w:val="`)
+		rpr.WriteString(xmlAttr(hf.FontColor))
+		rpr.WriteString(`"/>`)
+	}
+	if hf.FontSize > 0 {
+		sz := itoa(ptToHalfPt(hf.FontSize))
+		rpr.WriteString(`<w:sz w:val="`)
+		rpr.WriteString(sz)
+		rpr.WriteString(`"/><w:szCs w:val="`)
+		rpr.WriteString(sz)
+		rpr.WriteString(`"/>`)
+	}
+	rpr.WriteString(`</w:rPr>`)
+	return rpr.String()
+}
+
+// writeRunningHFFlatParagraph renders the legacy single-content layout,
+// centred, expanding {page-number} into a PAGE field.
+func (d *docxDocument) writeRunningHFFlatParagraph(b *strings.Builder, content, rprStr string) {
+	b.WriteString(`<w:p><w:pPr><w:jc w:val="center"/></w:pPr>`)
+	d.writeRunningHFTemplate(b, content, rprStr)
+}
+
+// writeRunningHFThreePositionParagraph renders three slots split by tab
+// stops: left aligned at the left margin, centre aligned at half the printed
+// width, right aligned at the full printed width. On verso pages the visual
+// order on screen is the same — OOXML always reads left-to-right; Word mirrors
+// for binding via even-page parts being a separate XML stream.
+func (d *docxDocument) writeRunningHFThreePositionParagraph(b *strings.Builder, side RunningHFSide, rprStr string, recto bool) {
+	width := d.textWidthTwips()
+	centre := width / 2
+	right := width
+	b.WriteString(`<w:p><w:pPr><w:tabs>`)
+	b.WriteString(`<w:tab w:val="center" w:pos="`)
+	b.WriteString(itoa(centre))
+	b.WriteString(`"/>`)
+	b.WriteString(`<w:tab w:val="right" w:pos="`)
+	b.WriteString(itoa(right))
+	b.WriteString(`"/>`)
+	b.WriteString(`</w:tabs></w:pPr>`)
+	_ = recto
+	if side.Left.IsSet() {
+		d.writeRunningHFTemplate(b, side.Left.Text(), rprStr)
+	}
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:tab/></w:r>`)
+	if side.Center.IsSet() {
+		d.writeRunningHFTemplate(b, side.Center.Text(), rprStr)
+	}
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:tab/></w:r>`)
+	if side.Right.IsSet() {
+		d.writeRunningHFTemplate(b, side.Right.Text(), rprStr)
+	}
+}
+
+// writeRunningHFTemplate emits the runs for a single template string,
+// substituting {name} attribute references and turning {page-number} /
+// {page-count} into PAGE / NUMPAGES OOXML fields. The fldChar form is used
+// (rather than fldSimple) to match the existing rendering convention in this
+// file and keep run properties uniform across literal, attribute, and field
+// runs.
+func (d *docxDocument) writeRunningHFTemplate(b *strings.Builder, template, rprStr string) {
+	for _, seg := range tokenizeRunningHFTemplate(template) {
+		switch seg.kind {
+		case hfSegText:
+			if seg.value == "" {
+				continue
+			}
+			d.writeRunningHFTextRun(b, seg.value, rprStr)
+		case hfSegPageField:
+			d.writeRunningHFFieldRuns(b, "PAGE", rprStr)
+		case hfSegPageCountField:
+			d.writeRunningHFFieldRuns(b, "NUMPAGES", rprStr)
+		case hfSegAttribute:
+			value, _ := d.hfAttributes[seg.value]
+			if value == "" {
+				continue
+			}
+			d.writeRunningHFTextRun(b, value, rprStr)
+		}
+	}
+}
+
+func (d *docxDocument) writeRunningHFTextRun(b *strings.Builder, text, rprStr string) {
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:t xml:space="preserve">`)
+	b.WriteString(xmlText(text))
+	b.WriteString(`</w:t></w:r>`)
+}
+
+func (d *docxDocument) writeRunningHFFieldRuns(b *strings.Builder, instr, rprStr string) {
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:fldChar w:fldCharType="begin"/></w:r>`)
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:instrText xml:space="preserve"> `)
+	b.WriteString(instr)
+	b.WriteString(` </w:instrText></w:r>`)
+	b.WriteString(`<w:r>`)
+	if rprStr != "" {
+		b.WriteString(rprStr)
+	}
+	b.WriteString(`<w:fldChar w:fldCharType="end"/></w:r>`)
+}
+
+type hfSegmentKind int
+
+const (
+	hfSegText hfSegmentKind = iota
+	hfSegPageField
+	hfSegPageCountField
+	hfSegAttribute
+)
+
+type hfSegment struct {
+	kind  hfSegmentKind
+	value string
+}
+
+// tokenizeRunningHFTemplate splits a header/footer template string into a
+// sequence of literal text and {name}-substitution segments. Page-number /
+// page-count are special-cased so the caller can emit OOXML field codes in
+// place of plain text. Unknown {name} segments become attribute lookups; the
+// caller decides what to do when the attribute is missing.
+func tokenizeRunningHFTemplate(s string) []hfSegment {
+	var out []hfSegment
+	var lit strings.Builder
+	i := 0
+	for i < len(s) {
+		if s[i] == '{' {
+			end := strings.IndexByte(s[i:], '}')
+			if end > 0 {
+				name := s[i+1 : i+end]
+				if lit.Len() > 0 {
+					out = append(out, hfSegment{kind: hfSegText, value: lit.String()})
+					lit.Reset()
+				}
+				switch name {
+				case "page-number":
+					out = append(out, hfSegment{kind: hfSegPageField})
+				case "page-count":
+					out = append(out, hfSegment{kind: hfSegPageCountField})
+				default:
+					out = append(out, hfSegment{kind: hfSegAttribute, value: name})
+				}
+				i += end + 1
+				continue
+			}
+		}
+		lit.WriteByte(s[i])
+		i++
+	}
+	if lit.Len() > 0 {
+		out = append(out, hfSegment{kind: hfSegText, value: lit.String()})
+	}
+	return out
 }
 
 func (d *docxDocument) numberingXML() string {
@@ -847,7 +1043,7 @@ func (d *docxDocument) stylesXML() string {
 			id: "Heading" + strconv.Itoa(i), name: "heading " + strconv.Itoa(i),
 			font: headingFont, size: t.headingSizeHalfPt(i),
 			bold: hBold, italic: hItalic, caps: caps, color: hColor,
-			outlineLevel: i - 1,
+			outlineLevel: headingOutlineLevel(i - 1),
 			keepNext:     true,
 		}
 		if mt := t.headingMarginTop(i); mt > 0 {
@@ -886,6 +1082,19 @@ func (d *docxDocument) stylesXML() string {
 		shading:   t.Admonition.BackgroundColor,
 		borderAll: t.Admonition.BorderColor, borderAllWidth: t.Admonition.BorderWidth,
 	}))
+
+	// AdmonitionLabel character style (NOTE/WARNING/etc. label run)
+	labelBold, labelItalic := fontStyleBoldItalic(t.Admonition.LabelFontStyle)
+	labelSize := 0
+	if t.Admonition.LabelFontSize > 0 {
+		labelSize = ptToHalfPt(t.Admonition.LabelFontSize)
+	}
+	charStyle{
+		id: "AdmonitionLabel", name: "Admonition Label",
+		color: t.Admonition.LabelFontColor, size: labelSize,
+		bold: labelBold, italic: labelItalic,
+		caps: t.Admonition.LabelTextTransform == "uppercase",
+	}.xml(b)
 
 	// Caption style
 	capSize := ptToHalfPt(t.Code.FontSize) // default: same as code size
@@ -973,14 +1182,87 @@ func (d *docxDocument) stylesXML() string {
 	}.xml(b)
 
 	charStyle{id: "FootnoteReference", name: "Footnote Reference", vertAlign: "superscript"}.xml(b)
+
+	// Custom role styles: one paragraph style per theme `role:` entry, basedOn
+	// Normal so unset properties cleanly inherit body defaults.
+	t.Roles.Each(func(role RoleTheme) {
+		b.WriteString(styleParaXML(roleStyleParaOpts(role)))
+	})
+
 	b.WriteString(`</w:styles>`)
 	return b.String()
 }
+
+// roleStyleParaOpts maps a RoleTheme onto styleParaOpts, applying the
+// padding/margin merge convention (top-padding adds to margin-top, etc.) and
+// inheriting from Normal so blank fields fall back to base body styling.
+func roleStyleParaOpts(role RoleTheme) styleParaOpts {
+	bold, italic := fontStyleBoldItalic(role.FontStyle)
+	caps := role.TextTransform == "uppercase"
+	opts := styleParaOpts{
+		id:      role.StyleID,
+		name:    role.StyleName,
+		basedOn: "Normal",
+		font:    role.FontFamily,
+		bold:    bold,
+		italic:  italic,
+		caps:    caps,
+		color:   role.FontColor,
+		shading: role.BackgroundColor,
+		align:   role.TextAlign,
+	}
+	if role.FontSize > 0 {
+		opts.size = ptToHalfPt(role.FontSize)
+	}
+	if role.BorderColor != "" {
+		opts.borderAll = role.BorderColor
+		opts.borderAllWidth = role.BorderWidth
+	}
+	top := role.MarginTop + role.PaddingTop
+	bottom := role.MarginBottom + role.PaddingBottom
+	if top > 0 {
+		opts.spaceBefore = ptToTwips(top)
+	}
+	if bottom > 0 {
+		opts.spaceAfter = ptToTwips(bottom)
+	}
+	if role.PaddingLeft > 0 {
+		opts.indentLeft = ptToTwips(role.PaddingLeft)
+	}
+	if role.PaddingRight > 0 {
+		opts.indentRight = ptToTwips(role.PaddingRight)
+	}
+	return opts
+}
+
+// outlineLevel models the optional w:outlineLvl paragraph property
+// (ECMA-376 §17.3.1.20). Only Heading1–Heading9 styles set a level
+// (val=0..8); body paragraphs leave it unset so Word's Navigation Pane
+// does not promote them to Heading 1. The zero value means "unset" so
+// styleParaOpts{} literals correctly omit the element. Mirrors the
+// Length pattern in theme_loader.go.
+type outlineLevel struct {
+	val int
+	set bool
+}
+
+// headingOutlineLevel constructs an outlineLevel for a heading style.
+// n is the zero-based Word outline level (Heading1 → 0, Heading9 → 8).
+func headingOutlineLevel(n int) outlineLevel {
+	return outlineLevel{val: n, set: true}
+}
+
+// IsSet reports whether the outline level was explicitly set.
+func (o outlineLevel) IsSet() bool { return o.set }
+
+// Value returns the outline level (0..8). Only meaningful when IsSet() is true.
+func (o outlineLevel) Value() int { return o.val }
 
 // styleParaOpts configures a paragraph style definition.
 type styleParaOpts struct {
 	id                string
 	name              string
+	basedOn           string // w:basedOn val; empty omits the element
 	font              string
 	size              int
 	bold              bool
@@ -997,7 +1279,8 @@ type styleParaOpts struct {
 	lineSpacing       int     // w:spacing w:line (240 = single)
 	align             string  // text alignment
 	indentLeft        int     // w:ind w:left (twips)
-	outlineLevel      int     // -1 = not set; 0–8 = Word outline level (w:outlineLvl)
+	indentRight       int     // w:ind w:right (twips)
+	outlineLevel      outlineLevel // w:outlineLvl; zero value omits the element (body paragraph)
 	keepNext          bool    // w:keepNext: keep paragraph on same page as next
 	contextualSpacing bool    // w:contextualSpacing: suppress spacing between same-style paragraphs
 }
@@ -1009,6 +1292,11 @@ func styleParaXML(opts styleParaOpts) string {
 	b.WriteString(`"><w:name w:val="`)
 	b.WriteString(xmlAttr(opts.name))
 	b.WriteString(`"/>`)
+	if opts.basedOn != "" {
+		b.WriteString(`<w:basedOn w:val="`)
+		b.WriteString(xmlAttr(opts.basedOn))
+		b.WriteString(`"/>`)
+	}
 	opts.writePPr(b)
 	opts.writeRPr(b)
 	b.WriteString(`</w:style>`)
@@ -1017,8 +1305,9 @@ func styleParaXML(opts styleParaOpts) string {
 
 func (opts styleParaOpts) writePPr(b *strings.Builder) {
 	hasPPr := opts.spaceBefore > 0 || opts.spaceAfter > 0 || opts.lineSpacing > 0 ||
-		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" || opts.indentLeft > 0 ||
-		opts.keepNext || opts.contextualSpacing || opts.outlineLevel >= 0
+		opts.shading != "" || opts.borderLeft != "" || opts.borderAll != "" || opts.align != "" ||
+		opts.indentLeft > 0 || opts.indentRight > 0 ||
+		opts.keepNext || opts.contextualSpacing || opts.outlineLevel.IsSet()
 	if !hasPPr {
 		return
 	}
@@ -1076,19 +1365,28 @@ func (opts styleParaOpts) writePPr(b *strings.Builder) {
 		bl.writeAttrs(b)
 		b.WriteString(`/></w:pBdr>`)
 	}
-	if opts.indentLeft > 0 {
-		b.WriteString(`<w:ind w:left="`)
-		b.WriteString(strconv.Itoa(opts.indentLeft))
-		b.WriteString(`"/>`)
+	if opts.indentLeft > 0 || opts.indentRight > 0 {
+		b.WriteString(`<w:ind`)
+		if opts.indentLeft > 0 {
+			b.WriteString(` w:left="`)
+			b.WriteString(strconv.Itoa(opts.indentLeft))
+			b.WriteString(`"`)
+		}
+		if opts.indentRight > 0 {
+			b.WriteString(` w:right="`)
+			b.WriteString(strconv.Itoa(opts.indentRight))
+			b.WriteString(`"`)
+		}
+		b.WriteString(`/>`)
 	}
 	if opts.align != "" {
 		b.WriteString(`<w:jc w:val="`)
 		b.WriteString(xmlAttr(ooxmlAlignment(opts.align)))
 		b.WriteString(`"/>`)
 	}
-	if opts.outlineLevel >= 0 {
+	if opts.outlineLevel.IsSet() {
 		b.WriteString(`<w:outlineLvl w:val="`)
-		b.WriteString(itoa(opts.outlineLevel))
+		b.WriteString(itoa(opts.outlineLevel.Value()))
 		b.WriteString(`"/>`)
 	}
 	b.WriteString(`</w:pPr>`)
@@ -1119,11 +1417,14 @@ func (opts styleParaOpts) writeRPr(b *strings.Builder) {
 		b.WriteString(xmlAttr(opts.color))
 		b.WriteString(`"/>`)
 	}
-	b.WriteString(`<w:sz w:val="`)
-	b.WriteString(strconv.Itoa(opts.size))
-	b.WriteString(`"/><w:szCs w:val="`)
-	b.WriteString(strconv.Itoa(opts.size))
-	b.WriteString(`"/></w:rPr>`)
+	if opts.size > 0 {
+		b.WriteString(`<w:sz w:val="`)
+		b.WriteString(strconv.Itoa(opts.size))
+		b.WriteString(`"/><w:szCs w:val="`)
+		b.WriteString(strconv.Itoa(opts.size))
+		b.WriteString(`"/>`)
+	}
+	b.WriteString(`</w:rPr>`)
 }
 
 // ooxmlAlignment maps theme alignment values to OOXML w:jc values.
@@ -1165,14 +1466,19 @@ func xmlAttr(s string) string {
 	return xmlAttrReplacer.Replace(s)
 }
 
-func settingsXML() string {
-	return xmlHeader() +
-		`<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
-		`<w:defaultTabStop w:val="720"/>` +
-		`<w:compat>` +
-		`<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>` +
-		`</w:compat>` +
-		`</w:settings>`
+func (d *docxDocument) settingsXML() string {
+	b := &strings.Builder{}
+	b.WriteString(xmlHeader())
+	b.WriteString(`<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`)
+	b.WriteString(`<w:defaultTabStop w:val="720"/>`)
+	if d.hasEvenHeaderFooter() {
+		b.WriteString(`<w:evenAndOddHeaders/>`)
+	}
+	b.WriteString(`<w:compat>`)
+	b.WriteString(`<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>`)
+	b.WriteString(`</w:compat>`)
+	b.WriteString(`</w:settings>`)
+	return b.String()
 }
 
 func (d *docxDocument) fontTableXML() string {
